@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Barbershop Js – Gestão</title>
+<style>
+:root{--bg:#faf8f5;--card:#fff;--tx:#1d1b19;--mu:#6b655e;--ac:#b4562a;--on:#fff;--bd:#e4ded6;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#171513;--card:#221f1c;--tx:#f2eee8;--mu:#a39b91;--ac:#e0824f;--on:#1a1209;--bd:#38332e;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:520px;margin:0 auto;padding:16px 16px 40px}
+h1{font-size:20px;margin:0}h2{font-size:17px;margin:0}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.mu{color:var(--mu);font-size:14px}.er{color:#c0392b;font-size:14px}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tab{flex:1;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:15px}
+.tab.on{background:var(--ac);color:var(--on);border-color:var(--ac)}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.nav button,.sm{padding:8px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:15px;text-decoration:none;display:inline-block}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin:8px 0}
+.act{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.danger{color:#c0392b;border-color:#c0392b}
+.go{background:var(--ac);color:var(--on);border:0;border-radius:10px;padding:12px 18px;font-size:16px;font-weight:600;width:100%}
+input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:16px;margin:6px 0}
+</style></head><body><main>
+<div class="top"><h1>✂️ Barbershop Js · Gestão</h1><button class="sm" id="out" style="display:none">Sair</button></div>
+<div id="app"></div>
+</main>
+<script>
+const SB="https://esuvgaijkahzoctyyawe.supabase.co",KEY="sb_publishable_bC-fW9ei_xw9ovFzPJE7cA_Fkd8QSsz";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const DW=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"],MS=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const hm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+const key=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const fm=n=>"R$ "+Number(n).toFixed(2).replace(".",",");
+const wa=(p,t)=>"https://wa.me/"+(p.length>=12?p:"55"+p)+(t?"?text="+encodeURIComponent(t):"");
+let S=null,tab=0,day=new Date(),bm=new Date(),list=[],cl=[],conf=null,msg="",busy=false;
+try{S=JSON.parse(localStorage.getItem("s")||"null")}catch(e){}
+const save=()=>{try{S?localStorage.setItem("s",JSON.stringify(S)):localStorage.removeItem("s")}catch(e){}};
+async function auth(body,g){const r=await fetch(SB+"/auth/v1/token?grant_type="+g,{method:"POST",headers:{apikey:KEY,"Content-Type":"application/json"},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(r.status+": "+(j.msg||j.error_description||j.message||j.error_code||j.error||"erro"));S={a:j.access_token,r:j.refresh_token};save()}
+async function api(p,o={}){const f=()=>fetch(SB+"/rest/v1/"+p,{...o,headers:{apikey:KEY,Authorization:"Bearer "+S.a,"Content-Type":"application/json",...(o.headers||{})}});
+let r=await f();if(r.status==401){try{await auth({refresh_token:S.r},"refresh_token")}catch(e){S=null;save();render();throw 0}r=await f()}
+if(!r.ok)throw 0;return o.method=="PATCH"?null:r.json()}
+async function loadDay(){busy=true;msg="";render();try{list=await api("bookings?select=*&status=eq.confirmed&date=eq."+key(day)+"&order=start_min")}catch(e){msg="Erro ao carregar a agenda."}busy=false;render()}
+async function loadCl(){busy=true;msg="";render();try{cl=await api("clients?select=name,phone,birth_date&birth_date=not.is.null")}catch(e){msg="Erro ao carregar os clientes."}busy=false;render()}
+function render(){const a=$("#app");$("#out").style.display=S?"":"none";
+if(!S){a.innerHTML=`<div class=card><h2>Entrar</h2><input id=em type=email placeholder="E-mail" autocomplete=username><input id=pw type=password placeholder="Senha" autocomplete=current-password><p class=er id=er>${esc(msg)}</p><button class=go id=login>Entrar</button></div>`;return}
+let h=`<div class=tabs><button class="tab ${tab==0?"on":""}" data-tab=0>Agenda</button><button class="tab ${tab==1?"on":""}" data-tab=1>Aniversários</button></div>`;
+if(tab==0){const t=list.reduce((s,b)=>s+Number(b.total),0);
+h+=`<div class=nav><button data-nav=-1>‹</button><div style="text-align:center"><b>${DW[day.getDay()]}, ${String(day.getDate()).padStart(2,"0")}/${String(day.getMonth()+1).padStart(2,"0")}</b><br><button class=sm data-nav=0 style="margin-top:4px">Hoje</button></div><button data-nav=1>›</button></div>`;
+if(msg)h+=`<p class=er>${esc(msg)}</p>`;
+h+=busy?`<p class=mu>Carregando…</p>`:list.length?list.map(b=>`<div class=card><b>${hm(b.start_min)}–${hm(b.end_min)} · ${esc(b.client_name)}</b><div class=mu>${b.services.map(s=>esc(s.name)+(s.qty>1?" x"+s.qty:"")).join(", ")}</div><div>${fm(b.total)}</div><div class=act><a class=sm target=_blank rel=noopener href="${wa(b.client_phone)}">WhatsApp</a><button class="sm danger" data-x="${b.id}">${conf==b.id?"Toque de novo para cancelar":"Cancelar"}</button></div></div>`).join("")+`<p class=mu>${list.length} horário(s) · ${fm(t)}</p>`:`<p class=mu>Nenhum horário marcado neste dia.</p>`}
+else{const m=bm.getMonth()+1,L=cl.filter(c=>+c.birth_date.split("-")[1]==m).sort((x,y)=>+x.birth_date.split("-")[2]-+y.birth_date.split("-")[2]);
+h+=`<div class=nav><button data-m=-1>‹</button><b>${MS[bm.getMonth()]} ${bm.getFullYear()}</b><button data-m=1>›</button></div>`;
+if(msg)h+=`<p class=er>${esc(msg)}</p>`;
+h+=busy?`<p class=mu>Carregando…</p>`:L.length?L.map(c=>{const [y,mm,d]=c.birth_date.split("-"),n=c.name.split(" ")[0];return `<div class=card><b>${d}/${mm} · ${esc(c.name)}</b><div class=mu>${esc(c.phone)}</div><div class=act><a class=sm target=_blank rel=noopener href="${wa(c.phone,`Feliz aniversário, ${n}! 🎂 A Barbershop Js deseja um dia incrível pra você.`)}">Mandar parabéns</a></div></div>`}).join(""):`<p class=mu>Nenhum aniversariante neste mês.</p>`}
+a.innerHTML=h}
+document.addEventListener("click",async e=>{const t=e.target.closest("button");if(!t)return;
+if(t.id=="login"){try{await auth({email:$("#em").value.trim(),password:$("#pw").value},"password");msg="";tab=0;loadDay()}catch(x){$("#er").textContent="Falha no login ("+(x&&x.message?x.message:"sem conexão")+")"}return}
+if(t.id=="out"){S=null;save();msg="";render();return}
+if(t.dataset.tab!=null){tab=+t.dataset.tab;tab==0?loadDay():loadCl();return}
+if(t.dataset.nav!=null){const n=+t.dataset.nav;day=n==0?new Date():new Date(day.getFullYear(),day.getMonth(),day.getDate()+n);conf=null;loadDay();return}
+if(t.dataset.m!=null){bm=new Date(bm.getFullYear(),bm.getMonth()+ +t.dataset.m,1);render();return}
+if(t.dataset.x){const id=t.dataset.x;if(conf!=id){conf=id;render();return}
+conf=null;try{await api("bookings?id=eq."+id,{method:"PATCH",body:JSON.stringify({status:"cancelled"}),headers:{Prefer:"return=minimal"}})}catch(x){msg="Não foi possível cancelar."}loadDay()}});
+if(S)loadDay();else render();
+</script></body></html>
