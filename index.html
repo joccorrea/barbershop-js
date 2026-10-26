@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Barbershop Js – Agendamento</title>
+<style>
+:root{--bg:#faf8f5;--card:#fff;--tx:#1d1b19;--mu:#6b655e;--ac:#b4562a;--on:#fff;--bd:#e4ded6;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#171513;--card:#221f1c;--tx:#f2eee8;--mu:#a39b91;--ac:#e0824f;--on:#1a1209;--bd:#38332e;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:480px;margin:0 auto;padding:16px 16px 120px}
+.hd{display:flex;gap:14px;align-items:center}.logo{width:84px;height:84px;border-radius:50%;background:#fff;flex:none}
+.hd a{display:block;margin-top:4px;text-decoration:none}
+h1{font-size:20px;margin:0 0 2px}h2{font-size:17px;margin:18px 0 6px}
+.mu{color:var(--mu);font-size:14px;margin:0}.er{color:#c0392b;font-size:14px}
+.row{display:flex;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px;margin:8px 0}
+.st{display:flex;align-items:center;gap:12px}.st span{min-width:16px;text-align:center}
+.st button{width:36px;height:36px;border-radius:50%;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:20px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:10px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:15px}
+.chip.on{background:var(--ac);color:var(--on);border-color:var(--ac)}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--bd);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:12px;align-items:center;justify-content:space-between}
+.bar div{font-size:14px}
+.go{display:inline-block;text-decoration:none;background:var(--ac);color:var(--on);border:0;border-radius:10px;padding:12px 18px;font-size:16px;font-weight:600}
+.go:disabled{opacity:.4}
+.lnk{background:none;border:0;color:var(--mu);padding:8px 0;font-size:14px}
+input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:16px;margin:6px 0}
+.sum{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin:12px 0}
+.code{font-size:28px;font-weight:700;letter-spacing:4px;margin:6px 0}
+</style></head><body><main>
+<header class="hd"><img class="logo" alt="Logo Barbershop Js" src="logo.jpg" onerror="this.style.display='none'"><div><h1>Barbershop Js</h1><p class="mu">Barbeiro: Josué</p><a class="mu" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=Avenida+Alto+da+Serra+604+Alto+da+Serra+Monte+Si%C3%A3o+MG">📍 Av. Alto da Serra, 604 · Alto da Serra<br>Monte Sião – MG</a></div></header>
+<p class="mu" style="margin-top:12px">Agende seu horário, rápido e sem cadastro.</p>
+<button class="lnk" id="mine">Já tenho horário / cancelar →</button>
+<div id="app"></div>
+</main>
+<script>
+const SB="https://esuvgaijkahzoctyyawe.supabase.co",KEY="sb_publishable_bC-fW9ei_xw9ovFzPJE7cA_Fkd8QSsz";
+const $=s=>document.querySelector(s);
+const hd={apikey:KEY,"Content-Type":"application/json"};
+const rpc=(f,b)=>fetch(SB+"/rest/v1/rpc/"+f,{method:"POST",headers:hd,body:JSON.stringify(b)}).then(r=>{if(!r.ok)throw 0;return r.json()});
+const get=p=>fetch(SB+"/rest/v1/"+p,{headers:hd}).then(r=>{if(!r.ok)throw 0;return r.json()});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ER={dados_invalidos:"Confira seu nome e WhatsApp (com DDD).",nascimento_invalido:"Data de nascimento inválida.",precisa_nascimento:"Informe sua data de nascimento.",horario_invalido:"Horário indisponível. Escolha outro.",horario_ocupado:"Esse horário acabou de ser ocupado. Escolha outro."};
+const DW=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+let SV=[],H={},BR={id:1,name:"Josué"},q=[],st=0,date=null,time=null,busy=[],who={},res=null,cres=null,msg="";
+const fm=n=>"R$ "+Number(n).toFixed(2).replace(".",",");
+const cuts=()=>SV.reduce((a,s,i)=>a+(s.is_cut?q[i]:0),0);
+const dur=()=>30*Math.max(1,cuts());
+const total=()=>SV.reduce((a,s,i)=>a+s.price*q[i],0);
+const items=()=>q.reduce((a,b)=>a+b,0);
+const hm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+const key=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const lab=d=>DW[d.getDay()]+" "+String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0");
+const pd=s=>{const [y,m,d]=s.split("-");return new Date(+y,m-1,+d)};
+const open=d=>{const o=H[d.getDay()];return o&&o.open_min!=null?o:null};
+function days(){const r=[],n=new Date();for(let i=0;r.length<14&&i<40;i++){const x=new Date(n.getFullYear(),n.getMonth(),n.getDate()+i);if(open(x))r.push(x)}return r}
+function slots(d){const o=open(d),n=dur(),now=new Date(),td=key(now)==key(d),nm=now.getHours()*60+now.getMinutes(),r=[];if(!o)return r;
+for(let t=o.open_min;t+n<=o.close_min;t+=30){if(t<o.lunch_end&&t+n>o.lunch_start)continue;if(busy.some(x=>t<x.end_min&&t+n>x.start_min))continue;if(td&&t<=nm)continue;r.push(t)}return r}
+async function loadBusy(){const d=date;try{const b=await rpc("get_busy",{p_date:key(d),p_barber:BR.id});if(date===d){busy=b;render()}}catch(e){msg="Erro ao carregar horários. Tente de novo.";render()}}
+function render(){const a=$("#app"),M=msg?`<p class=er>${esc(msg)}</p>`:"";
+if(st==0){a.innerHTML=`<p class=mu>${msg?esc(msg):"Carregando…"}</p>`}
+else if(st==1){a.innerHTML="<h2>Escolha os serviços</h2><p class=mu>Cada corte adicional soma 30 min (uma pessoa a mais).</p>"+
+SV.map((s,i)=>`<div class=row><div><b>${esc(s.name)}</b><div class=mu>${fm(s.price)}</div></div><div class=st><button data-i=${i} data-d=-1>−</button><span>${q[i]}</span><button data-i=${i} data-d=1>+</button></div></div>`).join("")+
+`<div class=bar><div>${items()?items()+" item(ns) · "+fm(total())+"<br>"+dur()+" min":"Nenhum serviço"}</div><button class=go id=n1 ${items()?"":"disabled"}>Continuar</button></div>`}
+else if(st==2){const sl=date?slots(date):[];
+a.innerHTML=`<button class=lnk id=b1>← Serviços</button><h2>Escolha o dia</h2><div class=chips>${days().map(d=>`<button class="chip ${date&&key(d)==key(date)?"on":""}" data-date="${key(d)}">${lab(d)}</button>`).join("")}</div>`+M+
+(date?`<h2>Horário (${dur()} min)</h2>`+(sl.length?`<div class=chips>${sl.map(t=>`<button class="chip ${t===time?"on":""}" data-t=${t}>${hm(t)}</button>`).join("")}</div>`:"<p class=mu>Sem horários livres neste dia. Tente outro.</p>"):"")+
+`<div class=bar><div>${time!=null?lab(date)+" às "+hm(time):"Escolha dia e horário"}</div><button class=go id=n2 ${time!=null?"":"disabled"}>Continuar</button></div>`}
+else if(st==3){a.innerHTML=`<button class=lnk id=b2>← Horário</button><h2>Seus dados</h2><input id=nm placeholder="Seu nome" value="${esc(who.n||"")}" autocomplete=name><input id=ph placeholder="WhatsApp (com DDD)" inputmode=tel value="${esc(who.p||"")}" autocomplete=tel>
+<div id=bw><p class=mu style="margin-top:8px">Data de nascimento (só no primeiro agendamento)</p><input id=bd type=date value="${esc(who.b||"")}" max="${key(new Date())}"></div>
+<p class=mu>Usamos seus dados só para agendamento e mensagens da barbearia.</p><p id=er class=er></p>
+<div class=sum><b>${lab(date)} às ${hm(time)}</b> (${dur()} min) · com ${esc(BR.name)}<br>${SV.map((s,i)=>q[i]?s.name+" x"+q[i]:"").filter(Boolean).map(esc).join(", ")}<br><b>Total: ${fm(total())}</b></div>
+<div class=bar><div></div><button class=go id=n3>Confirmar agendamento</button></div>`}
+else if(st==4){const ph=who.p.length>=12?who.p:"55"+who.p,tx=`Barbershop Js: horário confirmado, ${lab(date)} às ${hm(time)}. Para cancelar, use o código ${res.code} (até 2h antes).`;
+a.innerHTML=`<h2>Agendado! ✅</h2><div class=sum><b>${esc(who.n)}</b>, seu horário está confirmado para <b>${lab(date)} às ${hm(time)}</b>, com ${esc(BR.name)}.<br>Total: ${fm(res.total)}<br>Av. Alto da Serra, 604, Monte Sião – MG<p class=mu style="margin-top:12px">Seu código de cancelamento:</p><div class=code>${esc(res.code)}</div><p class=mu>Guarde este código. Você vai precisar dele para cancelar.</p></div>
+<a class=go target=_blank rel=noopener href="https://wa.me/${ph}?text=${encodeURIComponent(tx)}">Enviar para o meu WhatsApp</a><p><button class=lnk id=again>Fazer outro agendamento</button></p>`}
+else{a.innerHTML=`<button class=lnk id=b0>← Voltar</button><h2>Cancelar horário</h2><p class=mu>Informe o WhatsApp e o código que você recebeu ao agendar.</p><input id=ph2 placeholder="WhatsApp (com DDD)" inputmode=tel value="${esc(who.p||"")}"><input id=cd placeholder="Código (ex.: K7M2QX)" value="${esc(who.c||"")}" autocapitalize=characters><button class=go id=find>Buscar</button>${M}`+
+(cres?(()=>{const d=pd(cres.date);return `<div class=sum><b>${lab(d)} às ${hm(cres.start_min)}</b> (${cres.end_min-cres.start_min} min)<br>${cres.services.map(s=>esc(s.name)+" x"+s.qty).join(", ")}<br><br>`+(cres.can_cancel?`<button class=go data-c=1>Cancelar este horário</button>`:`<span class=mu>Cancelamento só até 2h antes. Fale direto com o barbeiro ${esc(BR.name)}.</span>`)+"</div>"})():"")}}
+async function book(){const n=$("#nm").value.trim(),p=$("#ph").value.replace(/\D/g,""),bd=$("#bd").value,bv=$("#bw").style.display!="none",er=m=>{$("#er").textContent=m};who={n,p,b:bd};
+if(n.length<2||p.length<10){er(ER.dados_invalidos);return}
+if(bv&&!bd){er(ER.precisa_nascimento);return}
+$("#n3").disabled=true;
+try{const r=await rpc("create_booking",{p_name:n,p_phone:p,p_birth:bv&&bd?bd:null,p_date:key(date),p_start:time,p_items:SV.map((s,i)=>({id:s.id,qty:q[i]})).filter(x=>x.qty)});
+if(r.ok){res=r;st=4;render();window.scrollTo(0,0);return}
+if(r.error=="horario_ocupado"||r.error=="horario_invalido"){st=2;time=null;msg=ER[r.error];render();loadBusy();return}
+if(r.error=="precisa_nascimento")$("#bw").style.display="block";
+er(ER[r.error]||"Não foi possível agendar.")}catch(e){er("Erro de conexão. Tente de novo.")}
+$("#n3").disabled=false}
+async function find(){const p=$("#ph2").value.replace(/\D/g,""),c=$("#cd").value.trim().toUpperCase();who={p,c};cres=null;
+if(p.length<10||c.length<4){msg="Informe o WhatsApp e o código.";render();return}
+try{const r=await rpc("find_booking",{p_phone:p,p_code:c});cres=r[0]||null;msg=r[0]?"":"Nenhum horário encontrado com esses dados."}catch(e){msg="Erro de conexão."}render()}
+async function cancel(){try{const r=await rpc("cancel_booking",{p_id:cres.id,p_phone:who.p,p_code:who.c});if(r.ok){cres=null;who={};msg="Horário cancelado. ✅"}else msg=r.error=="prazo_encerrado"?"Prazo de cancelamento encerrado. Fale com o barbeiro.":"Não foi possível cancelar."}catch(e){msg="Erro de conexão."}render()}
+document.addEventListener("input",async e=>{if(e.target.id!="ph")return;const p=e.target.value.replace(/\D/g,"");if(p.length<10)return;try{const k=await rpc("client_known",{p_phone:p});$("#bw").style.display=k?"none":"block"}catch(x){}});
+document.addEventListener("click",async e=>{const t=e.target.closest("button");if(!t)return;const p=st;msg="";
+if(t.dataset.i!=null){const i=+t.dataset.i;q[i]=Math.max(0,Math.min(9,q[i]+ +t.dataset.d));time=null}
+else if(t.dataset.date){date=pd(t.dataset.date);time=null;busy=[];render();await loadBusy();return}
+else if(t.dataset.t){time=+t.dataset.t}
+else if(t.id=="n1"){st=2;time=null}
+else if(t.id=="b1"||t.id=="b0"){st=1}
+else if(t.id=="n2"){st=3}
+else if(t.id=="b2"){st=2}
+else if(t.id=="n3"){await book();return}
+else if(t.id=="again"){q=q.map(()=>0);date=null;time=null;res=null;st=1}
+else if(t.id=="mine"){who={};cres=null;st=5}
+else if(t.id=="find"){await find();return}
+else if(t.dataset.c){await cancel();return}
+else return;
+render();if(p!==st)window.scrollTo(0,0)});
+(async()=>{try{const[s,h,b]=await Promise.all([get("services?select=id,name,price,is_cut&active=eq.true&order=sort"),get("business_hours?select=*"),get("barbers?select=id,name&active=eq.true&order=id&limit=1")]);SV=s;q=s.map(()=>0);h.forEach(x=>H[x.weekday]=x);if(b[0])BR=b[0];st=1}catch(e){msg="Não foi possível carregar. Tente novamente em instantes."}render()})();
+</script></body></html>
