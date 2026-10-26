@@ -1,117 +1,136 @@
 <!DOCTYPE html>
-<html lang="pt-BR"><head><meta charset="utf-8">
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Barbershop Js – Gestão</title>
-<style>
-:root{--bg:#090909;--card:#151515;--tx:#f5f1e6;--mu:#b6aa8e;--ac:#d4af37;--on:#090909;--bd:#383126;color-scheme:dark}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-main{max-width:520px;margin:0 auto;padding:16px 16px 40px}
-h1{font-size:20px;margin:0}h2{font-size:17px;margin:0}
-.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.mu{color:var(--mu);font-size:14px}.er{color:#c0392b;font-size:14px}
-.tabs{display:flex;gap:8px;margin-bottom:12px}
-.tab{flex:1;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:15px}
-.tab.on{background:var(--ac);color:var(--on);border-color:var(--ac)}
-.nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
-.nav button,.sm{padding:8px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:15px;text-decoration:none;display:inline-block}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin:8px 0}
-.act{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-.danger{color:#c0392b;border-color:#c0392b}
-.go{background:var(--ac);color:var(--on);border:0;border-radius:10px;padding:12px 18px;font-size:16px;font-weight:600;width:100%}
-input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font-size:16px;margin:6px 0}
-</style>
-
-<link rel="manifest" href="/barbershop-js/manifest.json">
 <meta name="theme-color" content="#111111">
+<link rel="manifest" href="/barbershop-js/manifest.json">
 <link rel="apple-touch-icon" href="/barbershop-js/logo.jpg">
-
-</head><body><main>
-<div class="top"><h1>✂️ Barbershop Js · Gestão</h1><button class="sm" id="out" style="display:none">Sair</button></div>
+<title>Barber Shop JS · Administração</title>
+<meta name="app-version" content="gestao-admin-2026-10-26-r2">
+<style>
+:root{--bg:#090909;--card:#151515;--tx:#f5f1e6;--mu:#b6aa8e;--ac:#d4af37;--bd:#383126;--danger:#e05a52;--green:#77c68a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:760px;margin:auto;padding:12px 14px 40px}.top{display:flex;align-items:center;gap:12px;margin-bottom:16px}.logo{width:48px;height:48px;object-fit:contain;border-radius:50%;background:#fff}.brand{font-weight:800;font-size:19px;flex:1}.btn,button,a.btn{border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:10px 12px;border-radius:10px;font:inherit;text-decoration:none;cursor:pointer}.primary{background:var(--ac)!important;color:#111!important;border-color:var(--ac)!important;font-weight:700}.danger{border-color:var(--danger)!important;color:#ff8b84!important}.small{padding:6px 9px;font-size:13px}.muted{color:var(--mu);font-size:13px}.error{color:#ff8b84}.success{color:var(--green)}.card{background:var(--card);border:1px solid var(--bd);border-radius:13px;padding:13px;margin:10px 0}.row{display:flex;align-items:center;gap:10px}.between{justify-content:space-between}.grow{flex:1;min-width:0}.time{font-weight:800;min-width:52px}.slot{width:100%;text-align:left;display:flex;align-items:center;gap:10px;min-height:45px;margin:5px 0;background:#171717}.slot.blocked{background:#24211a;border-color:#6b5520}.slot.lunch{opacity:.7}.slot.booked{border-color:#6b5520}.slot .desc{flex:1}.menu{display:none;border:1px solid var(--bd);border-radius:12px;padding:8px;background:#111;margin-bottom:12px}.menu.open{display:grid;grid-template-columns:1fr 1fr;gap:7px}.menu button{text-align:left}.section-title{font-size:18px;font-weight:750;margin:10px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{margin:8px 0}.field label{display:block;color:var(--mu);font-size:13px;margin-bottom:4px}input,select,textarea{width:100%;background:#101010;border:1px solid var(--bd);border-radius:9px;padding:11px;color:var(--tx);font:inherit}textarea{min-height:76px;resize:vertical}.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.pill{display:inline-block;border:1px solid var(--bd);border-radius:999px;padding:4px 8px;color:var(--mu);font-size:12px}.hidden{display:none!important}.form-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.notice{padding:10px;border-radius:9px;background:#201d15;color:var(--mu);margin:8px 0}.subnav{display:flex;gap:7px;overflow:auto;padding:3px 0 8px}.subnav button{white-space:nowrap}.thumb{width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--bd)}@media(max-width:520px){.grid{grid-template-columns:1fr}.brand{font-size:17px}.menu.open{grid-template-columns:1fr 1fr}main{padding:10px 11px 30px}}
+</style>
+</head>
+<body><main>
+<header class="top">
+<button class="btn" id="hamb" aria-label="Abrir menu">☰</button>
+<img class="logo" src="/barbershop-js/logo.jpg" alt="Logo" onerror="this.style.display='none'">
+<div class="brand">Barber Shop JS</div>
+<button class="btn small hidden" id="logout">Sair</button>
+</header>
+<nav class="menu" id="menu">
+<button data-page="agenda">Agenda</button><button data-page="settings">Configurações</button>
+<button data-page="clients">Clientes</button><button data-page="products">Produtos</button>
+<button data-page="services">Serviços</button><button data-page="birthdays">Aniversários</button>
+</nav>
 <div id="app"></div>
 </main>
 <script>
 const SB="https://esuvgaijkahzoctyyawe.supabase.co",KEY="sb_publishable_bC-fW9ei_xw9ovFzPJE7cA_Fkd8QSsz";
-const $=s=>document.querySelector(s);
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const DW=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"],MS=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-const hm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+const $=s=>document.querySelector(s),app=$("#app");
+const esc=s=>String(s??"").replace(/[&<>\"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const hm=m=>String(Math.floor(Number(m)/60)).padStart(2,"0")+":"+String(Number(m)%60).padStart(2,"0");
 const key=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-const fm=n=>"R$ "+Number(n).toFixed(2).replace(".",",");
-const wa=(p,t)=>"https://wa.me/"+(p.length>=12?p:"55"+p)+(t?"?text="+encodeURIComponent(t):"");
-let S=null,tab=0,day=new Date(),bm=new Date(),list=[],cl=[],conf=null,msg="",busy=false;
-try{S=JSON.parse(localStorage.getItem("s")||"null")}catch(e){}
-const save=()=>{try{S?localStorage.setItem("s",JSON.stringify(S)):localStorage.removeItem("s")}catch(e){}};
-async function auth(body,g){const r=await fetch(SB+"/auth/v1/token?grant_type="+g,{method:"POST",headers:{apikey:KEY,"Content-Type":"application/json"},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(r.status+": "+(j.msg||j.error_description||j.message||j.error_code||j.error||"erro"));S={a:j.access_token,r:j.refresh_token};save()}
-async function api(p,o={}){const f=()=>fetch(SB+"/rest/v1/"+p,{...o,headers:{apikey:KEY,Authorization:"Bearer "+S.a,"Content-Type":"application/json",...(o.headers||{})}});
-let r=await f();if(r.status==401){try{await auth({refresh_token:S.r},"refresh_token")}catch(e){S=null;save();render();throw 0}r=await f()}
-if(!r.ok)throw 0;return o.method=="PATCH"?null:r.json()}
-let hours=[];
-async function loadDay(){
-busy=true;msg="";render();
+const fm=n=>"R$ "+Number(n||0).toFixed(2).replace(".",",");
+const DW=["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
+const MONTH=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+let session=null,page="agenda",day=new Date(),month=new Date(),bookings=[],hours=null,clients=[],services=[],products=[],barbers=[],blocks=[],notice="",confirmCancel=null,editClientPhone=null,editServiceId=null,editProductId=null;
+try{session=JSON.parse(localStorage.getItem("bsjs_admin_session")||"null")}catch(e){}
+function saveSession(){session?localStorage.setItem("bsjs_admin_session",JSON.stringify(session)):localStorage.removeItem("bsjs_admin_session")}
+async function auth(body,grant="password"){let r=await fetch(SB+"/auth/v1/token?grant_type="+grant,{method:"POST",headers:{apikey:KEY,"Content-Type":"application/json"},body:JSON.stringify(body)});let j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.msg||j.message||j.error_description||"Falha no login");session={access_token:j.access_token,refresh_token:j.refresh_token};saveSession()}
+async function api(path,opts={}){if(!session?.access_token)throw Error("Faça login novamente.");let headers={apikey:KEY,Authorization:"Bearer "+session.access_token,"Content-Type":"application/json",Prefer:"return=representation",...(opts.headers||{})};let r=await fetch(SB+"/rest/v1/"+path,{...opts,headers});if(r.status===401&&session.refresh_token){try{await auth({refresh_token:session.refresh_token},"refresh_token")}catch(e){session=null;saveSession();throw Error("Sessão expirada. Entre novamente.")}headers.Authorization="Bearer "+session.access_token;r=await fetch(SB+"/rest/v1/"+path,{...opts,headers})}let text=await r.text();if(!r.ok)throw Error(text||("Erro "+r.status));return text?JSON.parse(text):null}
+function setNotice(s="",kind=""){notice=s;renderNotice(kind)}
+function renderNotice(kind=""){let n=$("#notice");if(n)n.innerHTML=notice?`<div class="notice ${kind}">${esc(notice)}</div>`:""}
+function shell(title,content){app.innerHTML=`<div class="section-title">${title}</div><div id="notice"></div>${content}`;renderNotice()}
+function field(label,name,value="",type="text",extra=""){return `<div class="field"><label for="${name}">${label}</label><input id="${name}" name="${name}" type="${type}" value="${esc(value)}" ${extra}></div>`}
+function area(label,name,value=""){return `<div class="field"><label for="${name}">${label}</label><textarea id="${name}" name="${name}">${esc(value)}</textarea></div>`}
+function val(id){return $("#"+id)?.value??""}
+function checked(id){return !!$("#"+id)?.checked}
+function num(id){return Number(val(id)||0)}
+function optionList(items,value,label){return items.map(x=>`<option value="${esc(x[value])}">${esc(x[label])}</option>`).join("")}
+function currentUserUI(){const login=$("#login-card");if(login)login.classList.toggle("hidden",!!session);$("#logout").classList.toggle("hidden",!session);$("#hamb").classList.toggle("hidden",!session);$("#menu").classList.toggle("hidden",!session)}
+function loginView(){app.innerHTML=`<div class="card" id="login-card"><div class="section-title">Entrar na gestão</div><div class="field"><label>E-mail</label><input id="email" type="email" autocomplete="username"></div><div class="field"><label>Senha</label><input id="password" type="password" autocomplete="current-password"></div><p id="login-error" class="error"></p><button class="btn primary" id="do-login" style="width:100%">Entrar</button></div>`;currentUserUI()}
+function showError(e){notice=e?.message||"Ocorreu um erro.";renderNotice("error")}
+async function loadAgenda(){const date=key(day),wd=day.getDay();try{[bookings,hours,blocks]=await Promise.all([api(`bookings?select=*&date=eq.${date}&status=eq.confirmed&order=start_min`),api(`business_hours?select=*&weekday=eq.${wd}`),api(`blocked_slots?select=*&date=eq.${date}&order=start_min`)]);renderAgenda()}catch(e){shell("Agenda",`<p class="error">${esc(e.message)}</p><button class="btn" id="retry">Tentar novamente</button>`)}}
+function renderAgenda(){let cfg=hours?.[0];let nav=`<div class="card"><div class="row between"><button class="btn" data-day="-1">‹ Anterior</button><div style="text-align:center"><b>${DW[day.getDay()]}</b><br>${day.toLocaleDateString("pt-BR")}</div><button class="btn" data-day="1">Próximo ›</button></div><div class="grid" style="margin-top:8px"><div class="field"><label>Ir para a data</label><input type="date" id="goto-date" value="${key(day)}"></div><div class="field" style="align-self:end"><button class="btn primary" id="goto">Abrir data</button> <button class="btn" id="today">Hoje</button></div></div></div>`;
+if(!cfg||cfg.open_min==null){shell("Agenda",nav+`<p class="notice">Estabelecimento fechado ou horário não configurado para este dia.</p>`);return}
+let out="",n=0;const open=Number(cfg.open_min),close=Number(cfg.close_min),ls=Number(cfg.lunch_start),le=Number(cfg.lunch_end);
+for(let m=Math.min(open,510);m<close;m+=30){let b=bookings.find(x=>Number(x.start_min)===m),occupying=bookings.find(x=>Number(x.start_min)<m&&Number(x.end_min)>m),block=blocks.find(x=>Number(x.start_min)<=m&&Number(x.end_min)>m),lunch=m>=ls&&m<le;
+if(m<open){out+=`<div class="btn slot blocked"><b class="time">${hm(m)}</b><span class="desc">Antes da abertura</span></div>`;continue}
+if(lunch){out+=`<button class="btn slot lunch" data-slot="${m}"><b class="time">${hm(m)}</b><span class="desc">Intervalo de almoço</span></button>`;continue}
+if(b){n++;out+=`<div class="card"><div class="row"><b class="time">${hm(m)}</b><div class="grow"><b>${esc(b.client_name)}</b><div class="muted">${(b.services||[]).map(s=>esc(s.name)+(s.qty>1?" ×"+s.qty:"")).join(", ")}</div><div>${fm(b.total)}</div></div></div><div class="actions"><a class="btn small" target="_blank" rel="noopener" href="https://wa.me/${esc(String(b.client_phone||"").replace(/\D/g,""))}">WhatsApp</a><button class="btn small danger" data-cancel="${b.id}">${confirmCancel===b.id?"Confirmar cancelamento":"Cancelar"}</button></div></div>`}
+else if(occupying){out+=`<button class="btn slot" data-slot="${m}"><b class="time">${hm(m)}</b><span class="desc">Em atendimento · ${esc(occupying.client_name)}</span></button>`}
+else if(block){out+=`<button class="btn slot blocked" data-slot="${m}"><b class="time">${hm(m)}</b><span class="desc">Bloqueado${block.reason?" · "+esc(block.reason):""}</span><span class="pill">Opções</span></button>`}
+else{out+=`<button class="btn slot" data-slot="${m}"><b class="time">${hm(m)}</b><span class="desc"></span></button>`}
+}
+shell("Agenda",nav+`<div class="muted">${n} agendamento(s) · ${fm(bookings.reduce((s,b)=>s+Number(b.total||0),0))}</div>`+out+`<div class="muted">Toque em qualquer horário para agendar ou bloquear.</div>`)}
+async function loadClients(){try{clients=await api("clients?select=*&order=name");shell("Clientes",`<div class="row between"><span class="muted">${clients.length} cadastro(s)</span><button class="btn primary" id="new-client">＋ Adicionar novo cliente</button></div><input id="client-search" placeholder="Buscar por nome ou telefone"><div id="client-list">${clientList(clients)}</div>`)}catch(e){shell("Clientes",`<p class="error">${esc(e.message)}</p>`)}}
+function clientList(list){return list.map(c=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(c.name)}</b><div class="muted">${esc(c.nickname||"")} ${c.phone?"· "+esc(c.phone):""}</div><div class="muted">${c.birth_date?"Nascimento: "+esc(c.birth_date):""}</div></div><button class="btn small" data-edit-client="${esc(c.phone)}">Editar</button></div><div class="actions"><a class="btn small" href="https://wa.me/${esc(String(c.phone||"").replace(/\D/g,""))}" target="_blank" rel="noopener">WhatsApp</a><button class="btn small" data-history="${esc(c.phone)}">Agendamentos</button></div></div>`).join("")||`<p class="muted">Nenhum cliente cadastrado.</p>`}
+async function editClient(phone=null){editClientPhone=phone;let c=clients.find(x=>x.phone===phone)||{name:"",phone:"",nickname:"",birth_date:""},profile={};if(phone){try{profile=(await api(`client_profiles?select=*&phone=eq.${encodeURIComponent(phone)}`))[0]||{}}catch(e){profile={}}}let history=[];if(phone){try{history=await api(`bookings?select=date,start_min,end_min,status,services,total&client_phone=eq.${encodeURIComponent(phone)}&order=date.desc`)}catch(e){}}
+shell(phone?"Editar cliente":"Novo cliente",`<div class="subnav"><button class="btn small" data-formtab="cadastro">Cadastro</button><button class="btn small" data-formtab="endereco">Endereço</button><button class="btn small" data-formtab="fotos">Fotos</button><button class="btn small" data-formtab="historico">Agendamentos</button></div><form id="client-form"><div id="client-form-body"><div class="grid">${field("Nome completo","c-name",c.name)}${field("Telefone/WhatsApp","c-phone",c.phone,"tel",phone?"readonly":"")}${field("Apelido","c-nickname",c.nickname||"")}${field("Data de nascimento","c-birth",c.birth_date||"","date")}</div></div><div class="form-actions"><button class="btn primary" type="submit">Salvar cliente</button><button class="btn" type="button" id="cancel-edit">Voltar</button></div><p class="muted">Fotos: informe URLs das imagens já hospedadas; upload direto de fotos ainda não está configurado.</p></form>`);
+let formtab="cadastro";const draw=()=>{const body=$("#client-form-body");if(formtab==="cadastro")body.innerHTML=`<div class="grid">${field("Nome completo","c-name",c.name)}${field("Telefone/WhatsApp","c-phone",c.phone,"tel",phone?"readonly":"")}${field("Apelido","c-nickname",c.nickname||"")}${field("Data de nascimento","c-birth",c.birth_date||"","date")}</div>`;
+if(formtab==="endereco")body.innerHTML=`<div class="grid">${field("Rua","p-street",profile.street)}${field("Número","p-number",profile.number)}${field("Complemento","p-complement",profile.complement)}${field("Bairro","p-neighborhood",profile.neighborhood)}${field("Cidade","p-city",profile.city)}${field("Estado","p-state",profile.state)}${field("CEP","p-postal",profile.postal_code)}</div>${area("Observações","p-notes",profile.notes)}`;
+if(formtab==="fotos")body.innerHTML=`${area("URLs das fotos (uma por linha)","p-photos",(profile.photos||[]).join("\n"))}<p class="muted">Use links públicos de imagens. As URLs serão guardadas no cadastro.</p>`;
+if(formtab==="historico")body.innerHTML=history.length?history.map(b=>`<div class="card"><b>${esc(b.date)} · ${hm(b.start_min)}</b><div class="muted">${esc((b.services||[]).map(s=>s.name).join(", "))} · ${fm(b.total)}</div><span class="pill">${esc(b.status)}</span></div>`).join(""):`<p class="muted">Nenhum agendamento encontrado.</p>`};
+draw();$("#client-form").onsubmit=async e=>{e.preventDefault();try{let ph=String(val("c-phone")||c.phone||"").replace(/\D/g,""),name=String(val("c-name")||c.name||"").trim();if(name.length<2||ph.length<10)throw Error("Informe nome e telefone com DDD.");let bd=val("c-birth")||c.birth_date||null;await api("clients?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify({phone:ph,name,nickname:val("c-nickname")||c.nickname||"",birth_date:bd})});let prof={phone:ph,street:val("p-street")||profile.street||"",number:val("p-number")||profile.number||"",complement:val("p-complement")||profile.complement||"",neighborhood:val("p-neighborhood")||profile.neighborhood||"",city:val("p-city")||profile.city||"",state:val("p-state")||profile.state||"",postal_code:val("p-postal")||profile.postal_code||"",notes:val("p-notes")||profile.notes||"",photos:(val("p-photos")?val("p-photos").split("\n").map(s=>s.trim()).filter(Boolean):(profile.photos||[])),updated_at:new Date().toISOString()};await api("client_profiles?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify(prof)});await loadClients();notice="Cliente salvo com sucesso.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};
+app.querySelectorAll("[data-formtab]").forEach(b=>b.onclick=()=>{formtab=b.dataset.formtab;draw()});$("#cancel-edit").onclick=loadClients}
+async function showHistory(phone){try{let h=await api(`bookings?select=date,start_min,end_min,status,services,total&client_phone=eq.${encodeURIComponent(phone)}&order=date.desc`);shell("Histórico de agendamentos",`<button class="btn" id="back-clients">← Clientes</button>`+(h.map(b=>`<div class="card"><b>${esc(b.date)} · ${hm(b.start_min)}–${hm(b.end_min)}</b><div>${esc((b.services||[]).map(s=>s.name+" ×"+s.qty).join(", "))}</div><div>${fm(b.total)} · ${esc(b.status)}</div></div>`).join("")||`<p class="muted">Nenhum agendamento.</p>`));$("#back-clients").onclick=loadClients}catch(e){shell("Histórico",`<p class="error">${esc(e.message)}</p>`)}}
+async function loadServices(){try{services=await api("services?select=*&order=sort");shell("Serviços",`<div class="row between"><span class="muted">${services.length} serviço(s)</span><button class="btn primary" id="new-service">＋ Adicionar serviço</button></div>`+services.map(s=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(s.name)}</b><div class="muted">${esc(s.description||"")}</div><div>${fm(s.price)} · ${Number(s.duration_min||0)|| (s.is_cut?30:0)} min ${s.active?"":"· Inativo"}</div></div><button class="btn small" data-edit-service="${s.id}">Editar</button></div></div>`).join(""))}catch(e){shell("Serviços",`<p class="error">${esc(e.message)}</p>`)}}
+async function editService(id=null){editServiceId=id;let s=services.find(x=>x.id===id)||{name:"",description:"",price:0,is_cut:false,sort:services.length+1,active:true,duration_min:0,pricing_type:"fixed",cost:0,barber_id:barbers[0]?.id||"",visible_to_customers:true,bookable_by_customers:true,show_price_to_customers:true,anamnesis:""};try{barbers=await api("barbers?select=id,name&active=eq.true")}catch(e){}shell(id?"Editar serviço":"Novo serviço",`<form id="service-form"><div class="grid">${field("Nome do serviço","s-name",s.name)}${field("Preço (R$)","s-price",s.price,"number",'step="0.01" min="0"')}${field("Duração (minutos; 0 = padrão)","s-duration",s.duration_min||0,"number",'step="5" min="0"')}${field("Custo (R$)","s-cost",s.cost||0,"number",'step="0.01" min="0"')}${field("Ordem de exibição","s-sort",s.sort||1,"number",'min="0"')}</div>${area("Descrição","s-description",s.description||"")}<div class="field"><label>Tipo de preço</label><select id="s-pricing"><option value="fixed">Preço fixo</option><option value="variable">Preço variável</option></select></div><div class="field"><label>Profissional responsável</label><select id="s-barber"><option value="">Qualquer profissional</option>${optionList(barbers,"id","name")}</select></div>${area("Anamnese / observações necessárias","s-anamnesis",s.anamnesis||"")}<label><input style="width:auto" type="checkbox" id="s-cut"> É corte (30 minutos por unidade)</label><br><label><input style="width:auto" type="checkbox" id="s-active"> Serviço ativo</label><br><label><input style="width:auto" type="checkbox" id="s-visible"> Visível aos clientes</label><br><label><input style="width:auto" type="checkbox" id="s-bookable"> Clientes podem agendar</label><br><label><input style="width:auto" type="checkbox" id="s-showprice"> Mostrar preço aos clientes</label><div class="form-actions"><button class="btn primary">Salvar serviço</button><button type="button" class="btn" id="cancel-service">Voltar</button></div></form>`);
+$("#s-pricing").value=s.pricing_type||"fixed";$("#s-barber").value=s.barber_id||"";$("#s-cut").checked=!!s.is_cut;$("#s-active").checked=!!s.active;$("#s-visible").checked=s.visible_to_customers!==false;$("#s-bookable").checked=s.bookable_by_customers!==false;$("#s-showprice").checked=s.show_price_to_customers!==false;
+$("#service-form").onsubmit=async e=>{e.preventDefault();try{let data={name:val("s-name").trim(),description:val("s-description"),price:num("s-price"),duration_min:num("s-duration"),cost:num("s-cost"),sort:num("s-sort"),pricing_type:val("s-pricing"),barber_id:val("s-barber")?Number(val("s-barber")):null,is_cut:checked("s-cut"),active:checked("s-active"),visible_to_customers:checked("s-visible"),bookable_by_customers:checked("s-bookable"),show_price_to_customers:checked("s-showprice"),anamnesis:val("s-anamnesis")};if(!data.name)throw Error("Informe o nome do serviço.");if(id)await api(`services?id=eq.${id}`,{method:"PATCH",body:JSON.stringify(data)});else await api("services",{method:"POST",body:JSON.stringify(data)});await loadServices();notice="Serviço salvo.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};
+$("#cancel-service").onclick=loadServices}
+async function loadProducts(){try{products=await api("products?select=*&order=name");shell("Produtos",`<div class="notice">Cadastro e edição de produtos. A baixa automática de estoque por venda ainda não está implementada.</div><div class="row between"><span class="muted">${products.length} produto(s)</span><button class="btn primary" id="new-product">＋ Adicionar produto</button></div>`+products.map(p=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(p.name)}</b><div class="muted">${esc(p.description||"")}</div><div>${fm(p.price)} · Estoque: ${p.stock} ${p.active?"":"· Inativo"}</div></div><button class="btn small" data-edit-product="${p.id}">Editar</button></div></div>`).join(""))}catch(e){shell("Produtos",`<p class="error">${esc(e.message)}</p><p class="muted">Se o banco informar que a tabela products não existe, a migração precisa ser aplicada no Supabase.</p>`)}}
+async function editProduct(id=null){editProductId=id;let p=products.find(x=>x.id===id)||{name:"",description:"",price:0,cost:0,stock:0,active:true};shell(id?"Editar produto":"Novo produto",`<form id="product-form">${field("Nome","pr-name",p.name)}${area("Descrição","pr-description",p.description)}<div class="grid">${field("Preço de venda (R$)","pr-price",p.price,"number",'step="0.01" min="0"')}${field("Custo (R$)","pr-cost",p.cost,"number",'step="0.01" min="0"')}${field("Estoque","pr-stock",p.stock,"number",'step="1" min="0"')}</div><label><input style="width:auto" type="checkbox" id="pr-active"> Produto ativo</label><div class="form-actions"><button class="btn primary">Salvar produto</button><button class="btn" type="button" id="cancel-product">Voltar</button></div></form>`);$("#pr-active").checked=!!p.active;$("#product-form").onsubmit=async e=>{e.preventDefault();try{let data={name:val("pr-name").trim(),description:val("pr-description"),price:num("pr-price"),cost:num("pr-cost"),stock:num("pr-stock"),active:checked("pr-active")};if(!data.name)throw Error("Informe o nome.");if(id)await api(`products?id=eq.${id}`,{method:"PATCH",body:JSON.stringify(data)});else await api("products",{method:"POST",body:JSON.stringify(data)});await loadProducts();notice="Produto salvo.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};$("#cancel-product").onclick=loadProducts}
+async function loadSettings(){try{let [h,b]=await Promise.all([api("business_hours?select=*&order=weekday"),api("barbers?select=*&order=id")]);hours=h;barbers=b;shell("Configurações",`<div class="notice">Edite os horários de cada dia. Os horários são salvos no banco de dados.</div><form id="hours-form">${h.map(x=>`<div class="card"><b>${DW[Number(x.weekday)]}</b><div class="grid"><div class="field"><label>Abertura</label><input type="time" id="o-${x.weekday}" value="${x.open_min==null?"":hm(x.open_min)}"></div><div class="field"><label>Fechamento</label><input type="time" id="c-${x.weekday}" value="${x.close_min==null?"":hm(x.close_min)}"></div><div class="field"><label>Início do almoço</label><input type="time" id="ls-${x.weekday}" value="${x.lunch_start==null?"":hm(x.lunch_start)}"></div><div class="field"><label>Fim do almoço</label><input type="time" id="le-${x.weekday}" value="${x.lunch_end==null?"":hm(x.lunch_end)}"></div></div></div>`).join("")}<button class="btn primary">Salvar horários</button></form><div class="section-title">Profissionais</div>`+b.map(x=>`<div class="card"><b>${esc(x.name)}</b><span class="pill">${x.active?"Ativo":"Inativo"}</span></div>`).join(""))}catch(e){shell("Configurações",`<p class="error">${esc(e.message)}</p>`)}}
+function mins(id){let v=val(id);if(!v)return null;let [h,m]=v.split(":").map(Number);return h*60+m}
+$("#app").addEventListener("submit",async e=>{if(e.target.id!=="hours-form")return;e.preventDefault();try{for(const x of hours){let wd=x.weekday,o=mins("o-"+wd),c=mins("c-"+wd),ls=mins("ls-"+wd),le=mins("le-"+wd);if((o==null)!=(c==null))throw Error("Informe abertura e fechamento ou deixe ambos vazios.");if(o!=null&&c<=o)throw Error("Fechamento deve ser depois da abertura: "+DW[wd]);await api(`business_hours?weekday=eq.${wd}`,{method:"PATCH",body:JSON.stringify({open_min:o,close_min:c,lunch_start:ls,lunch_end:le})})}await loadSettings();notice="Horários atualizados.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}});
+async function loadBirthdays(){try{clients=await api("clients?select=name,phone,birth_date&birth_date=not.is.null");let list=clients.filter(c=>c.birth_date&&Number(c.birth_date.split("-")[1])===month.getMonth()+1).sort((a,b)=>Number(a.birth_date.split("-")[2])-Number(b.birth_date.split("-")[2]));shell("Aniversários",`<div class="row between"><button class="btn" id="month-prev">‹</button><b>${MONTH[month.getMonth()]} ${month.getFullYear()}</b><button class="btn" id="month-next">›</button></div>`+(list.map(c=>{let d=c.birth_date.split("-")[2],first=c.name.split(" ")[0],text=`Feliz aniversário, ${first}! 🎂 A Barber Shop JS deseja um dia incrível pra você.`;return `<div class="card"><b>${d}/${String(month.getMonth()+1).padStart(2,"0")} · ${esc(c.name)}</b><div class="muted">${esc(c.phone)}</div><div class="actions"><a class="btn small" target="_blank" rel="noopener" href="https://wa.me/${esc(c.phone)}?text=${encodeURIComponent(text)}">Enviar parabéns</a></div></div>`}).join("")||`<p class="muted">Nenhum aniversariante neste mês.</p>`))}catch(e){shell("Aniversários",`<p class="error">${esc(e.message)}</p>`)}}
+function renderLoginOrPage(){if(!session){loginView();return}currentUserUI();navigate(page)}
+async function navigate(p){page=p;$("#menu").classList.remove("open");$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="birthdays")await loadBirthdays()}
+$("#hamb").onclick=()=>$("#menu").classList.toggle("open");
+$("#logout").onclick=()=>{session=null;saveSession();renderLoginOrPage()};
+$("#menu").addEventListener("click",e=>{let b=e.target.closest("[data-page]");if(b)navigate(b.dataset.page)});
+app.addEventListener("click",async e=>{let b=e.target.closest("button");if(!b)return;
 try{
-const wd=day.getDay()===0?7:day.getDay();
-[ list, hours ]=await Promise.all([
-api("bookings?select=*&status=eq.confirmed&date=eq."+key(day)+"&order=start_min"),
-api("business_hours?select=*&weekday=eq."+wd)
-]);
-}catch(e){msg="Erro ao carregar a agenda."}
-busy=false;render()
-}
-async function loadCl(){busy=true;msg="";render();try{cl=await api("clients?select=name,phone,birth_date&birth_date=not.is.null")}catch(e){msg="Erro ao carregar os clientes."}busy=false;render()}
-function render(){const a=$("#app");$("#out").style.display=S?"":"none";
-if(!S){a.innerHTML=`<div class=card><h2>Entrar</h2><input id=em type=email placeholder="E-mail" autocomplete=username><input id=pw type=password placeholder="Senha" autocomplete=current-password><p class=er id=er>${esc(msg)}</p><button class=go id=login>Entrar</button></div>`;return}
-let h=`<div class=tabs><button class="tab ${tab==0?"on":""}" data-tab=0>Agenda</button><button class="tab ${tab==1?"on":""}" data-tab=1>Aniversários</button></div>`;
-if(tab==0){const t=list.reduce((s,b)=>s+Number(b.total),0);
-h+=`<div class=nav><button data-nav=-1>‹</button><div style="text-align:center"><b>${DW[day.getDay()]}, ${String(day.getDate()).padStart(2,"0")}/${String(day.getMonth()+1).padStart(2,"0")}</b><br><button class=sm data-nav=0 style="margin-top:4px">Hoje</button></div><button data-nav=1>›</button></div>`;
-if(msg)h+=`<p class=er>${esc(msg)}</p>`;
-h+=busy?`<p class=mu>Carregando…</p>`:(()=>{
-const cfg=hours[0];
-if(!cfg||cfg.open_min==null||cfg.close_min==null)return `<p class=mu>Estabelecimento fechado neste dia ou horário não configurado.</p>`;
-let out="",count=0;
-for(let m=Number(cfg.open_min);m<Number(cfg.close_min);m+=30){
-const end=m+30;
-if(m>=Number(cfg.lunch_start)&&m<Number(cfg.lunch_end)){
-out+=`<div class=card style="opacity:.6"><b>${hm(m)}–${hm(Math.min(end,Number(cfg.lunch_end)))}</b><div class=mu>Intervalo de almoço</div></div>`;
-continue;
-}
-const b=list.find(x=>Number(x.start_min)===m);
-const occupying=list.find(x=>Number(x.start_min)<m&&Number(x.end_min)>m);
-if(b){
-count++;
-out+=`<div class=card>
-<div style="display:flex;align-items:center;gap:10px">
-<b style="min-width:55px">${hm(b.start_min)}</b>
-<span style="flex:1">${esc(b.client_name)}</span>
-</div>
-<div class=mu>${(b.services||[]).map(s=>esc(s.name)+(s.qty>1?" x"+s.qty:"")).join(", ")}</div>
-<div>${fm(b.total)}</div>
-<div class=act>
-<a class=sm target=_blank rel=noopener href="${wa(b.client_phone)}">WhatsApp</a>
-<button class="sm danger" data-x="${b.id}">${conf==b.id?"Toque de novo para cancelar":"Cancelar"}</button>
-</div>
-</div>`;
-}else if(occupying){
-out+=`<div class=card style="opacity:.7"><b>${hm(m)}–${hm(end)} · Em atendimento</b><div class=mu>${esc(occupying.client_name)}</div></div>`;
-}else{
-out+=`<div class=card style="display:flex;align-items:center;min-height:44px"><b style="min-width:55px">${hm(m)}</b></div>`;
-}
-}
-return out+`<p class=mu>${count} agendamento(s) · ${fm(list.reduce((s,b)=>s+Number(b.total||0),0))}</p>`;
-})()}
-else{const m=bm.getMonth()+1,L=cl.filter(c=>+c.birth_date.split("-")[1]==m).sort((x,y)=>+x.birth_date.split("-")[2]-+y.birth_date.split("-")[2]);
-h+=`<div class=nav><button data-m=-1>‹</button><b>${MS[bm.getMonth()]} ${bm.getFullYear()}</b><button data-m=1>›</button></div>`;
-if(msg)h+=`<p class=er>${esc(msg)}</p>`;
-h+=busy?`<p class=mu>Carregando…</p>`:L.length?L.map(c=>{const [y,mm,d]=c.birth_date.split("-"),n=c.name.split(" ")[0];return `<div class=card><b>${d}/${mm} · ${esc(c.name)}</b><div class=mu>${esc(c.phone)}</div><div class=act><a class=sm target=_blank rel=noopener href="${wa(c.phone,`Feliz aniversário, ${n}! 🎂 A Barbershop Js deseja um dia incrível pra você.`)}">Mandar parabéns</a></div></div>`}).join(""):`<p class=mu>Nenhum aniversariante neste mês.</p>`}
-a.innerHTML=h}
-document.addEventListener("click",async e=>{const t=e.target.closest("button");if(!t)return;
-if(t.id=="login"){try{await auth({email:$("#em").value.trim(),password:$("#pw").value},"password");msg="";tab=0;loadDay()}catch(x){$("#er").textContent="Falha no login ("+(x&&x.message?x.message:"sem conexão")+")"}return}
-if(t.id=="out"){S=null;save();msg="";render();return}
-if(t.dataset.tab!=null){tab=+t.dataset.tab;tab==0?loadDay():loadCl();return}
-if(t.dataset.nav!=null){const n=+t.dataset.nav;day=n==0?new Date():new Date(day.getFullYear(),day.getMonth(),day.getDate()+n);conf=null;loadDay();return}
-if(t.dataset.m!=null){bm=new Date(bm.getFullYear(),bm.getMonth()+ +t.dataset.m,1);render();return}
-if(t.dataset.x){const id=t.dataset.x;if(conf!=id){conf=id;render();return}
-conf=null;try{await api("bookings?id=eq."+id,{method:"PATCH",body:JSON.stringify({status:"cancelled"}),headers:{Prefer:"return=minimal"}})}catch(x){msg="Não foi possível cancelar."}loadDay()}});
-if(S)loadDay();else render();
-</script></body></html>
+if(b.id==="do-login"){try{await auth({email:val("email").trim(),password:val("password")});notice="";renderLoginOrPage()}catch(err){session=null;saveSession();$("#login-error").textContent=err.message}return}
+if(b.id==="retry"){loadAgenda();return}
+if(b.dataset.day){day=new Date(day.getFullYear(),day.getMonth(),day.getDate()+Number(b.dataset.day));await loadAgenda();return}
+if(b.id==="goto"){if(val("goto-date"))day=new Date(val("goto-date")+"T12:00:00");await loadAgenda();return}
+if(b.id==="today"){day=new Date();await loadAgenda();return}
+if(b.dataset.slot!=null){let m=Number(b.dataset.slot),existing=blocks.find(x=>Number(x.start_min)<=m&&Number(x.end_min)>m);let choice=prompt(`${hm(m)}\nDigite 1 para Agendar cliente\nDigite 2 para Bloquear horário${existing?"\nDigite 3 para remover o bloqueio":""}`);if(choice==="1"){await quickBook(m);return}if(choice==="2"){let reason=prompt("Motivo do bloqueio (opcional):")||"";let barber=barbers[0];if(!barber)barber=(await api("barbers?select=id&active=eq.true&limit=1"))[0];if(!barber)throw Error("Cadastre um profissional primeiro.");await api("blocked_slots",{method:"POST",body:JSON.stringify({barber_id:barber.id,date:key(day),start_min:m,end_min:m+30,reason})});await loadAgenda();return}if(choice==="3"&&existing){await api(`blocked_slots?id=eq.${existing.id}`,{method:"DELETE"});await loadAgenda();return}return}
+if(b.dataset.cancel){let id=b.dataset.cancel;if(confirmCancel!==id){confirmCancel=id;renderAgenda();return}await api(`bookings?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});confirmCancel=null;await loadAgenda();return}
+if(b.id==="new-client"){editClient();return}
+if(b.dataset.editClient){editClient(b.dataset.editClient);return}
+if(b.dataset.history){showHistory(b.dataset.history);return}
+if(b.id==="new-service"){editService();return}
+if(b.dataset.editService){editService(Number(b.dataset.editService));return}
+if(b.id==="new-product"){editProduct();return}
+if(b.dataset.editProduct){editProduct(Number(b.dataset.editProduct));return}
+if(b.id==="cancel-edit"){loadClients();return}
+if(b.id==="month-prev"){month=new Date(month.getFullYear(),month.getMonth()-1,1);loadBirthdays();return}
+if(b.id==="month-next"){month=new Date(month.getFullYear(),month.getMonth()+1,1);loadBirthdays();return}
+}catch(err){let n=$("#notice");if(n)n.innerHTML=`<div class="notice error">${esc(err.message)}</div>`;else shell("Erro",`<p class="error">${esc(err.message)}</p>`)}
+});
+app.addEventListener("input",e=>{if(e.target.id==="client-search"){let q=e.target.value.toLowerCase();let filtered=clients.filter(c=>(c.name||"").toLowerCase().includes(q)||(c.phone||"").includes(q));$("#client-list").innerHTML=clientList(filtered)}});
+async function quickBook(start){try{
+const cfg=hours?.[0];if(!cfg||cfg.open_min==null||cfg.close_min==null||start<Number(cfg.open_min)||start>=Number(cfg.close_min))throw Error("Esse horário está fora do funcionamento.");
+if(start>=Number(cfg.lunch_start)&&start<Number(cfg.lunch_end))throw Error("Esse horário está no intervalo de almoço.");
+let all=await api("clients?select=phone,name&order=name");let choice=prompt("Digite o telefone do cliente (somente números) ou deixe vazio para cadastrar um novo:");let client=all.find(c=>c.phone===String(choice||"").replace(/\D/g,""));if(!client){let name=prompt("Nome completo do cliente:");let phone=String(choice||prompt("Telefone com DDD:")||"").replace(/\D/g,"");if(!name||phone.length<10)throw Error("Nome e telefone com DDD são obrigatórios.");await api("clients?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify({phone,name})});client={phone,name}}
+let active=await api("services?select=id,name,price,is_cut,duration_min&active=eq.true&order=sort");let lines=active.map((s,i)=>`${i+1}. ${s.name} — ${fm(s.price)}`).join("\n");let index=Number(prompt("Digite o número do serviço:\n"+lines))-1;let svc=active[index];if(!svc)throw Error("Serviço inválido.");let qty=svc.is_cut?Math.max(1,Number(prompt("Quantidade de cortes (cada um ocupa 30 min):","1"))||1):1;let dur=Math.max(svc.is_cut?30*qty:0,Number(svc.duration_min||0));dur=Math.max(30,Math.ceil(dur/30)*30);let end=start+dur;
+if(start%30!==0)throw Error("Escolha um horário em intervalos de 30 minutos.");
+if(!Number.isFinite(dur)||dur<30)throw Error("A duração do serviço é inválida.");
+if(end>Number(cfg.close_min))throw Error("O serviço termina depois do fechamento.");
+if(start<Number(cfg.lunch_end)&&end>Number(cfg.lunch_start))throw Error("O serviço cruza o intervalo de almoço.");
+if(bookings.some(b=>Number(b.start_min)<end&&Number(b.end_min)>start))throw Error("Esse horário conflita com outro agendamento.");
+if(blocks.some(b=>Number(b.start_min)<end&&Number(b.end_min)>start))throw Error("Esse horário está bloqueado.");
+let barber=(await api("barbers?select=id&active=eq.true&order=id&limit=1"))[0];if(!barber)throw Error("Nenhum profissional ativo.");
+await api("bookings",{method:"POST",body:JSON.stringify({barber_id:barber.id,date:key(day),start_min:start,end_min:end,client_name:client.name,client_phone:client.phone,services:[{id:svc.id,name:svc.name,qty,price:Number(svc.price)}],total:Number(svc.price)*qty,status:"confirmed"})});await loadAgenda()
+}catch(e){alert("Não foi possível agendar: "+e.message)}}
+if(session)renderLoginOrPage();else loginView();
+</script>
+</body></html>
