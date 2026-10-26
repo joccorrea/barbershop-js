@@ -66,7 +66,29 @@ let h=`<div class=tabs><button class="tab ${tab==0?"on":""}" data-tab=0>Agenda</
 if(tab==0){const t=list.reduce((s,b)=>s+Number(b.total),0);
 h+=`<div class=nav><button data-nav=-1>‹</button><div style="text-align:center"><b>${DW[day.getDay()]}, ${String(day.getDate()).padStart(2,"0")}/${String(day.getMonth()+1).padStart(2,"0")}</b><br><button class=sm data-nav=0 style="margin-top:4px">Hoje</button></div><button data-nav=1>›</button></div>`;
 if(msg)h+=`<p class=er>${esc(msg)}</p>`;
-h+=busy?`<p class=mu>Carregando…</p>`:list.length?list.map(b=>`<div class=card><b>${hm(b.start_min)}–${hm(b.end_min)} · ${esc(b.client_name)}</b><div class=mu>${b.services.map(s=>esc(s.name)+(s.qty>1?" x"+s.qty:"")).join(", ")}</div><div>${fm(b.total)}</div><div class=act><a class=sm target=_blank rel=noopener href="${wa(b.client_phone)}">WhatsApp</a><button class="sm danger" data-x="${b.id}">${conf==b.id?"Toque de novo para cancelar":"Cancelar"}</button></div></div>`).join("")+`<p class=mu>${list.length} horário(s) · ${fm(t)}</p>`:`<p class=mu>Nenhum horário marcado neste dia.</p>`}
+h+=busy?`<p class=mu>Carregando…</p>`:(()=>{
+const cfg=hours[0];
+if(!cfg||cfg.open_min==null||cfg.close_min==null)return `<p class=mu>Estabelecimento fechado neste dia ou horário não configurado.</p>`;
+let out="",count=0;
+for(let m=Number(cfg.open_min);m<Number(cfg.close_min);m+=30){
+const end=m+30;
+if(m>=Number(cfg.lunch_start)&&m<Number(cfg.lunch_end)){
+out+=`<div class=card style="opacity:.6"><b>${hm(m)}–${hm(Math.min(end,Number(cfg.lunch_end)))}</b><div class=mu>Intervalo de almoço</div></div>`;
+continue;
+}
+const b=list.find(x=>Number(x.start_min)===m);
+const occupying=list.find(x=>Number(x.start_min)<m&&Number(x.end_min)>m);
+if(b){
+count++;
+out+=`<div class=card><b>${hm(b.start_min)}–${hm(b.end_min)} · ${esc(b.client_name)}</b><div class=mu>${(b.services||[]).map(s=>esc(s.name)+(s.qty>1?" x"+s.qty:"")).join(", ")}</div><div>${fm(b.total)}</div><div class=act><a class=sm target=_blank rel=noopener href="${wa(b.client_phone)}">WhatsApp</a><button class="sm danger" data-x="${b.id}">${conf==b.id?"Toque de novo para cancelar":"Cancelar"}</button></div></div>`;
+}else if(occupying){
+out+=`<div class=card style="opacity:.7"><b>${hm(m)}–${hm(end)} · Em atendimento</b><div class=mu>${esc(occupying.client_name)}</div></div>`;
+}else{
+out+=`<div class=card style="border-style:dashed"><b>${hm(m)}–${hm(end)}</b><div class=mu>🟢 Livre</div></div>`;
+}
+}
+return out+`<p class=mu>${count} agendamento(s) · ${fm(list.reduce((s,b)=>s+Number(b.total||0),0))}</p>`;
+})()
 else{const m=bm.getMonth()+1,L=cl.filter(c=>+c.birth_date.split("-")[1]==m).sort((x,y)=>+x.birth_date.split("-")[2]-+y.birth_date.split("-")[2]);
 h+=`<div class=nav><button data-m=-1>‹</button><b>${MS[bm.getMonth()]} ${bm.getFullYear()}</b><button data-m=1>›</button></div>`;
 if(msg)h+=`<p class=er>${esc(msg)}</p>`;
