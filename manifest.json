@@ -1,0 +1,19 @@
+{
+“id”: “/barbershop-js/gestao.html”,
+“name”: “Barber Shop JS”,
+“short_name”: “Barber Shop JS”,
+“description”: “Gestão de agendamentos da Barber Shop JS”,
+“lang”: “pt-BR”,
+“start_url”: “/barbershop-js/gestao.html”,
+“scope”: “/barbershop-js/”,
+“display”: “standalone”,
+“background_color”: “#111111”,
+“theme_color”: “#111111”,
+“icons”: [
+{
+“src”: “/barbershop-js/logo.jpg”,
+“sizes”: “any”,
+“type”: “image/jpeg”
+}
+]
+}
