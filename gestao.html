@@ -80,15 +80,22 @@ const b=list.find(x=>Number(x.start_min)===m);
 const occupying=list.find(x=>Number(x.start_min)<m&&Number(x.end_min)>m);
 if(b){
 count++;
-out+=`<div class=card style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+out+=`<div class=card>
+<div style="display:flex;align-items:center;gap:10px">
 <b style="min-width:55px">${hm(b.start_min)}</b>
 <span style="flex:1">${esc(b.client_name)}</span>
-<button class="sm" data-details="${b.id}">Detalhes</button>
+</div>
+<div class=mu>${(b.services||[]).map(s=>esc(s.name)+(s.qty>1?" x"+s.qty:"")).join(", ")}</div>
+<div>${fm(b.total)}</div>
+<div class=act>
+<a class=sm target=_blank rel=noopener href="${wa(b.client_phone)}">WhatsApp</a>
+<button class="sm danger" data-x="${b.id}">${conf==b.id?"Toque de novo para cancelar":"Cancelar"}</button>
+</div>
 </div>`;
 }else if(occupying){
 out+=`<div class=card style="opacity:.7"><b>${hm(m)}–${hm(end)} · Em atendimento</b><div class=mu>${esc(occupying.client_name)}</div></div>`;
 }else{
-out+=`<div class=card style="border-style:dashed"><b>${hm(m)}–${hm(end)}</b><div class=mu>🟢 Livre</div></div>`;
+out+=`<div class=card style="display:flex;align-items:center;min-height:44px"><b style="min-width:55px">${hm(m)}</b></div>`;
 }
 }
 return out+`<p class=mu>${count} agendamento(s) · ${fm(list.reduce((s,b)=>s+Number(b.total||0),0))}</p>`;
