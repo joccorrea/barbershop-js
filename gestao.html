@@ -88,7 +88,7 @@ out+=`<div class=card style="border-style:dashed"><b>${hm(m)}–${hm(end)}</b><d
 }
 }
 return out+`<p class=mu>${count} agendamento(s) · ${fm(list.reduce((s,b)=>s+Number(b.total||0),0))}</p>`;
-})()
+})()}
 else{const m=bm.getMonth()+1,L=cl.filter(c=>+c.birth_date.split("-")[1]==m).sort((x,y)=>+x.birth_date.split("-")[2]-+y.birth_date.split("-")[2]);
 h+=`<div class=nav><button data-m=-1>‹</button><b>${MS[bm.getMonth()]} ${bm.getFullYear()}</b><button data-m=1>›</button></div>`;
 if(msg)h+=`<p class=er>${esc(msg)}</p>`;
