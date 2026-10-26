@@ -47,7 +47,18 @@ async function auth(body,g){const r=await fetch(SB+"/auth/v1/token?grant_type="+
 async function api(p,o={}){const f=()=>fetch(SB+"/rest/v1/"+p,{...o,headers:{apikey:KEY,Authorization:"Bearer "+S.a,"Content-Type":"application/json",...(o.headers||{})}});
 let r=await f();if(r.status==401){try{await auth({refresh_token:S.r},"refresh_token")}catch(e){S=null;save();render();throw 0}r=await f()}
 if(!r.ok)throw 0;return o.method=="PATCH"?null:r.json()}
-async function loadDay(){busy=true;msg="";render();try{list=await api("bookings?select=*&status=eq.confirmed&date=eq."+key(day)+"&order=start_min")}catch(e){msg="Erro ao carregar a agenda."}busy=false;render()}
+let hours=[];
+async function loadDay(){
+busy=true;msg="";render();
+try{
+const wd=day.getDay()===0?7:day.getDay();
+[ list, hours ]=await Promise.all([
+api("bookings?select=*&status=eq.confirmed&date=eq."+key(day)+"&order=start_min"),
+api("business_hours?select=*&weekday=eq."+wd)
+]);
+}catch(e){msg="Erro ao carregar a agenda."}
+busy=false;render()
+}
 async function loadCl(){busy=true;msg="";render();try{cl=await api("clients?select=name,phone,birth_date&birth_date=not.is.null")}catch(e){msg="Erro ao carregar os clientes."}busy=false;render()}
 function render(){const a=$("#app");$("#out").style.display=S?"":"none";
 if(!S){a.innerHTML=`<div class=card><h2>Entrar</h2><input id=em type=email placeholder="E-mail" autocomplete=username><input id=pw type=password placeholder="Senha" autocomplete=current-password><p class=er id=er>${esc(msg)}</p><button class=go id=login>Entrar</button></div>`;return}
