@@ -106,6 +106,19 @@ input:focus,select:focus,textarea:focus{outline:2px solid #2378d42a;border-color
 .booking-savebar button{width:54px!important;height:54px!important;min-width:54px!important;max-width:54px!important;padding:0!important;margin:0!important;border:0!important;border-radius:50%!important;background:#2378d4!important;color:#fff!important;box-shadow:0 6px 18px #2378d455!important;font-size:25px!important;line-height:1}.floppy-icon{width:25px;height:25px;fill:currentColor;display:block;margin:auto}
 .booking-screen{padding-bottom:86px!important}
 
+
+/* Agenda em duas colunas: horários à esquerda e conteúdo à direita. */
+.agenda-grid{display:grid;grid-template-columns:72px minmax(0,1fr);grid-auto-rows:50px;column-gap:8px;row-gap:5px;margin:10px 0 24px;align-items:stretch}
+.agenda-time-cell{grid-column:1;grid-row:auto;display:flex;align-items:center;justify-content:center;border:1px solid var(--bd);border-radius:13px;background:var(--card);color:#3f83df;font-weight:800;font-size:15px;min-width:0}
+.agenda-time-cell.outside{opacity:.55}.agenda-time-cell.lunch{opacity:.65}
+.agenda-slot{grid-column:2;grid-row:auto;width:100%;min-width:0;height:100%;min-height:0;margin:0;padding:8px 10px;border-radius:13px;background:var(--card);border-color:var(--bd);box-shadow:0 3px 12px #00000008}
+.agenda-slot .desc{font-size:13px;overflow-wrap:anywhere}.agenda-slot.outside{opacity:.5}
+.agenda-appointment{grid-column:2;grid-row:auto;position:relative;width:100%;height:100%;margin:0;padding:12px 34px 30px 14px;border-radius:18px;background:var(--card);border-color:var(--bd);box-shadow:0 4px 18px #00000009;overflow:visible;display:block;text-align:left;min-width:0}
+.agenda-appt-main{min-width:0;display:flex;flex-direction:column;justify-content:center;min-height:100%;gap:2px}
+.agenda-client{font-size:16px;line-height:1.3;overflow-wrap:anywhere}.agenda-services{font-size:14px;line-height:1.35;white-space:normal;overflow-wrap:anywhere}.agenda-price{font-size:15px}.agenda-chevron{position:absolute;right:12px;top:12px}.agenda-time-range{position:absolute;right:10px;bottom:8px;color:var(--mu);font-size:11px;font-weight:650}
+.agenda-fab{position:fixed;right:max(20px,calc((100vw - 730px)/2 + 20px));bottom:28px;z-index:1500;width:58px;height:58px;border:0;border-radius:50%;background:#397bd1;color:#fff;font-size:34px;line-height:1;box-shadow:0 8px 22px #397bd144;display:flex;align-items:center;justify-content:center}
+.agenda-summary{margin:8px 0 12px}
+@media(max-width:420px){.agenda-grid{grid-template-columns:66px minmax(0,1fr);column-gap:6px;row-gap:4px}.agenda-time-cell{font-size:14px}.agenda-appointment{padding-left:11px}.agenda-client{font-size:15px}.agenda-services{font-size:13px}}
 </style>
 </head>
 <body><main>
@@ -157,16 +170,30 @@ const earliest=bookings.length?Math.min(...bookings.map(x=>Number(x.start_min)||
 const latest=bookings.length?Math.max(...bookings.map(x=>Number(x.end_min)||0)):close;
 const agendaStart=Math.max(0,Math.floor(Math.min(open-60,earliest)/30)*30);
 const agendaEnd=Math.min(1440,Math.ceil(Math.max(close+60,latest)/30)*30);
-for(let m=agendaStart;m<agendaEnd;m+=30){let b=bookings.find(x=>Number(x.start_min)===m),occupying=bookings.find(x=>Number(x.start_min)<m&&Number(x.end_min)>m),block=blocks.find(x=>Number(x.start_min)<=m&&Number(x.end_min)>m),lunch=m>=ls&&m<le;
-if(!b&&occupying)continue;
-if(b){n++;const durationSlots=Math.max(1,Math.ceil((Number(b.end_min)-Number(b.start_min))/30));out+=`<button class="card appointment-card" data-open-booking="${esc(b.id)}" style="width:100%;text-align:left;height:${durationSlots*56-10}px;min-height:${durationSlots*56-10}px;display:flex;align-items:flex-start;overflow:hidden"><div class="row" style="width:100%;align-items:flex-start"><b class="time">${hm(m)}<br><span class="appointment-end-time">${hm(b.end_min)}</span></b><div class="grow"><b>${esc(b.client_name)}</b><div class="muted">${(b.services||[]).map(s=>esc(s.name)+(s.qty>1?" ×"+s.qty:"")).join(", ")}</div><div>${fm(b.total)}</div><div class="muted status-label status-${statusClass(b.status)}">${statusPortuguese(b.status)}</div></div><span>›</span></div></button>`;continue}
-else if(m<open||m>=close){out+=`<button class="btn slot blocked" data-slot="${m}" aria-label="Agendar ou bloquear às ${hm(m)}"><b class="time">${hm(m)}</b><span class="desc"></span></button>`;continue}
-else if(lunch){out+=`<button class="btn slot lunch" data-slot="${m}"><b class="time">${hm(m)}</b><span class="desc">Intervalo de almoço</span></button>`;continue}
-else if(occupying){continue}
-else if(block){out+=`<button class="btn slot blocked" data-open-block="${esc(block.id)}"><b class="time">${hm(m)}</b><span class="desc">Bloqueado${block.reason?" · "+esc(block.reason):""}</span><span class="pill">Opções</span></button>`}
-else{out+=`<button class="btn slot" data-slot="${m}"><b class="time">${hm(m)}</b><span class="desc"></span></button>`}
+out+='<div class="agenda-grid">';
+for(let m=agendaStart;m<agendaEnd;m+=30){
+ const b=bookings.find(x=>Number(x.start_min)===m);
+ const occupying=bookings.find(x=>Number(x.start_min)<m&&Number(x.end_min)>m);
+ const block=blocks.find(x=>Number(x.start_min)<=m&&Number(x.end_min)>m);
+ const lunch=m>=ls&&m<le;
+ if(occupying&&!b)continue;
+ const slotClass=(m<open||m>=close)?"outside":(lunch?"lunch":"");
+ out+=`<div class="agenda-time-cell ${slotClass}"><b>${hm(m)}</b></div>`;
+ if(b){
+   n++;
+   const durationSlots=Math.max(1,Math.ceil((Number(b.end_min)-Number(b.start_min))/30));
+   out+=`<button class="card appointment-card agenda-appointment" data-open-booking="${esc(b.id)}" style="grid-row:span ${durationSlots};min-height:${durationSlots*56-6}px"><div class="agenda-appt-main"><b class="agenda-client">${esc(b.client_name)}</b><div class="muted agenda-services">${(b.services||[]).map(x=>esc(x.name)+(x.qty>1?" ×"+x.qty:"")).join(", ")}</div><div class="agenda-price">${fm(b.total)}</div><div class="status-label status-${statusClass(b.status)}">${statusPortuguese(b.status)}</div></div><span class="agenda-chevron">›</span><span class="agenda-time-range">${hm(b.start_min)}–${hm(b.end_min)}</span></button>`;
+ }else if(block){
+   out+=`<button class="btn slot agenda-slot blocked" data-open-block="${esc(block.id)}"><span class="desc">Bloqueado${block.reason?" · "+esc(block.reason):""}</span><span class="pill">Opções</span></button>`;
+ }else if(lunch){
+   out+=`<button class="btn slot agenda-slot lunch" data-slot="${m}"><span class="desc">Intervalo de almoço</span></button>`;
+ }else{
+   out+=`<button class="btn slot agenda-slot ${slotClass}" data-slot="${m}" aria-label="Agendar ou bloquear às ${hm(m)}"></button>`;
+ }
 }
-shell("Agenda",nav+`<div class="muted">${n} agendamento(s) · ${fm(bookings.reduce((s,b)=>s+Number(b.total||0),0))}</div>`+out+`<div class="muted">Toque em qualquer horário para agendar ou bloquear.</div>`)}
+out+='</div><button class="agenda-fab" id="agenda-new-booking" aria-label="Novo agendamento" title="Novo agendamento">＋</button>';
+shell("Agenda",nav+`<div class="muted agenda-summary">${n} agendamento(s) · ${fm(bookings.reduce((sum,x)=>sum+Number(x.total||0),0))}</div>`+out+`<div class="muted">Toque em um horário para agendar ou bloquear.</div>`);
+}
 async function loadClients(){try{clients=await api("clients?select=*&order=name");shell("Clientes",`<div class="row between"><span class="muted">${clients.length} cadastro(s)</span><button class="btn primary" id="new-client">＋ Adicionar novo cliente</button></div><input id="client-search" placeholder="Buscar por nome ou telefone"><div id="client-list">${clientList(clients)}</div>`)}catch(e){shell("Clientes",`<p class="error">${esc(e.message)}</p>`)}}
 function clientList(list){return list.map(c=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(c.name)}</b><div class="muted">${esc(c.nickname||"")} ${c.phone?"· "+esc(c.phone):""}</div><div class="muted">${c.birth_date?"Nascimento: "+esc(c.birth_date):""}</div></div><button class="btn small" data-edit-client="${esc(c.phone)}">Editar</button></div><div class="actions"><a class="btn small" href="https://wa.me/${esc(String(c.phone||"").replace(/\D/g,""))}" target="_blank" rel="noopener">WhatsApp</a><button class="btn small" data-history="${esc(c.phone)}">Agendamentos</button></div></div>`).join("")||`<p class="muted">Nenhum cliente cadastrado.</p>`}
 async function editClient(phone=null){editClientPhone=phone;let c=clients.find(x=>x.phone===phone)||{name:"",phone:"",nickname:"",birth_date:""},profile={};if(phone){try{profile=(await api(`client_profiles?select=*&phone=eq.${encodeURIComponent(phone)}`))[0]||{}}catch(e){profile={}}}let history=[];if(phone){try{history=await api(`bookings?select=id,date,start_min,end_min,status,services,total,client_name,client_phone&client_phone=eq.${encodeURIComponent(phone)}&order=date.desc`)}catch(e){}}
@@ -221,11 +248,11 @@ function beginSwipeBack(screen){
 function resetSwipeBack(screen,goBack){
  if(!screen)return;
  screen.style.transition="transform .22s ease";screen.style.transform=goBack?"translateX(105%)":"translateX(0)";
- if(goBack){setTimeout(()=>{swipeUnderlay?.remove();swipeUnderlay=null;screen.style.transition="";screen.style.transform="";screen.style.position="";screen.style.zIndex="";screen.style.willChange="";if($("#client-picker-back")&&screen.classList.contains("client-picker-screen"))$("#client-picker-back").click();else if(screen.classList.contains("booking-screen"))$("#booking-back")?.click();},220)}
- else setTimeout(()=>{swipeUnderlay?.remove();swipeUnderlay=null;screen.style.transition="";screen.style.transform="";screen.style.position="";screen.style.zIndex="";screen.style.willChange="";},230)
+ if(goBack){setTimeout(()=>{swipeUnderlay?.remove();swipeUnderlay=null;screen.style.transition="";screen.style.transform="";screen.style.position="";screen.style.top="";screen.style.zIndex="";screen.style.willChange="";if($("#client-picker-back")&&screen.classList.contains("client-picker-screen"))$("#client-picker-back").click();else if(screen.classList.contains("booking-screen"))$("#booking-back")?.click();},220)}
+ else setTimeout(()=>{swipeUnderlay?.remove();swipeUnderlay=null;screen.style.transition="";screen.style.transform="";screen.style.position="";screen.style.top="";screen.style.zIndex="";screen.style.willChange="";},230)
 }
 document.addEventListener("touchstart",e=>{if(!e.touches.length)return;touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;touchStartTarget=e.target;swipeActive=false;swipeDx=0;swipeAxis=null},{passive:true});
-document.addEventListener("touchmove",e=>{if(!e.touches.length||!touchStartTarget)return;const screen=touchStartTarget.closest(".booking-screen,.client-picker-screen");if(!screen)return;const dx=e.touches[0].clientX-touchStartX,dy=e.touches[0].clientY-touchStartY;if(!swipeAxis&&Math.max(Math.abs(dx),Math.abs(dy))>8)swipeAxis=Math.abs(dx)>Math.abs(dy)*1.15?"x":(Math.abs(dy)>Math.abs(dx)*1.15?"y":null);if(swipeAxis==="x"&&dx>0){if(!swipeActive){swipeActive=true;beginSwipeBack(screen)}if(swipeActive&&swipeUnderlay){swipeDx=Math.max(0,dx);screen.style.transform=`translate3d(${swipeDx}px,0,0)`;e.preventDefault()}}},{passive:false});
+document.addEventListener("touchmove",e=>{if(!e.touches.length||!touchStartTarget)return;const screen=touchStartTarget.closest(".booking-screen,.client-picker-screen");if(!screen)return;const dx=e.touches[0].clientX-touchStartX,dy=e.touches[0].clientY-touchStartY;if(!swipeAxis&&Math.max(Math.abs(dx),Math.abs(dy))>5)swipeAxis=Math.abs(dx)>=Math.abs(dy)?"x":"y";if(swipeAxis==="x"&&dx>0){if(!swipeActive){swipeActive=true;beginSwipeBack(screen)}if(swipeActive&&swipeUnderlay){swipeDx=Math.max(0,dx);screen.style.transform=`translate3d(${swipeDx}px,0px,0)`;screen.style.top="0px";e.preventDefault()}}},{passive:false});
 document.addEventListener("touchend",e=>{if(!e.changedTouches.length||!touchStartTarget)return;const screen=touchStartTarget.closest(".booking-screen,.client-picker-screen");if(screen&&swipeActive){resetSwipeBack(screen,swipeDx>window.innerWidth*.28)}touchStartTarget=null;swipeActive=false;swipeDx=0;swipeAxis=null},{passive:true});
 app.addEventListener("click",async e=>{let b=e.target.closest("button");if(!b)return;
 try{
@@ -237,6 +264,7 @@ if(b.id==="goto"){if(val("goto-date"))day=new Date(val("goto-date")+"T12:00:00")
 if(b.id==="today"){day=new Date();await loadAgenda();return}
 if(b.dataset.openBooking){await showBookingDetail(b.dataset.openBooking);return}
 if(b.dataset.openBlock){const block=blocks.find(x=>String(x.id)===String(b.dataset.openBlock));if(block)await showBlockSheet(block);return}
+if(b.id==="agenda-new-booking"){await openBooking(null);return}
 if(b.dataset.slot!=null){await openBooking(Number(b.dataset.slot));return}
 if(b.id==="booking-back"){bookingDraft=null;await loadAgenda();return}
 if(b.id==="mode-book"||b.id==="mode-block"){readBookingInputs();bookingDraft.mode=b.id==="mode-book"?"book":"block";renderBookingScreen();return}
@@ -246,7 +274,7 @@ if(b.dataset.pickClient){readBookingInputs();bookingDraft.selectedPhone=b.datase
 if(b.id==="client-picker-back"){renderBookingScreen();return}
 if(b.id==="client-picker-add-new"){readBookingInputs();renderBookingClientRegistration();return}
 if(b.id==="booking-save"){await saveBookingForm();return}
-if(b.id==="booking-save-block"){readBookingInputs();const d=bookingDraft;const st=$("#booking-start").value.split(":").map(Number),en=$("#booking-end").value.split(":").map(Number);const start=st[0]*60+st[1],end=en[0]*60+en[1];if(end<=start)throw Error("O fim do bloqueio deve ser depois do início.");const barber=d.barbers[0];if(!barber)throw Error("Cadastre um profissional ativo.");const payload={barber_id:barber.id,date:key(d.date),start_min:start,end_min:end,reason:d.reason||""};if(d.editingBlockId){await api(`blocked_slots?id=eq.${encodeURIComponent(d.editingBlockId)}`,{method:"PATCH",body:JSON.stringify(payload)})}else{await api("blocked_slots",{method:"POST",body:JSON.stringify(payload)})}bookingDraft=null;await loadAgenda();return}
+if(b.id==="booking-save-block"){readBookingInputs();const d=bookingDraft;if(!$("#booking-start").value){const err=$("#booking-error");err.textContent="Escolha o horário de início do agendamento.";err.classList.remove("hidden");$("#booking-start").focus();return}const st=$("#booking-start").value.split(":").map(Number),en=$("#booking-end").value.split(":").map(Number);const start=st[0]*60+st[1],end=en[0]*60+en[1];if(end<=start)throw Error("O fim do bloqueio deve ser depois do início.");const barber=d.barbers[0];if(!barber)throw Error("Cadastre um profissional ativo.");const payload={barber_id:barber.id,date:key(d.date),start_min:start,end_min:end,reason:d.reason||""};if(d.editingBlockId){await api(`blocked_slots?id=eq.${encodeURIComponent(d.editingBlockId)}`,{method:"PATCH",body:JSON.stringify(payload)})}else{await api("blocked_slots",{method:"POST",body:JSON.stringify(payload)})}bookingDraft=null;await loadAgenda();return}
 if(b.dataset.cancel){let id=b.dataset.cancel;if(confirmCancel!==id){confirmCancel=id;renderAgenda();return}await api(`bookings?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});confirmCancel=null;await loadAgenda();return}
 if(b.id==="new-client"){editClient();return}
 if(b.dataset.editClient){editClient(b.dataset.editClient);return}
@@ -324,9 +352,9 @@ function renderBookingScreen(){
  const selected=d.services;
  const total=selected.reduce((a,x)=>a+Number(x.price||0)*Number(x.qty||1),0);
  const duration=Math.max(30,selected.reduce((a,x)=>a+Math.max(Number(x.duration_min||0),x.is_cut?30*Number(x.qty||1):0),0));
- const startMin=d.start;
- const endMin=Number.isFinite(d.end)&&d.end>startMin?d.end:startMin+Math.ceil(duration/30)*30;
- const timeInput=(id,label,value)=>`<div class="field">${label?`<label>${label}</label>`:''}<input id="${id}" type="time" value="${hm(value)}" step="1800"></div>`;
+ const startMin=Number.isFinite(Number(d.start))?Number(d.start):null;
+ const endMin=startMin!=null?(Number.isFinite(d.end)&&d.end>startMin?d.end:startMin+Math.ceil(duration/30)*30):null;
+ const timeInput=(id,label,value)=>`<div class="field">${label?`<label>${label}</label>`:''}<input id="${id}" type="time" value="${value==null?'':hm(value)}" step="1800"></div>`;
  const dateInput=(id,label,value)=>`<div class="field">${label?`<label>${label}</label>`:''}<input id="${id}" type="date" value="${key(value)}"></div>`;
  app.innerHTML=`<section class="booking-screen">
  <div class="booking-head"><button class="btn form-back" id="booking-back" aria-label="Voltar à agenda" title="Voltar à agenda">←</button><button class="btn ${d.mode==='book'?'primary':''}" id="mode-book">AGENDAR</button><button class="btn ${d.mode==='block'?'primary':''}" id="mode-block">BLOQUEAR</button></div>
@@ -336,14 +364,14 @@ function renderBookingScreen(){
  <button class="btn client-select-btn" id="open-client-picker" type="button">${d.selectedPhone?`Cliente: ${esc((d.clients.find(c=>c.phone===d.selectedPhone)||{}).name||'Selecionado')} · Alterar`:'＋ Adicionar cliente'}</button>
  <div id="booking-new-client-panel" class="${d.addingClient?'':'hidden'}"><div class="field"><label>Nome completo</label><input id="booking-new-name" placeholder="Nome completo" value="${esc(d.newName||'')}"></div><div class="field"><label>Telefone com DDD</label><input id="booking-new-phone" placeholder="Telefone com DDD" inputmode="tel" value="${esc(d.newPhone||'')}"></div></div>
  </div>
- <div class="booking-range-label">Início</div><div class="field-line">${dateInput('booking-date','',d.date)}${timeInput('booking-start','',d.start)}</div>
+ <div class="booking-range-label">Início</div><div class="field-line">${dateInput('booking-date','',d.date)}${timeInput('booking-start','',startMin)}</div>
  <div class="section-title">Serviços</div>
  <div>${(d.catalog||[]).map(x=>`<label class="service-choice"><input type="checkbox" data-service="${x.id}" ${selected.some(z=>String(z.id)===String(x.id))?'checked':''}><span class="grow"><b>${esc(x.name)}</b><br><span class="muted">${fm(x.price)} · ${Number(x.duration_min||30)} min</span></span></label>`).join('')}</div>
- <div class="booking-range-label">Fim</div><div class="field-line">${dateInput('booking-end-date','',d.endDate||new Date(d.date.getFullYear(),d.date.getMonth(),d.date.getDate()+Math.floor(endMin/1440)))}${timeInput('booking-end','',endMin%1440)}</div>
+ <div class="booking-range-label">Fim</div><div class="field-line">${dateInput('booking-end-date','',d.endDate||new Date(d.date.getFullYear(),d.date.getMonth(),d.date.getDate()+Math.floor(endMin/1440)))}${timeInput('booking-end','',endMin==null?null:endMin%1440)}</div>
  <div class="card row between"><b>Valor total</b><b>${fm(total)}</b></div>
  
  `:`
- <div class="booking-range-label">Início</div><div class="field-line">${dateInput('booking-date','',d.date)}${timeInput('booking-start','',d.start)}</div>
+ <div class="booking-range-label">Início</div><div class="field-line">${dateInput('booking-date','',d.date)}${timeInput('booking-start','',startMin)}</div>
  <div class="booking-range-label">Fim</div><div class="field-line">${dateInput('booking-end-date','',d.endDate||d.date)}${timeInput('booking-end','',Math.min(d.start+30,1439))}</div>
  <div class="field"><label>Motivo (opcional)</label><input id="booking-reason" placeholder="Ex.: compromisso pessoal" value="${esc(d.reason||'')}"></div>
  `}
@@ -355,7 +383,7 @@ async function openBooking(start,mode='book',existing=null){
  try{
   if(!$(".booking-screen")){swipeBackSnapshot=app.innerHTML;swipeBackScrollY=window.scrollY}
   const [cs,ss,bs]=await Promise.all([api("clients?select=phone,name&order=name"),api("services?select=id,name,price,is_cut,duration_min,active&active=eq.true&order=sort"),api("barbers?select=id,name,active&active=eq.true&order=id")]);
-  const ddate=existing?.date?new Date(existing.date+"T12:00:00"):new Date(day.getFullYear(),day.getMonth(),day.getDate());const savedServices=existing?.services||[];bookingDraft={mode,start:Number(existing?.start_min??start),date:ddate,clients:cs,catalog:ss,barbers:bs,services:savedServices.map(x=>({...x,id:x.id??ss.find(y=>y.name===x.name)?.id})),query:'',newName:'',newPhone:'',selectedPhone:existing?.client_phone||null,addingClient:false,end:Number(existing?.end_min??(start+30)),endDate:ddate,editingId:existing?.id||null,editingBlockId:existing?.blockId||null,reason:existing?.reason||'',existingStatus:existing?.status||"confirmed",endManuallyChanged:false};
+  const ddate=existing?.date?new Date(existing.date+"T12:00:00"):new Date(day.getFullYear(),day.getMonth(),day.getDate());const savedServices=existing?.services||[];bookingDraft={mode,start:existing?.start_min!=null?Number(existing.start_min):(start==null?null:Number(start)),date:ddate,clients:cs,catalog:ss,barbers:bs,services:savedServices.map(x=>({...x,id:x.id??ss.find(y=>y.name===x.name)?.id})),query:'',newName:'',newPhone:'',selectedPhone:existing?.client_phone||null,addingClient:false,end:existing?.end_min!=null?Number(existing.end_min):(start==null?null:Number(start)+30),endDate:ddate,editingId:existing?.id||null,editingBlockId:existing?.blockId||null,reason:existing?.reason||'',existingStatus:existing?.status||"confirmed",endManuallyChanged:false};
   renderBookingScreen();
  }catch(e){alert("Não foi possível abrir o formulário: "+e.message)}
 }
@@ -377,6 +405,7 @@ function readBookingInputs(){
 async function saveBookingForm(){
  readBookingInputs();const d=bookingDraft;const err=$("#booking-error");
  try{
+  if(d.start==null||!$("#booking-start")?.value){err.textContent="Escolha o horário de início do agendamento.";err.classList.remove("hidden");$("#booking-start")?.focus();return}
   if(!d.services.length)throw Error("Selecione pelo menos um serviço.");
   let client=d.clients.find(c=>c.phone===d.selectedPhone);
   if(!client&&d.addingClient){
