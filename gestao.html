@@ -119,6 +119,27 @@ input:focus,select:focus,textarea:focus{outline:2px solid #2378d42a;border-color
 .agenda-fab{position:fixed;right:max(20px,calc((100vw - 730px)/2 + 20px));bottom:28px;z-index:1500;width:58px;height:58px;border:0;border-radius:50%;background:#397bd1;color:#fff;font-size:34px;line-height:1;box-shadow:0 8px 22px #397bd144;display:flex;align-items:center;justify-content:center}
 .agenda-summary{margin:8px 0 12px}
 @media(max-width:420px){.agenda-grid{grid-template-columns:66px minmax(0,1fr);column-gap:6px;row-gap:4px}.agenda-time-cell{font-size:14px}.agenda-appointment{padding-left:10px;padding-right:27px}.agenda-client{font-size:15px}.agenda-services{font-size:13px}.agenda-appt-main .status-label{font-size:11px}}
+
+/* Ajustes delicados do formulário de agendamento v13 */
+.booking-screen .client-card-compact{padding:9px 12px!important;margin:4px 0 10px!important;border-radius:15px!important}
+.booking-screen .client-card-compact .client-select-btn{display:flex;align-items:center;gap:10px;width:100%;min-height:36px;margin:0!important;padding:5px 2px!important;border:0!important;background:transparent!important;box-shadow:none!important;text-align:left;font-size:15px}
+.booking-screen .client-plus-mini{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;flex:0 0 30px;border-radius:50%;background:#3979d1;color:white;font-size:24px;line-height:1;font-weight:400}
+.booking-screen .client-selected-name{font-weight:650;color:var(--tx)}
+.booking-screen .booking-range-label{margin:7px 2px 4px!important}
+.booking-screen .booking-date-time-line{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(94px,.85fr);gap:7px;align-items:center}
+.booking-screen .booking-date-time-line .field{margin:0!important;min-width:0}
+.booking-screen .booking-date-time-line input{min-width:0;width:100%;box-sizing:border-box}
+.booking-screen .service-choice{display:flex!important;align-items:center;gap:0!important;position:relative;padding:8px 12px!important;margin:5px 0!important;min-height:0!important;border:1.5px solid #e0e4e9!important;border-radius:14px!important;background:#fff!important;box-shadow:0 3px 12px #00000005!important;transition:border-color .15s,background .15s,color .15s}
+.booking-screen .service-choice input[type=checkbox]{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;pointer-events:none!important}
+.booking-screen .service-choice:has(input:checked){background:#eaf2ff!important;border:2px solid #3979d1!important;box-shadow:0 0 0 1px #3979d1!important;color:#245fae!important}
+.booking-screen .service-choice .grow{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.booking-screen .service-choice .grow b{font-size:15px;line-height:1.2}
+.booking-screen .service-choice .muted{font-size:13px;line-height:1.2}
+.booking-screen .service-price-edit{width:78px;max-width:28%;flex:0 0 78px;margin-left:10px!important;padding:6px 4px!important;border:1px solid transparent!important;border-radius:9px!important;background:transparent!important;color:var(--tx)!important;text-align:right;font-weight:650;font-size:14px!important;box-shadow:none!important}
+.booking-screen .service-price-edit:focus{border-color:#3979d1!important;background:#fff!important;outline:none}
+.booking-screen .service-choice:has(input:checked) .service-price-edit{color:#245fae!important}
+@media(max-width:520px){.booking-screen .booking-date-time-line{grid-template-columns:minmax(0,1.2fr) minmax(90px,.8fr);gap:6px}.booking-screen .service-choice{padding:7px 10px!important}.booking-screen .service-price-edit{width:72px;flex-basis:72px;margin-left:7px!important;font-size:13px!important}}
+
 </style>
 </head>
 <body><main>
@@ -296,6 +317,11 @@ app.addEventListener("change",e=>{
  if((e.target.id==="booking-date"||e.target.id==="booking-end-date")&&bookingDraft){readBookingInputs();renderBookingScreen()}
 });
 app.addEventListener("input",e=>{
+ if(e.target.matches("[data-service-price]")&&bookingDraft){
+  const id=e.target.dataset.servicePrice;const value=Number(e.target.value);
+  const chosen=bookingDraft.services.find(x=>String(x.id)===String(id));
+  if(chosen&&Number.isFinite(value)&&value>=0){chosen.price=value;const total=bookingDraft.services.reduce((a,x)=>a+Number(x.price||0)*Number(x.qty||1),0);const totalRow=$(".booking-screen .row.between");if(totalRow){const cells=totalRow.querySelectorAll("b");if(cells[1])cells[1].textContent=fm(total)}}
+ }
  if(e.target.id==="booking-start"&&bookingDraft){const [h,m]=e.target.value.split(":").map(Number);bookingDraft.start=h*60+m;if(!bookingDraft.endManuallyChanged){const dur=Math.max(30,Math.ceil(bookingDraft.services.reduce((a,x)=>a+Math.max(Number(x.duration_min||30),x.is_cut?30*Number(x.qty||1):0),0)/30)*30);bookingDraft.end=bookingDraft.start+dur;const endEl=$("#booking-end");if(endEl)endEl.value=hm(bookingDraft.end%1440)}}
  if(e.target.id==="booking-end"&&bookingDraft){bookingDraft.endManuallyChanged=true;readBookingInputs()}
  if(e.target.id==="booking-client-search"&&bookingDraft){bookingDraft.query=e.target.value;const box=$("#booking-client-options");const q=normalizeSearch(bookingDraft.query);const filtered=bookingDraft.clients.filter(c=>normalizeSearch(c.name).includes(q)||(c.phone||"").includes(bookingDraft.query));box.innerHTML=filtered.map(c=>`<button class="btn client-select-btn" data-pick-client="${esc(c.phone)}">${esc(c.name)} · ${esc(c.phone)}</button>`).join(" ")||'<span class="muted">Nenhum cliente encontrado.</span>'}
@@ -363,13 +389,13 @@ function renderBookingScreen(){
  <div class="booking-head"><button class="btn form-back" id="booking-back" aria-label="Voltar à agenda" title="Voltar à agenda">←</button><button class="btn ${d.mode==='book'?'primary':''}" id="mode-book">AGENDAR</button><button class="btn ${d.mode==='block'?'primary':''}" id="mode-block">BLOQUEAR</button></div>
  <h2 class="section-title">${d.mode==='book'?'Novo agendamento':'Bloquear horário'}</h2>
  ${d.mode==='book'?`
- <div class="card"><div class="section-title">Cliente</div>
- <button class="btn client-select-btn" id="open-client-picker" type="button">${d.selectedPhone?`Cliente: ${esc((d.clients.find(c=>c.phone===d.selectedPhone)||{}).name||'Selecionado')} · Alterar`:'＋ Adicionar cliente'}</button>
+ <div class="card client-card-compact">
+ <button class="btn client-select-btn" id="open-client-picker" type="button">${d.selectedPhone?`<span class="client-selected-name">${esc((d.clients.find(c=>c.phone===d.selectedPhone)||{}).name||'Selecionado')}</span>`:'<span class="client-plus-mini">＋</span><span>Selecionar cliente</span>'}</button>
  <div id="booking-new-client-panel" class="${d.addingClient?'':'hidden'}"><div class="field"><label>Nome completo</label><input id="booking-new-name" placeholder="Nome completo" value="${esc(d.newName||'')}"></div><div class="field"><label>Telefone com DDD</label><input id="booking-new-phone" placeholder="Telefone com DDD" inputmode="tel" value="${esc(d.newPhone||'')}"></div></div>
  </div>
- <div class="booking-range-label">Início</div><div class="field-line">${dateInput('booking-date','',d.date)}${timeInput('booking-start','',startMin)}</div>
+ <div class="booking-range-label">Início</div><div class="booking-date-time-line"><div class="field"><input id="booking-date" type="date" aria-label="Data de início" title="${["dom","seg","ter","qua","qui","sex","sáb"][d.date.getDay()]}, ${d.date.toLocaleDateString("pt-BR")}" value="${key(d.date)}"></div><div class="field"><input id="booking-start" type="time" aria-label="Horário de início" value="${startMin==null?'':hm(startMin)}" step="1800"></div></div>
  <div class="section-title">Serviços</div>
- <div>${(d.catalog||[]).map(x=>`<label class="service-choice"><input type="checkbox" data-service="${x.id}" ${selected.some(z=>String(z.id)===String(x.id))?'checked':''}><span class="grow"><b>${esc(x.name)}</b><br><span class="muted">${fm(x.price)} · ${Number(x.duration_min||30)} min</span></span></label>`).join('')}</div>
+ <div>${(d.catalog||[]).map(x=>{const chosen=selected.find(z=>String(z.id)===String(x.id));const price=chosen?Number(chosen.price):Number(x.price||0);return `<label class="service-choice"><input type="checkbox" data-service="${x.id}" ${chosen?'checked':''}><span class="grow"><b>${esc(x.name)}</b><span class="muted">${Number(x.duration_min||30)} min</span></span><input class="service-price-edit" type="number" min="0" step="0.50" inputmode="decimal" data-service-price="${x.id}" aria-label="Valor de ${esc(x.name)}" value="${price.toFixed(2)}"></label>`}).join('')}</div>
  <div class="booking-range-label">Fim</div><div class="field-line">${dateInput('booking-end-date','',d.endDate||new Date(d.date.getFullYear(),d.date.getMonth(),d.date.getDate()+Math.floor(endMin/1440)))}${timeInput('booking-end','',endMin==null?null:endMin%1440)}</div>
  <div class="card row between"><b>Valor total</b><b>${fm(total)}</b></div>
  
