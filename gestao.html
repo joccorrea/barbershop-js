@@ -540,18 +540,10 @@ function showAppConfirm(message,onOk){
   });
 }
 async function saveAppointmentStatus(id,status){
-  // Keep "não compareceu" visible in the agenda. The current database constraint
-  // rejects this status, so save an allowed status remotely and retain the visual
-  // status locally until the database constraint is corrected.
-  if(status==="no_show"){
-    await api(`bookings?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",body:JSON.stringify({status:"confirmed"})});
-    setLocalBookingStatus(id,"no_show");
-  }else{
-    const dbStatusMap={pending:"pending",confirmed:"confirmed",completed:"completed",finalized:"completed",cancelled:"cancelled"};
-    const dbStatus=dbStatusMap[status]||status;
-    await api(`bookings?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",body:JSON.stringify({status:dbStatus})});
-    const all=getLocalBookingStatuses();delete all[String(id)];localStorage.setItem("barberShopJSBookingStatuses",JSON.stringify(all));
-  }
+  const dbStatusMap={pending:"pending",confirmed:"confirmed",completed:"completed",finalized:"finalized",no_show:"no_show",cancelled:"cancelled"};
+  const dbStatus=dbStatusMap[status]||status;
+  await api(`bookings?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",body:JSON.stringify({status:dbStatus})});
+  const all=getLocalBookingStatuses();delete all[String(id)];localStorage.setItem("barberShopJSBookingStatuses",JSON.stringify(all));
   closeStatusPicker(); await loadAgenda();
 }
 function openStatusPicker(id){
