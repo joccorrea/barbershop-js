@@ -274,13 +274,13 @@ function serviceDurationMinutes(service){
 }
 
 function normalizedStatus(status){return String(status||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim().replace(/[ -]+/g,"_")}
-function statusPortuguese(status){const s=normalizedStatus(status);return ({cancelled:"Cancelado",canceled:"Cancelado",cancelado:"Cancelado",cancelada:"Cancelado",confirmed:"Confirmado",confirmado:"Confirmado",confirmada:"Confirmado",completed:"Realizado",done:"Realizado",realizado:"Realizado",realizada:"Realizado",concluido:"Realizado",concluida:"Realizado",finalizado:"Finalizado",finalizada:"Finalizado",atendido:"Realizado",atendida:"Realizado",pending:"Pendente",pendente:"Pendente",no_show:"Não compareceu"})[s]||"Pendente"}
-function statusClass(status){const s=normalizedStatus(status);if(["cancelled","canceled","cancelado","cancelada"].includes(s))return "cancelled";if(["finalizado","finalizada"].includes(s))return "finalized";if(["completed","done","realizado","realizada","concluido","concluida","atendido","atendida"].includes(s))return "completed";if(["confirmed","confirmado","confirmada"].includes(s))return "confirmed";return "pending"}
+function statusPortuguese(status){const s=normalizedStatus(status);return ({cancelled:"Cancelado",canceled:"Cancelado",cancelado:"Cancelado",cancelada:"Cancelado",confirmed:"Confirmado",confirmado:"Confirmado",confirmada:"Confirmado",completed:"Realizado",done:"Realizado",realizado:"Realizado",realizada:"Realizado",concluido:"Realizado",concluida:"Realizado",finalizado:"Finalizado",finalizada:"Finalizado",finalized:"Finalizado",finalised:"Finalizado",atendido:"Realizado",atendida:"Realizado",pending:"Pendente",pendente:"Pendente",no_show:"Não compareceu"})[s]||"Pendente"}
+function statusClass(status){const s=normalizedStatus(status);if(["cancelled","canceled","cancelado","cancelada"].includes(s))return "cancelled";if(["finalizado","finalizada","finalized","finalised"].includes(s))return "finalized";if(["completed","done","realizado","realizada","concluido","concluida","atendido","atendida"].includes(s))return "completed";if(["confirmed","confirmado","confirmada"].includes(s))return "confirmed";return "pending"}
 function appointmentCardStatus(status){
  const s=normalizedStatus(status);
  if(["no_show","nao_compareceu","faltou"].includes(s))return "status-noshow-card";
  if(["cancelled","canceled","cancelado","cancelada"].includes(s))return "status-cancelled-card";
- if(["finalizado","finalizada"].includes(s))return "status-finalized-card";
+ if(["finalizado","finalizada","finalized","finalised"].includes(s))return "status-finalized-card";
  if(["completed","done","realizado","realizada","concluido","concluida","atendido","atendida"].includes(s))return "status-completed-card";
  if(["confirmed","confirmado","confirmada"].includes(s))return "status-confirmed-card";
  return "status-pending-card";
@@ -589,6 +589,33 @@ document.addEventListener("click",e=>{
 
 if(session)renderLoginOrPage();else loginView();
 </script>
+
+/* v22: corrigir status Finalizado vindo do banco e deixar ações superiores sem borda */
+.booking-screen .booking-head{
+  display:flex!important;align-items:center!important;gap:14px!important;
+  position:relative!important;top:auto!important;z-index:5!important;
+  padding:4px 2px 10px!important;background:transparent!important;
+  border:0!important;box-shadow:none!important;
+}
+.booking-screen .booking-head button,
+.booking-screen .booking-head .form-back,
+.booking-screen .booking-head #mode-book,
+.booking-screen .booking-head #mode-block{
+  border:0!important;outline:0!important;box-shadow:none!important;
+  background:transparent!important;color:var(--ac)!important;
+  padding:9px 10px!important;border-radius:999px!important;
+}
+.booking-screen .booking-head .form-back{
+  flex:0 0 42px!important;width:42px!important;min-width:42px!important;
+  height:44px!important;font-size:30px!important;font-weight:800!important;
+  line-height:1!important;padding:0!important;
+}
+.booking-screen .booking-head #mode-book,
+.booking-screen .booking-head #mode-block{
+  flex:1 1 0!important;min-height:44px!important;font-weight:750!important;
+}
+.booking-screen .booking-head button:active{background:#2378d414!important}
+
 </body></html>
 <style>
 /* v14: status shown by the appointment card itself, not by extra labels */
