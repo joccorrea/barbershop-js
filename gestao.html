@@ -203,7 +203,9 @@ function optionList(items,value,label){return items.map(x=>`<option value="${esc
 function currentUserUI(){const login=$("#login-card");if(login)login.classList.toggle("hidden",!!session);$("#logout").classList.toggle("hidden",!session);$("#hamb").classList.toggle("hidden",!session);$("#menu").classList.toggle("hidden",!session);$("#menu-backdrop").classList.toggle("hidden",!session)}
 function loginView(){app.innerHTML=`<div class="card" id="login-card"><div class="section-title">Entrar na gestão</div><div class="field"><label>E-mail</label><input id="email" type="email" autocomplete="username"></div><div class="field"><label>Senha</label><input id="password" type="password" autocomplete="current-password"></div><p id="login-error" class="error"></p><button class="btn primary" id="do-login" style="width:100%">Entrar</button></div>`;currentUserUI()}
 function showError(e){notice=e?.message||"Ocorreu um erro.";renderNotice("error")}
-async function loadAgenda(){const date=key(day),wd=day.getDay();try{[bookings,hours,blocks]=await Promise.all([api(`bookings?select=*&date=eq.${date}&status=not.in.(cancelled,cancelado,canceled)&order=start_min`),api(`business_hours?select=*&weekday=eq.${wd}`),api(`blocked_slots?select=*&date=eq.${date}&order=start_min`)]);renderAgenda()}catch(e){shell("Agenda",`<p class="error">${esc(e.message)}</p><button class="btn" id="retry">Tentar novamente</button>`)}}
+function getLocalBookingStatuses(){try{return JSON.parse(localStorage.getItem("barberShopJSBookingStatuses")||"{}")}catch(_){return {}}}
+function setLocalBookingStatus(id,status){const all=getLocalBookingStatuses();all[String(id)]=status;localStorage.setItem("barberShopJSBookingStatuses",JSON.stringify(all))}
+async function loadAgenda(){const date=key(day),wd=day.getDay();try{[bookings,hours,blocks]=await Promise.all([api(`bookings?select=*&date=eq.${date}&status=not.in.(cancelled,cancelado,canceled)&order=start_min`),api(`business_hours?select=*&weekday=eq.${wd}`),api(`blocked_slots?select=*&date=eq.${date}&order=start_min`)]);const localStatuses=getLocalBookingStatuses();bookings=bookings.map(b=>localStatuses[String(b.id)]?{...b,status:localStatuses[String(b.id)]}:b);renderAgenda()}catch(e){shell("Agenda",`<p class="error">${esc(e.message)}</p><button class="btn" id="retry">Tentar novamente</button>`)}}
 function renderAgenda(){let cfg=hours?.[0];let nav=`<div class="card agenda-toolbar"><button class="agenda-arrow" data-day="-1" aria-label="Dia anterior">‹</button><div class="agenda-date">${DW[day.getDay()]}, ${day.toLocaleDateString("pt-BR")}</div><button class="agenda-arrow" data-day="1" aria-label="Próximo dia">›</button><button class="btn agenda-mini" id="toggle-goto">Ir para data</button><button class="btn agenda-mini" id="today">Hoje</button></div><div class="goto-panel" id="goto-panel"><div class="field"><label>Escolha a data</label><input type="date" id="goto-date" value="${key(day)}"></div><button class="btn primary agenda-mini" id="goto">Ir</button></div>`;
 if(!cfg||cfg.open_min==null){shell("Agenda",nav+`<p class="notice">Estabelecimento fechado ou horário não configurado para este dia.</p>`);return}
 let n=0;const open=Number(cfg.open_min),close=Number(cfg.close_min),ls=Number(cfg.lunch_start),le=Number(cfg.lunch_end);
@@ -276,6 +278,7 @@ function statusPortuguese(status){const s=normalizedStatus(status);return ({canc
 function statusClass(status){const s=normalizedStatus(status);if(["cancelled","canceled","cancelado","cancelada"].includes(s))return "cancelled";if(["finalizado","finalizada"].includes(s))return "finalized";if(["completed","done","realizado","realizada","concluido","concluida","atendido","atendida"].includes(s))return "completed";if(["confirmed","confirmado","confirmada"].includes(s))return "confirmed";return "pending"}
 function appointmentCardStatus(status){
  const s=normalizedStatus(status);
+ if(["no_show","nao_compareceu","faltou"].includes(s))return "status-noshow-card";
  if(["cancelled","canceled","cancelado","cancelada"].includes(s))return "status-cancelled-card";
  if(["finalizado","finalizada"].includes(s))return "status-finalized-card";
  if(["completed","done","realizado","realizada","concluido","concluida","atendido","atendida"].includes(s))return "status-completed-card";
@@ -537,10 +540,18 @@ function showAppConfirm(message,onOk){
   });
 }
 async function saveAppointmentStatus(id,status){
-  // Map the UI statuses to values accepted by the database constraint.
-  const dbStatusMap={pending:"pending",confirmed:"confirmed",completed:"completed",finalized:"completed",no_show:"cancelled",cancelled:"cancelled"};
-  const dbStatus=dbStatusMap[status]||status;
-  await api(`bookings?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",body:JSON.stringify({status:dbStatus})});
+  // Keep "não compareceu" visible in the agenda. The current database constraint
+  // rejects this status, so save an allowed status remotely and retain the visual
+  // status locally until the database constraint is corrected.
+  if(status==="no_show"){
+    await api(`bookings?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",body:JSON.stringify({status:"confirmed"})});
+    setLocalBookingStatus(id,"no_show");
+  }else{
+    const dbStatusMap={pending:"pending",confirmed:"confirmed",completed:"completed",finalized:"completed",cancelled:"cancelled"};
+    const dbStatus=dbStatusMap[status]||status;
+    await api(`bookings?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",body:JSON.stringify({status:dbStatus})});
+    const all=getLocalBookingStatuses();delete all[String(id)];localStorage.setItem("barberShopJSBookingStatuses",JSON.stringify(all));
+  }
   closeStatusPicker(); await loadAgenda();
 }
 function openStatusPicker(id){
@@ -636,4 +647,12 @@ if(session)renderLoginOrPage();else loginView();
 .app-confirm p{font-size:19px;line-height:1.4;margin:0 0 18px;font-weight:600}
 .app-confirm button{display:block;width:100%;padding:13px 16px;margin-top:9px;border-radius:13px;border:1px solid #dfe5ed;background:rgba(255,255,255,.78);color:#2e6fc4;font-size:17px;font-weight:600}
 .app-confirm button[data-confirm-ok]{background:#3478d4;border-color:#3478d4;color:#fff}
+</style>
+
+<style>
+/* Agendamento com falta: permanece na agenda e aparece em vermelho. */
+.agenda-appointment.status-noshow-card,
+.agenda-appointment.status-cancelled-card.status-noshow-card{
+ background:#ffebeb!important;border:2px solid #d94343!important;color:#922b2b!important;
+}
 </style>
