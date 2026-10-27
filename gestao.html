@@ -669,15 +669,15 @@ if(session)renderLoginOrPage();else loginView();
 (function(){
  const ID='current-time-indicator'; let timer=null;
  function findGrid(){
-  const sels=['#agenda-grid','#schedule-grid','#calendar-grid','.agenda-grid','.schedule-grid','.calendar-grid','.timeline-grid','.time-grid','.agenda-timeline','#agenda','.agenda'];
-  for(const s of sels){const e=document.querySelector(s);if(!e)continue;const t=[...e.querySelectorAll('*')].filter(n=>!n.children.length&&/^([01]?\\d|2[0-3]):[0-5]\\d$/.test((n.textContent||'').trim()));if(t.length>=2)return {el:e,times:t};}
-  const labels=[...document.querySelectorAll('body *')].filter(n=>!n.children.length&&/^([01]?\\d|2[0-3]):[0-5]\\d$/.test((n.textContent||'').trim()));
-  for(const n of labels){let e=n.parentElement;for(let i=0;e&&i<7;i++,e=e.parentElement){const t=[...e.querySelectorAll('*')].filter(x=>!x.children.length&&/^([01]?\\d|2[0-3]):[0-5]\\d$/.test((x.textContent||'').trim()));if(t.length>=3)return {el:e,times:t};}}
+  const sels=['.agenda-grid','#agenda-grid','#schedule-grid','#calendar-grid','.schedule-grid','.calendar-grid','.timeline-grid','.time-grid','.agenda-timeline'];
+  for(const s of sels){const e=document.querySelector(s);if(!e)continue;const t=[...e.querySelectorAll('*')].filter(n=>!n.children.length&&/^([01]?\d|2[0-3]):[0-5]\d$/.test((n.textContent||'').trim()));if(t.length>=2)return {el:e,times:t};}
+  const labels=[...document.querySelectorAll('body *')].filter(n=>!n.children.length&&/^([01]?\d|2[0-3]):[0-5]\d$/.test((n.textContent||'').trim()));
+  for(const n of labels){let e=n.parentElement;for(let i=0;e&&i<7;i++,e=e.parentElement){const t=[...e.querySelectorAll('*')].filter(x=>!x.children.length&&/^([01]?\d|2[0-3]):[0-5]\d$/.test((x.textContent||'').trim()));if(t.length>=3)return {el:e,times:t};}}
   return null;
  }
  function update(){
   const info=findGrid();if(!info)return;const {el,times}=info,now=new Date(),m=now.getHours()*60+now.getMinutes();
-  const a=[...new Set(times)].map(node=>{const q=(node.textContent||'').trim().match(/^(\\d{1,2}):(\\d{2})$/);return q?{node,minutes:+q[1]*60 + +q[2],rect:node.getBoundingClientRect()}:null}).filter(Boolean).sort((x,y)=>x.minutes-y.minutes);
+  const a=[...new Set(times)].map(node=>{const q=(node.textContent||'').trim().match(/^(\d{1,2}):(\d{2})$/);return q?{node,minutes:+q[1]*60 + +q[2],rect:node.getBoundingClientRect()}:null}).filter(Boolean).sort((x,y)=>x.minutes-y.minutes);
   if(a.length<2)return;let lo=null,hi=null;for(let i=0;i<a.length-1;i++){if(m>=a[i].minutes&&m<=a[i+1].minutes){lo=a[i];hi=a[i+1];break;}}
   let line=document.getElementById(ID);if(!lo||!hi){if(line)line.style.display='none';return;}
   const r=el.getBoundingClientRect(),f=(m-lo.minutes)/(hi.minutes-lo.minutes||30),y=lo.rect.top+(hi.rect.top-lo.rect.top)*f;
