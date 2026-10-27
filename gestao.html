@@ -616,6 +616,43 @@ if(session)renderLoginOrPage();else loginView();
 }
 .booking-screen .booking-head button:active{background:#2378d414!important}
 
+<style>
+
+/* v24: contorno delicado nos botões de ação e impedir zoom automático no preço */
+.booking-screen .booking-head .form-back,
+.booking-screen .booking-head #mode-book,
+.booking-screen .booking-head #mode-block{
+  border:1px solid rgba(56,126,210,.22)!important;
+  box-shadow:0 2px 8px rgba(32,83,145,.06)!important;
+  background:rgba(255,255,255,.28)!important;
+  -webkit-tap-highlight-color:transparent;
+}
+.booking-screen .booking-head .form-back{
+  border-radius:50%!important;
+}
+.booking-screen .booking-head #mode-book,
+.booking-screen .booking-head #mode-block{
+  border-radius:14px!important;
+}
+/* iOS Safari zooms inputs when the font is smaller than 16px. */
+.booking-screen input,
+.booking-screen select,
+.booking-screen textarea,
+.booking-screen input[type="number"],
+.booking-screen input[type="text"],
+.booking-screen input[type="time"],
+.booking-screen input[type="date"]{
+  font-size:16px!important;
+}
+.booking-screen .service-price,
+.booking-screen [data-service-price],
+.booking-screen .service-card input,
+.booking-screen input[inputmode="decimal"],
+.booking-screen input[inputmode="numeric"]{
+  font-size:16px!important;
+}
+
+</style>
 </body></html>
 <style>
 /* v14: status shown by the appointment card itself, not by extra labels */
