@@ -203,7 +203,7 @@ for(let m=agendaStart;m<agendaEnd;m+=30){
  if(b){
    n++;
    const durationSlots=Math.max(1,Math.ceil((Number(b.end_min)-Number(b.start_min))/30));
-   right.push(`<button class="card appointment-card agenda-appointment" data-open-booking="${esc(b.id)}" style="grid-column:2;grid-row:${row} / span ${durationSlots}"><div class="agenda-appt-main"><b class="agenda-client">${esc(b.client_name)}</b><div class="muted agenda-services">${(b.services||[]).map(x=>esc(x.name)+(x.qty>1?" ×"+x.qty:"")).join(", ")}</div><div class="agenda-price">${fm(b.total)}</div><div class="status-label status-${statusClass(b.status)}">${statusPortuguese(b.status)}</div></div><span class="agenda-chevron">›</span></button>`);
+   right.push(`<button class="card appointment-card agenda-appointment ${appointmentCardStatus(b.status)}" data-open-booking="${esc(b.id)}" style="grid-column:2;grid-row:${row} / span ${durationSlots}"><div class="agenda-appt-main"><b class="agenda-client">${esc(b.client_name)}</b></div><span class="agenda-chevron">›</span></button>`);
  }else if(occupying){
    // O horário permanece visível na coluna esquerda; o espaço da direita fica
    // vazio porque o cartão do agendamento já ocupa esse intervalo.
@@ -242,8 +242,23 @@ $("#app").addEventListener("submit",async e=>{if(e.target.id!=="hours-form")retu
 async function loadBirthdays(){try{clients=await api("clients?select=name,phone,birth_date&birth_date=not.is.null");let list=clients.filter(c=>c.birth_date&&Number(c.birth_date.split("-")[1])===month.getMonth()+1).sort((a,b)=>Number(a.birth_date.split("-")[2])-Number(b.birth_date.split("-")[2]));shell("Aniversários",`<div class="row between"><button class="btn" id="month-prev">‹</button><b>${MONTH[month.getMonth()]} ${month.getFullYear()}</b><button class="btn" id="month-next">›</button></div>`+(list.map(c=>{let d=c.birth_date.split("-")[2],first=c.name.split(" ")[0],text=`Feliz aniversário, ${first}! 🎂 A Barber Shop JS deseja um dia incrível pra você.`;return `<div class="card"><b>${d}/${String(month.getMonth()+1).padStart(2,"0")} · ${esc(c.name)}</b><div class="muted">${esc(c.phone)}</div><div class="actions"><a class="btn small" target="_blank" rel="noopener" href="https://wa.me/${esc(c.phone)}?text=${encodeURIComponent(text)}">Enviar parabéns</a></div></div>`}).join("")||`<p class="muted">Nenhum aniversariante neste mês.</p>`))}catch(e){shell("Aniversários",`<p class="error">${esc(e.message)}</p>`)}}
 function renderLoginOrPage(){if(!session){loginView();return}currentUserUI();navigate(page)}
 function normalizedStatus(status){return String(status||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim().replace(/[ -]+/g,"_")}
-function statusPortuguese(status){const s=normalizedStatus(status);return ({cancelled:"Cancelado",canceled:"Cancelado",cancelado:"Cancelado",cancelada:"Cancelado",confirmed:"Confirmado",confirmado:"Confirmado",confirmada:"Confirmado",completed:"Realizado",done:"Realizado",realizado:"Realizado",realizada:"Realizado",concluido:"Realizado",concluida:"Realizado",finalizado:"Realizado",finalizada:"Realizado",atendido:"Realizado",atendida:"Realizado",pending:"Pendente",pendente:"Pendente",no_show:"Não compareceu"})[s]||"Pendente"}
-function statusClass(status){const s=normalizedStatus(status);if(["cancelled","canceled","cancelado","cancelada"].includes(s))return "cancelled";if(["completed","done","realizado","realizada","concluido","concluida","finalizado","finalizada","atendido","atendida"].includes(s))return "completed";if(["confirmed","confirmado","confirmada"].includes(s))return "confirmed";return "pending"}
+function statusPortuguese(status){const s=normalizedStatus(status);return ({cancelled:"Cancelado",canceled:"Cancelado",cancelado:"Cancelado",cancelada:"Cancelado",confirmed:"Confirmado",confirmado:"Confirmado",confirmada:"Confirmado",completed:"Realizado",done:"Realizado",realizado:"Realizado",realizada:"Realizado",concluido:"Realizado",concluida:"Realizado",finalizado:"Finalizado",finalizada:"Finalizado",atendido:"Realizado",atendida:"Realizado",pending:"Pendente",pendente:"Pendente",no_show:"Não compareceu"})[s]||"Pendente"}
+function statusClass(status){const s=normalizedStatus(status);if(["cancelled","canceled","cancelado","cancelada"].includes(s))return "cancelled";if(["finalizado","finalizada"].includes(s))return "finalized";if(["completed","done","realizado","realizada","concluido","concluida","atendido","atendida"].includes(s))return "completed";if(["confirmed","confirmado","confirmada"].includes(s))return "confirmed";return "pending"}
+function appointmentCardStatus(status){
+ const s=normalizedStatus(status);
+ if(["cancelled","canceled","cancelado","cancelada"].includes(s))return "status-cancelled-card";
+ if(["finalizado","finalizada"].includes(s))return "status-finalized-card";
+ if(["completed","done","realizado","realizada","concluido","concluida","atendido","atendida"].includes(s))return "status-completed-card";
+ if(["confirmed","confirmado","confirmada"].includes(s))return "status-confirmed-card";
+ return "status-pending-card";
+}
+function serviceAddsDuration(service){
+ const name=String(service?.name||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().trim();
+ return ["corte simples","degrade na zero","degrade navalhado","degrade na shaver","undercut feminino","corte feminino"].includes(name);
+}
+function selectedServicesDuration(services){
+ return (services||[]).reduce((total,service)=>total+(serviceAddsDuration(service)?30*Number(service.qty||1):0),0);
+}
 function bindSheetDrag(scrim,close){
 const panel=scrim?.querySelector(".action-sheet"),grip=scrim?.querySelector(".sheet-grabber");if(!panel||!grip)return;
 let sy=0,dy=0,active=false;
@@ -313,7 +328,25 @@ if(b.id==="month-next"){month=new Date(month.getFullYear(),month.getMonth()+1,1)
 }catch(err){let n=$("#notice");if(n)n.innerHTML=`<div class="notice error">${esc(err.message)}</div>`;else shell("Erro",`<p class="error">${esc(err.message)}</p>`)}
 });
 app.addEventListener("change",e=>{
- if(e.target.matches("[data-service]")&&bookingDraft){readBookingInputs();const id=e.target.dataset.service;const svc=bookingDraft.catalog.find(x=>String(x.id)===String(id));if(e.target.checked&&svc){bookingDraft.services.push({...svc,qty:1})}else{bookingDraft.services=bookingDraft.services.filter(x=>String(x.id)!==String(id))}bookingDraft.endManuallyChanged=false;bookingDraft.end=bookingDraft.start+Math.max(30,Math.ceil(bookingDraft.services.reduce((a,x)=>a+Math.max(Number(x.duration_min||30),x.is_cut?30*Number(x.qty||1):0),0)/30)*30);renderBookingScreen()}
+ if(e.target.matches("[data-service]")&&bookingDraft){
+  const id=e.target.dataset.service;
+  const svc=bookingDraft.catalog.find(x=>String(x.id)===String(id));
+  const card=e.target.closest(".service-choice");
+  if(e.target.checked&&svc){
+    const priceInput=card?.querySelector("[data-service-price]");
+    bookingDraft.services.push({...svc,qty:1,price:priceInput?Number(priceInput.value):Number(svc.price||0)});
+  }else{
+    bookingDraft.services=bookingDraft.services.filter(x=>String(x.id)!==String(id));
+  }
+  bookingDraft.endManuallyChanged=false;
+  const duration=selectedServicesDuration(bookingDraft.services);
+  bookingDraft.end=bookingDraft.start+duration;
+  const endEl=$("#booking-end");
+  if(endEl)endEl.value=hm(bookingDraft.end%1440);
+  const total=bookingDraft.services.reduce((sum,x)=>sum+Number(x.price||0)*Number(x.qty||1),0);
+  const totalRow=$(".booking-screen .row.between");
+  if(totalRow){const cells=totalRow.querySelectorAll("b");if(cells[1])cells[1].textContent=fm(total)}
+ }
  if((e.target.id==="booking-date"||e.target.id==="booking-end-date")&&bookingDraft){readBookingInputs();renderBookingScreen()}
 });
 app.addEventListener("input",e=>{
@@ -322,7 +355,7 @@ app.addEventListener("input",e=>{
   const chosen=bookingDraft.services.find(x=>String(x.id)===String(id));
   if(chosen&&Number.isFinite(value)&&value>=0){chosen.price=value;const total=bookingDraft.services.reduce((a,x)=>a+Number(x.price||0)*Number(x.qty||1),0);const totalRow=$(".booking-screen .row.between");if(totalRow){const cells=totalRow.querySelectorAll("b");if(cells[1])cells[1].textContent=fm(total)}}
  }
- if(e.target.id==="booking-start"&&bookingDraft){const [h,m]=e.target.value.split(":").map(Number);bookingDraft.start=h*60+m;if(!bookingDraft.endManuallyChanged){const dur=Math.max(30,Math.ceil(bookingDraft.services.reduce((a,x)=>a+Math.max(Number(x.duration_min||30),x.is_cut?30*Number(x.qty||1):0),0)/30)*30);bookingDraft.end=bookingDraft.start+dur;const endEl=$("#booking-end");if(endEl)endEl.value=hm(bookingDraft.end%1440)}}
+ if(e.target.id==="booking-start"&&bookingDraft){const [h,m]=e.target.value.split(":").map(Number);bookingDraft.start=h*60+m;if(!bookingDraft.endManuallyChanged){const dur=bookingDraft.services.length?selectedServicesDuration(bookingDraft.services):30;bookingDraft.end=bookingDraft.start+dur;const endEl=$("#booking-end");if(endEl)endEl.value=hm(bookingDraft.end%1440)}}
  if(e.target.id==="booking-end"&&bookingDraft){bookingDraft.endManuallyChanged=true;readBookingInputs()}
  if(e.target.id==="booking-client-search"&&bookingDraft){bookingDraft.query=e.target.value;const box=$("#booking-client-options");const q=normalizeSearch(bookingDraft.query);const filtered=bookingDraft.clients.filter(c=>normalizeSearch(c.name).includes(q)||(c.phone||"").includes(bookingDraft.query));box.innerHTML=filtered.map(c=>`<button class="btn client-select-btn" data-pick-client="${esc(c.phone)}">${esc(c.name)} · ${esc(c.phone)}</button>`).join(" ")||'<span class="muted">Nenhum cliente encontrado.</span>'}
  if((e.target.id==="booking-new-name"||e.target.id==="booking-new-phone")&&bookingDraft)readBookingInputs();
@@ -459,3 +492,16 @@ async function saveBookingForm(){
 if(session)renderLoginOrPage();else loginView();
 </script>
 </body></html>
+<style>
+/* v14: status shown by the appointment card itself, not by extra labels */
+.agenda-appointment{transition:background-color .12s,border-color .12s}
+.agenda-appointment.status-pending-card{background:#fff0d9!important;border:2px solid #e99a2b!important;color:#6f4308!important}
+.agenda-appointment.status-confirmed-card{background:#eaf2ff!important;border:2px solid #3979d1!important;color:#245fae!important}
+.agenda-appointment.status-completed-card{background:#f0eaff!important;border:2px solid #8a63c7!important;color:#56378b!important}
+.agenda-appointment.status-finalized-card{background:#e6f7ec!important;border:2px solid #279653!important;color:#176b38!important}
+.agenda-appointment.status-cancelled-card{background:#ffebeb!important;border:2px solid #d94b4b!important;color:#922b2b!important}
+.agenda-appointment .agenda-appt-main{display:block!important}
+.agenda-appointment .agenda-client{display:block!important;font-size:17px!important;font-weight:750!important;line-height:1.25!important}
+.agenda-appointment .agenda-services,.agenda-appointment .agenda-price,.agenda-appointment .status-label,.agenda-appointment .agenda-time-range{display:none!important}
+.agenda-appointment .agenda-chevron{color:inherit}
+</style>
