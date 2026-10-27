@@ -633,6 +633,33 @@ if(session)renderLoginOrPage();else loginView();
 .booking-screen .booking-head #mode-block{border-radius:15px!important;}
 
 </style>
+<style>
+
+/* v26: botões no padrão azul dos botões flutuantes + e gravar */
+.booking-screen .booking-head .form-back,
+.booking-screen .booking-head #mode-book,
+.booking-screen .booking-head #mode-block {
+  background: #347fd1 !important;
+  background-color: #347fd1 !important;
+  color: #fff !important;
+  border: 2px solid #347fd1 !important;
+  box-shadow: 0 8px 20px rgba(52,127,209,.28) !important;
+  opacity: 1 !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+.booking-screen .booking-head .form-back { border-radius: 50% !important; }
+.booking-screen .booking-head #mode-book,
+.booking-screen .booking-head #mode-block { border-radius: 16px !important; }
+.booking-screen .booking-head .form-back svg,
+.booking-screen .booking-head .form-back span,
+.booking-screen .booking-head #mode-book *,
+.booking-screen .booking-head #mode-block * {
+  color: #fff !important;
+  fill: #fff !important;
+}
+
+</style>
 </body></html>
 <style>
 /* v14: status shown by the appointment card itself, not by extra labels */
