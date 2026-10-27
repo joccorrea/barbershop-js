@@ -526,8 +526,21 @@ async function saveBookingForm(){
 
 let appointmentHoldTimer=null, appointmentHoldTriggered=false, appointmentHoldTarget=null;
 function closeStatusPicker(){document.querySelector("#status-picker-scrim")?.remove()}
+function showAppConfirm(message,onOk){
+  document.querySelector("#app-confirm-scrim")?.remove();
+  const scrim=document.createElement("div");scrim.id="app-confirm-scrim";scrim.className="app-confirm-scrim";
+  scrim.innerHTML=`<section class="app-confirm" role="dialog" aria-modal="true"><p>${message}</p><button type="button" data-confirm-cancel>Cancelar</button><button type="button" data-confirm-ok>OK</button></section>`;
+  document.body.appendChild(scrim);
+  scrim.addEventListener("click",async e=>{
+    if(e.target===scrim||e.target.closest("[data-confirm-cancel]")){scrim.remove();return}
+    if(e.target.closest("[data-confirm-ok]")){scrim.remove();await onOk()}
+  });
+}
 async function saveAppointmentStatus(id,status){
-  await api(`bookings?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",body:JSON.stringify({status})});
+  // Map the UI statuses to values accepted by the database constraint.
+  const dbStatusMap={pending:"pending",confirmed:"confirmed",completed:"completed",finalized:"completed",no_show:"cancelled",cancelled:"cancelled"};
+  const dbStatus=dbStatusMap[status]||status;
+  await api(`bookings?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",body:JSON.stringify({status:dbStatus})});
   closeStatusPicker(); await loadAgenda();
 }
 function openStatusPicker(id){
@@ -545,6 +558,11 @@ function openStatusPicker(id){
   scrim.addEventListener("click",async e=>{
     if(e.target===scrim||e.target.closest("[data-close-status]")){closeStatusPicker();return}
     const b=e.target.closest("[data-set-status]");if(!b)return;
+    if(b.dataset.setStatus==="cancelled"){
+      closeStatusPicker();
+      showAppConfirm("Deseja cancelar o atendimento?",()=>saveAppointmentStatus(id,"cancelled").catch(err=>alert("Não foi possível cancelar: "+(err.message||err))));
+      return;
+    }
     try{await saveAppointmentStatus(id,b.dataset.setStatus)}catch(err){alert("Não foi possível atualizar o status: "+(err.message||err))}
   });
 }
@@ -610,4 +628,12 @@ if(session)renderLoginOrPage();else loginView();
 <style>
 .agenda-appointment{-webkit-touch-callout:none}
 .status-picker button[data-set-status="cancelled"]{background:#ffebeb;border-color:#d94b4b}
+</style>
+
+<style>
+.app-confirm-scrim{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.42);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.app-confirm{width:min(100%,340px);padding:24px 22px 18px;border:1px solid rgba(255,255,255,.42);border-radius:24px;background:rgba(255,255,255,.92);box-shadow:0 18px 55px rgba(0,0,0,.22);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);text-align:center;color:#242a32}
+.app-confirm p{font-size:19px;line-height:1.4;margin:0 0 18px;font-weight:600}
+.app-confirm button{display:block;width:100%;padding:13px 16px;margin-top:9px;border-radius:13px;border:1px solid #dfe5ed;background:rgba(255,255,255,.78);color:#2e6fc4;font-size:17px;font-weight:600}
+.app-confirm button[data-confirm-ok]{background:#3478d4;border-color:#3478d4;color:#fff}
 </style>
