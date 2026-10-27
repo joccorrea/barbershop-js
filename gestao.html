@@ -370,9 +370,13 @@ app.addEventListener("change",e=>{
   }
   bookingDraft.endManuallyChanged=false;
   const duration=selectedServicesDuration(bookingDraft.services);
-  bookingDraft.end=bookingDraft.start+duration;
-  const endEl=$("#booking-end");
-  if(endEl)endEl.value=hm(bookingDraft.end%1440);
+  if(Number.isFinite(Number(bookingDraft.start))){
+    bookingDraft.end=Number(bookingDraft.start)+duration;
+    const endEl=$("#booking-end");
+    if(endEl)endEl.value=hm(bookingDraft.end%1440);
+    const endDateEl=$("#booking-end-date");
+    if(endDateEl)endDateEl.value=key(new Date(bookingDraft.date.getFullYear(),bookingDraft.date.getMonth(),bookingDraft.date.getDate()+Math.floor(bookingDraft.end/1440)));
+  }
   const total=bookingDraft.services.reduce((sum,x)=>sum+Number(x.price||0)*Number(x.qty||1),0);
   const totalRow=$(".booking-screen .row.between");
   if(totalRow){const cells=totalRow.querySelectorAll("b");if(cells[1])cells[1].textContent=fm(total)}
@@ -385,7 +389,7 @@ app.addEventListener("input",e=>{
   const chosen=bookingDraft.services.find(x=>String(x.id)===String(id));
   if(chosen&&Number.isFinite(value)&&value>=0){chosen.price=value;const total=bookingDraft.services.reduce((a,x)=>a+Number(x.price||0)*Number(x.qty||1),0);const totalRow=$(".booking-screen .row.between");if(totalRow){const cells=totalRow.querySelectorAll("b");if(cells[1])cells[1].textContent=fm(total)}}
  }
- if(e.target.id==="booking-start"&&bookingDraft){const [h,m]=e.target.value.split(":").map(Number);bookingDraft.start=h*60+m;if(!bookingDraft.endManuallyChanged){const dur=bookingDraft.services.length?selectedServicesDuration(bookingDraft.services):30;bookingDraft.end=bookingDraft.start+dur;const endEl=$("#booking-end");if(endEl)endEl.value=hm(bookingDraft.end%1440)}}
+ if(e.target.id==="booking-start"&&bookingDraft){const [h,m]=e.target.value.split(":").map(Number);bookingDraft.start=h*60+m;if(!bookingDraft.endManuallyChanged){const dur=selectedServicesDuration(bookingDraft.services);bookingDraft.end=bookingDraft.start+dur;const endEl=$("#booking-end");if(endEl)endEl.value=hm(bookingDraft.end%1440)}}
  if(e.target.id==="booking-end"&&bookingDraft){bookingDraft.endManuallyChanged=true;readBookingInputs()}
  if(e.target.id==="booking-client-search"&&bookingDraft){bookingDraft.query=e.target.value;const box=$("#booking-client-options");const q=normalizeSearch(bookingDraft.query);const filtered=bookingDraft.clients.filter(c=>normalizeSearch(c.name).includes(q)||(c.phone||"").includes(bookingDraft.query));box.innerHTML=filtered.map(c=>`<button class="btn client-select-btn" data-pick-client="${esc(c.phone)}">${esc(c.name)} · ${esc(c.phone)}</button>`).join(" ")||'<span class="muted">Nenhum cliente encontrado.</span>'}
  if((e.target.id==="booking-new-name"||e.target.id==="booking-new-phone")&&bookingDraft)readBookingInputs();
@@ -408,7 +412,7 @@ async function renderBookingClientRegistration(){
     <div class="field"><label>Nome</label><input id="reg-name" required value="${esc(state.name)}" placeholder="Nome completo"></div>
     <div class="field"><label>Apelido</label><input id="reg-nickname" value="${esc(state.nickname)}" placeholder="Como gosta de ser chamado"></div>
     <div class="field"><label>Data de nascimento</label><input id="reg-birth" type="date" value="${esc(state.birth_date)}"></div>
-    <div class="field"><label>Número de celular</label><input id="reg-phone" type="tel" inputmode="tel" required value="${esc(state.phone)}" placeholder="DDD + número"></div>
+    <div class="field"><label>Número de celular</label><div class="phone-international"><select id="reg-phone-code" aria-label="Código do país"><option value="+55" selected>🇧🇷 +55 Brasil</option><option value="+1">🇺🇸 +1 Estados Unidos/Canadá</option><option value="+7">🇷🇺 +7 Rússia/Cazaquistão</option><option value="+20">🇪🇬 +20 Egito</option><option value="+27">🇿🇦 +27 África do Sul</option><option value="+30">🇬🇷 +30 Grécia</option><option value="+31">🇳🇱 +31 Países Baixos</option><option value="+32">🇧🇪 +32 Bélgica</option><option value="+33">🇫🇷 +33 França</option><option value="+34">🇪🇸 +34 Espanha</option><option value="+36">🇭🇺 +36 Hungria</option><option value="+39">🇮🇹 +39 Itália</option><option value="+40">🇷🇴 +40 Romênia</option><option value="+41">🇨🇭 +41 Suíça</option><option value="+43">🇦🇹 +43 Áustria</option><option value="+44">🇬🇧 +44 Reino Unido</option><option value="+45">🇩🇰 +45 Dinamarca</option><option value="+46">🇸🇪 +46 Suécia</option><option value="+47">🇳🇴 +47 Noruega</option><option value="+48">🇵🇱 +48 Polônia</option><option value="+49">🇩🇪 +49 Alemanha</option><option value="+51">🇵🇪 +51 Peru</option><option value="+52">🇲🇽 +52 México</option><option value="+53">🇨🇺 +53 Cuba</option><option value="+54">🇦🇷 +54 Argentina</option><option value="+56">🇨🇱 +56 Chile</option><option value="+57">🇨🇴 +57 Colômbia</option><option value="+58">🇻🇪 +58 Venezuela</option><option value="+60">🇲🇾 +60 Malásia</option><option value="+61">🇦🇺 +61 Austrália</option><option value="+62">🇮🇩 +62 Indonésia</option><option value="+63">🇵🇭 +63 Filipinas</option><option value="+64">🇳🇿 +64 Nova Zelândia</option><option value="+65">🇸🇬 +65 Singapura</option><option value="+66">🇹🇭 +66 Tailândia</option><option value="+81">🇯🇵 +81 Japão</option><option value="+82">🇰🇷 +82 Coreia do Sul</option><option value="+84">🇻🇳 +84 Vietnã</option><option value="+86">🇨🇳 +86 China</option><option value="+90">🇹🇷 +90 Turquia</option><option value="+91">🇮🇳 +91 Índia</option><option value="+92">🇵🇰 +92 Paquistão</option><option value="+93">🇦🇫 +93 Afeganistão</option><option value="+94">🇱🇰 +94 Sri Lanka</option><option value="+95">🇲🇲 +95 Mianmar</option><option value="+98">🇮🇷 +98 Irã</option><option value="+212">🇲🇦 +212 Marrocos</option><option value="+213">🇩🇿 +213 Argélia</option><option value="+216">🇹🇳 +216 Tunísia</option><option value="+234">🇳🇬 +234 Nigéria</option><option value="+254">🇰🇪 +254 Quênia</option><option value="+351">🇵🇹 +351 Portugal</option><option value="+352">🇱🇺 +352 Luxemburgo</option><option value="+353">🇮🇪 +353 Irlanda</option><option value="+354">🇮🇸 +354 Islândia</option><option value="+358">🇫🇮 +358 Finlândia</option><option value="+380">🇺🇦 +380 Ucrânia</option><option value="+420">🇨🇿 +420 República Tcheca</option><option value="+421">🇸🇰 +421 Eslováquia</option><option value="+852">🇭🇰 +852 Hong Kong</option><option value="+853">🇲🇴 +853 Macau</option><option value="+855">🇰🇭 +855 Camboja</option><option value="+880">🇧🇩 +880 Bangladesh</option><option value="+886">🇹🇼 +886 Taiwan</option><option value="+971">🇦🇪 +971 Emirados Árabes</option><option value="+972">🇮🇱 +972 Israel</option><option value="+966">🇸🇦 +966 Arábia Saudita</option><option value="+994">🇦🇿 +994 Azerbaijão</option><option value="+995">🇬🇪 +995 Geórgia</option><option value="+998">🇺🇿 +998 Uzbequistão</option></select><input id="reg-phone" type="tel" inputmode="tel" required value="${esc(state.phone)}" placeholder="DDD + número"></div></div>
     <div class="section-title">Endereço</div>
     <div class="field"><label>Rua</label><input id="reg-street" value="${esc(state.street)}"></div>
     <div class="grid"><div class="field"><label>Número</label><input id="reg-number" value="${esc(state.number)}"></div><div class="field"><label>Complemento</label><input id="reg-complement" value="${esc(state.complement)}"></div></div>
@@ -519,6 +523,49 @@ async function saveBookingForm(){
   bookingDraft=null;day=d.date;await loadAgenda();
   }catch(e){let message=e.message||"Não foi possível salvar o agendamento.";if(message.includes("23P01")||message.includes("bookings_barber_id_date_int4range_excl")||message.includes("exclusion constraint"))message="O banco estava bloqueando horários sobrepostos. A restrição foi removida; atualize a página e tente novamente. Se persistir, confira se a versão publicada usa o projeto Supabase correto.";if(err){err.textContent=message;err.classList.remove('hidden')}else alert(message)}
 }
+
+let appointmentHoldTimer=null, appointmentHoldTriggered=false, appointmentHoldTarget=null;
+function closeStatusPicker(){document.querySelector("#status-picker-scrim")?.remove()}
+async function saveAppointmentStatus(id,status){
+  await api(`bookings?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",body:JSON.stringify({status})});
+  closeStatusPicker(); await loadAgenda();
+}
+function openStatusPicker(id){
+  closeStatusPicker();
+  const scrim=document.createElement("div");scrim.className="status-picker-scrim";scrim.id="status-picker-scrim";
+  scrim.innerHTML=`<section class="status-picker" role="dialog" aria-modal="true"><h3>Status do atendimento</h3>
+  <button class="status-option-pending" data-set-status="pending">🟠 Pendente — aguarda confirmação</button>
+  <button class="status-option-confirmed" data-set-status="confirmed">🔵 Confirmado</button>
+  <button class="status-option-completed" data-set-status="completed">🟣 Realizado — serviço concluído</button>
+  <button class="status-option-finalized" data-set-status="finalized">🟢 Finalizado — pagamento efetuado</button>
+  <button class="status-option-noshow" data-set-status="no_show">🔴 Não compareceu / faltou</button>
+  <button data-set-status="cancelled">Cancelar agendamento</button>
+  <button data-close-status>Fechar</button></section>`;
+  document.body.appendChild(scrim);
+  scrim.addEventListener("click",async e=>{
+    if(e.target===scrim||e.target.closest("[data-close-status]")){closeStatusPicker();return}
+    const b=e.target.closest("[data-set-status]");if(!b)return;
+    try{await saveAppointmentStatus(id,b.dataset.setStatus)}catch(err){alert("Não foi possível atualizar o status: "+(err.message||err))}
+  });
+}
+document.addEventListener("pointerdown",e=>{
+  const card=e.target.closest(".agenda-appointment[data-open-booking]");if(!card)return;
+  appointmentHoldTriggered=false;appointmentHoldTarget=card;
+  clearTimeout(appointmentHoldTimer);
+  appointmentHoldTimer=setTimeout(()=>{appointmentHoldTriggered=true;openStatusPicker(card.dataset.openBooking)},550);
+});
+document.addEventListener("pointerup",()=>clearTimeout(appointmentHoldTimer));
+document.addEventListener("pointercancel",()=>clearTimeout(appointmentHoldTimer));
+document.addEventListener("contextmenu",e=>{
+  const card=e.target.closest(".agenda-appointment[data-open-booking]");if(!card)return;
+  e.preventDefault();clearTimeout(appointmentHoldTimer);appointmentHoldTriggered=true;openStatusPicker(card.dataset.openBooking);
+});
+document.addEventListener("click",e=>{
+  if(appointmentHoldTriggered&&e.target.closest(".agenda-appointment[data-open-booking]")){
+    e.preventDefault();e.stopImmediatePropagation();appointmentHoldTriggered=false;
+  }
+},true);
+
 if(session)renderLoginOrPage();else loginView();
 </script>
 </body></html>
@@ -553,4 +600,14 @@ if(session)renderLoginOrPage();else loginView();
 .booking-screen .booking-head{display:flex!important;align-items:center!important;position:sticky!important;top:0!important;z-index:5!important}
 .booking-screen .booking-head .form-back{position:static!important;align-self:center!important;flex:0 0 42px!important;width:42px!important;min-width:42px!important;height:44px!important;margin:0!important}
 
+</style>
+
+<style>
+.phone-international{display:grid;grid-template-columns:minmax(142px,42%) minmax(0,1fr);gap:8px;align-items:center}
+.phone-international select,.phone-international input{min-width:0;width:100%;box-sizing:border-box}
+</style>
+
+<style>
+.agenda-appointment{-webkit-touch-callout:none}
+.status-picker button[data-set-status="cancelled"]{background:#ffebeb;border-color:#d94b4b}
 </style>
