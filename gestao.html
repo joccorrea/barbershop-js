@@ -660,6 +660,35 @@ if(session)renderLoginOrPage();else loginView();
 }
 
 </style>
+<style>
+/* v27: linha vermelha da hora atual na agenda */
+#current-time-indicator{position:absolute!important;left:0!important;right:0!important;height:2px!important;background:#ef4444!important;z-index:80!important;pointer-events:none!important;display:none}
+#current-time-indicator:before{content:"";position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:#ef4444}
+</style>
+<script>
+(function(){
+ const ID='current-time-indicator'; let timer=null;
+ function findGrid(){
+  const sels=['#agenda-grid','#schedule-grid','#calendar-grid','.agenda-grid','.schedule-grid','.calendar-grid','.timeline-grid','.time-grid','.agenda-timeline','#agenda','.agenda'];
+  for(const s of sels){const e=document.querySelector(s);if(!e)continue;const t=[...e.querySelectorAll('*')].filter(n=>!n.children.length&&/^([01]?\\d|2[0-3]):[0-5]\\d$/.test((n.textContent||'').trim()));if(t.length>=2)return {el:e,times:t};}
+  const labels=[...document.querySelectorAll('body *')].filter(n=>!n.children.length&&/^([01]?\\d|2[0-3]):[0-5]\\d$/.test((n.textContent||'').trim()));
+  for(const n of labels){let e=n.parentElement;for(let i=0;e&&i<7;i++,e=e.parentElement){const t=[...e.querySelectorAll('*')].filter(x=>!x.children.length&&/^([01]?\\d|2[0-3]):[0-5]\\d$/.test((x.textContent||'').trim()));if(t.length>=3)return {el:e,times:t};}}
+  return null;
+ }
+ function update(){
+  const info=findGrid();if(!info)return;const {el,times}=info,now=new Date(),m=now.getHours()*60+now.getMinutes();
+  const a=[...new Set(times)].map(node=>{const q=(node.textContent||'').trim().match(/^(\\d{1,2}):(\\d{2})$/);return q?{node,minutes:+q[1]*60 + +q[2],rect:node.getBoundingClientRect()}:null}).filter(Boolean).sort((x,y)=>x.minutes-y.minutes);
+  if(a.length<2)return;let lo=null,hi=null;for(let i=0;i<a.length-1;i++){if(m>=a[i].minutes&&m<=a[i+1].minutes){lo=a[i];hi=a[i+1];break;}}
+  let line=document.getElementById(ID);if(!lo||!hi){if(line)line.style.display='none';return;}
+  const r=el.getBoundingClientRect(),f=(m-lo.minutes)/(hi.minutes-lo.minutes||30),y=lo.rect.top+(hi.rect.top-lo.rect.top)*f;
+  if(!line){line=document.createElement('div');line.id=ID;el.appendChild(line);}
+  if(getComputedStyle(el).position==='static')el.style.position='relative';
+  line.style.top=(y-r.top+el.scrollTop)+'px';line.style.display='block';
+ }
+ function start(){if(timer)clearInterval(timer);update();timer=setInterval(update,15000);}
+ document.addEventListener('DOMContentLoaded',start);window.addEventListener('load',start);window.addEventListener('resize',update);window.addEventListener('scroll',update,true);document.addEventListener('click',()=>setTimeout(update,250));start();
+})();
+</script>
 </body></html>
 <style>
 /* v14: status shown by the appointment card itself, not by extra labels */
