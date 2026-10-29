@@ -174,6 +174,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #2378d42a;border-color
 <button data-page="agenda">Agenda</button><button data-page="settings">Configurações</button>
 <button data-page="clients">Clientes</button><button data-page="products">Produtos</button>
 <button data-page="services">Serviços</button><button data-page="birthdays">Aniversários</button>
+<button id="finance-menu" type="button">Financeiro</button>
 </nav>
 <div id="app"></div>
 </main>
@@ -309,6 +310,7 @@ async function showBlockSheet(block){const id=block.id;document.body.classList.a
 async function navigate(p){page=p;setMenuOpen(false);$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="birthdays")await loadBirthdays()}
 function setMenuOpen(open){$("#menu").classList.toggle("open",open);$("#menu-backdrop").classList.toggle("open",open);document.body.style.overflow=open?"hidden":""}
 $("#hamb").onclick=()=>setMenuOpen(!$("#menu").classList.contains("open"));
+$("#finance-menu").onclick=()=>{setMenuOpen(false);location.href="financeiro.html";};
 $("#menu-backdrop").onclick=()=>setMenuOpen(false);
 $("#logout").onclick=()=>{session=null;saveSession();setMenuOpen(false);renderLoginOrPage()};
 $("#menu").addEventListener("click",e=>{let b=e.target.closest("[data-page]");if(b){setMenuOpen(false);navigate(b.dataset.page)}});
