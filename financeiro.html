@@ -1,173 +1,92 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Financeiro | Barber Shop JS</title>
 <style>
-:root{--bg:#101216;--panel:#191d23;--panel2:#20252d;--text:#f4f5f7;--muted:#aab1bc;--line:#303743;--gold:#d6ad55;--green:#4cc38a;--red:#ff7373;--blue:#80b7ff}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-header{padding:20px clamp(16px,4vw,36px);background:#090a0c;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.brand{font-weight:800;letter-spacing:.04em}.brand span{color:var(--gold)}.sub{font-size:12px;color:var(--muted);margin-top:3px}
-main{max-width:1250px;margin:0 auto;padding:24px clamp(12px,3vw,28px) 50px}
-.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:18px}.field{display:flex;flex-direction:column;gap:5px;min-width:140px;flex:1}.field label{font-size:12px;color:var(--muted)}
-input,select,textarea{width:100%;background:#0e1115;border:1px solid var(--line);border-radius:9px;color:var(--text);padding:11px;font:inherit;min-height:42px}
-button,.btn{border:0;border-radius:9px;background:var(--gold);color:#17130a;font-weight:750;padding:11px 15px;cursor:pointer;font:inherit;font-weight:750}
-button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}button.danger{background:#532b30;color:#ffd9dc}button:disabled{opacity:.55;cursor:wait}
-h1{font-size:clamp(23px,4vw,32px);margin:0 0 5px}.lead{color:var(--muted);margin:0 0 22px}
-.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}.card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}.label{font-size:12px;color:var(--muted)}.value{font-size:clamp(19px,3vw,27px);font-weight:800;margin-top:6px;overflow-wrap:anywhere}.positive{color:var(--green)}.negative{color:var(--red)}
-.grid{display:grid;grid-template-columns:minmax(280px, .85fr) minmax(0,1.6fr);gap:14px;align-items:start}.panel h2{font-size:17px;margin:0 0 14px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.formgrid .wide{grid-column:1/-1}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:650px}th,td{text-align:left;padding:11px 9px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}td{font-size:13px}.amount{font-weight:800;white-space:nowrap}.tag{display:inline-block;border-radius:99px;padding:3px 8px;background:var(--panel2);font-size:11px}.empty{padding:28px;text-align:center;color:var(--muted)}
-#status{padding:10px 12px;border-radius:9px;margin:12px 0;display:none;white-space:pre-wrap}#status.error{display:block;background:#48282b;color:#ffd6d8}#status.ok{display:block;background:#19392c;color:#c7ffe1}
-.small{font-size:12px;color:var(--muted)}.settings{margin-top:14px}.hidden{display:none!important}
-@media(max-width:850px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.grid{grid-template-columns:1fr}}
-@media(max-width:460px){.cards{grid-template-columns:1fr 1fr}.formgrid{grid-template-columns:1fr}.formgrid .wide{grid-column:auto}.card{padding:12px}.value{font-size:19px}}
+:root{--bg:#101216;--panel:#191d23;--panel2:#20252d;--text:#f4f5f7;--muted:#aab1bc;--line:#303743;--gold:#d6ad55;--green:#4cc38a;--red:#ff7373}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial}header{padding:18px clamp(14px,4vw,32px);background:#090a0c;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.brand{font-weight:850;letter-spacing:.04em}.brand span{color:var(--gold)}main{max-width:1350px;margin:auto;padding:22px clamp(12px,3vw,28px) 45px}h1{margin:0 0 4px;font-size:clamp(24px,4vw,32px)}h2{font-size:17px;margin:0 0 14px}.muted,.small{color:var(--muted)}.small{font-size:12px}.toolbar,.actions,.tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0}.field{display:flex;flex-direction:column;gap:5px;min-width:120px;flex:1}.field label{font-size:12px;color:var(--muted)}input,select,textarea{width:100%;background:#0e1115;border:1px solid var(--line);border-radius:9px;color:var(--text);padding:11px;font:inherit;min-height:42px}button{border:0;border-radius:9px;background:var(--gold);color:#17130a;font:inherit;font-weight:750;padding:10px 14px;cursor:pointer}button.secondary,.tab{background:var(--panel2);color:var(--text);border:1px solid var(--line)}button.danger{background:#532b30;color:#ffd9dc}.tab.active{border-color:var(--gold);color:var(--gold)}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:15px 0}.card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px;min-width:0}.label{font-size:12px;color:var(--muted)}.value{font-size:clamp(19px,3vw,27px);font-weight:850;margin-top:5px;overflow-wrap:anywhere}.green{color:var(--green)}.red{color:var(--red)}.layout{display:grid;grid-template-columns:minmax(270px,.8fr) minmax(0,1.7fr);gap:13px;align-items:start}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.wide{grid-column:1/-1}.tablewrap{overflow:auto}table{border-collapse:collapse;width:100%;min-width:650px}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:11px;color:var(--muted);text-transform:uppercase}td{font-size:13px}.tag{display:inline-block;padding:3px 7px;border-radius:99px;background:var(--panel2);font-size:11px}.empty{text-align:center;color:var(--muted);padding:24px}#status{display:none;white-space:pre-wrap;padding:11px;border-radius:9px;margin:12px 0}#status.ok{display:block;background:#19392c;color:#c7ffe1}#status.error{display:block;background:#48282b;color:#ffd6d8}.section{display:none}.section.active{display:block}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.hidden{display:none!important}
+@media(max-width:850px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.layout,.two{grid-template-columns:1fr}}@media(max-width:480px){.formgrid{grid-template-columns:1fr}.wide{grid-column:auto}.cards{gap:7px}.card{padding:11px}}
 </style>
 </head>
 <body>
-<header>
-  <div><div class="brand">BARBER SHOP <span>JS</span> · FINANCEIRO</div><div class="sub">Controle financeiro da barbearia</div></div>
-  <button class="secondary" id="backBtn" type="button">Voltar à gestão</button>
-</header>
+<header><div><div class="brand">BARBER SHOP <span>JS</span> · FINANCEIRO</div><div class="small">Controle financeiro</div></div><button class="secondary" id="back">Voltar à gestão</button></header>
 <main>
-  <h1>Financeiro</h1>
-  <p class="lead">Lançamentos, entradas, despesas e contas pendentes em um só lugar.</p>
-  <div id="status" role="status"></div>
-  <div class="toolbar">
-    <div class="field"><label for="month">Mês de referência</label><input id="month" type="month"></div>
-    <div class="field"><label for="filterKind">Tipo</label><select id="filterKind"><option value="">Todos</option><option value="income">Receitas</option><option value="expense">Despesas</option><option value="investment">Investimentos</option><option value="pro_labore">Pró-labore</option><option value="refund">Reembolsos</option></select></div>
-    <button id="refreshBtn" type="button">Atualizar</button>
-  </div>
-  <section class="cards">
-    <div class="card"><div class="label">Receitas pagas</div><div class="value positive" id="totalIncome">R$ 0,00</div></div>
-    <div class="card"><div class="label">Despesas pagas</div><div class="value negative" id="totalExpense">R$ 0,00</div></div>
-    <div class="card"><div class="label">Investimentos</div><div class="value" id="totalInvest">R$ 0,00</div></div>
-    <div class="card"><div class="label">Resultado do mês</div><div class="value" id="totalResult">R$ 0,00</div></div>
-  </section>
-  <div class="grid">
-    <section class="panel">
-      <h2>Novo lançamento</h2>
-      <form id="movementForm">
-        <div class="formgrid">
-          <div class="field"><label for="kind">Tipo *</label><select id="kind" required><option value="income">Receita</option><option value="expense">Despesa</option><option value="investment">Investimento</option><option value="pro_labore">Pró-labore</option><option value="refund">Reembolso</option></select></div>
-          <div class="field"><label for="date">Data *</label><input id="date" type="date" required></div>
-          <div class="field wide"><label for="description">Descrição *</label><input id="description" maxlength="180" required placeholder="Ex.: corte, aluguel, material"></div>
-          <div class="field"><label for="category">Categoria</label><input id="category" maxlength="80" placeholder="Ex.: serviço"></div>
-          <div class="field"><label for="amount">Valor (R$) *</label><input id="amount" type="number" min="0.01" step="0.01" required placeholder="0,00"></div>
-          <div class="field"><label for="method">Forma de pagamento</label><select id="method"><option value="pix">Pix</option><option value="cash">Dinheiro</option><option value="card">Cartão</option><option value="transfer">Transferência</option><option value="other">Outro</option></select></div>
-          <div class="field"><label for="statusSelect">Situação</label><select id="statusSelect"><option value="paid">Pago/recebido</option><option value="pending">Pendente</option></select></div>
-          <div class="field"><label for="dueDate">Vencimento (se pendente)</label><input id="dueDate" type="date"></div>
-          <div class="field wide"><label for="notes">Observações</label><textarea id="notes" rows="2" maxlength="500" placeholder="Opcional"></textarea></div>
-        </div>
-        <div class="actions"><button id="saveBtn" type="submit">Salvar lançamento</button><button class="secondary" id="clearBtn" type="button">Limpar</button></div>
-      </form>
-      <div class="settings">
-        <h2>Configurações financeiras</h2>
-        <div class="formgrid">
-          <div class="field"><label for="proLabore">Pró-labore mensal (R$)</label><input id="proLabore" type="number" min="0" step="0.01"></div>
-          <div class="field"><label for="cardFee">Taxa do cartão (%)</label><input id="cardFee" type="number" min="0" max="100" step="0.01"></div>
-          <div class="field wide"><label for="noShowFee">Taxa por falta (R$)</label><input id="noShowFee" type="number" min="0" step="0.01"></div>
-        </div>
-        <div class="actions"><button id="settingsBtn" type="button">Salvar configurações</button></div>
-        <p class="small">As configurações são apenas armazenadas nesta versão. Não lançam pró-labore nem taxa de falta automaticamente.</p>
-      </div>
-    </section>
-    <section class="panel">
-      <h2>Lançamentos do mês</h2>
-      <div class="small" id="countLabel">Carregando…</div>
-      <div class="tablewrap"><table><thead><tr><th>Data / descrição</th><th>Tipo</th><th>Forma</th><th>Situação</th><th>Valor</th><th>Ação</th></tr></thead><tbody id="movementRows"><tr><td colspan="6" class="empty">Carregando…</td></tr></tbody></table></div>
-      <p class="small">Os totais consideram somente lançamentos pagos/recebidos. O resultado é receitas menos despesas e investimentos. Reembolsos e pró-labore ficam separados.</p>
-    </section>
-  </div>
+<h1>Financeiro</h1><p class="muted">Lançamentos, caixa, estoque e pendências financeiras.</p>
+<div id="status" role="status"></div>
+<div class="toolbar"><div class="field"><label for="month">Mês de referência</label><input type="month" id="month"></div><button id="refresh">Atualizar</button></div>
+<div class="cards">
+<div class="card"><div class="label">Receitas pagas</div><div class="value green" id="income">R$ 0,00</div></div>
+<div class="card"><div class="label">Despesas pagas</div><div class="value red" id="expense">R$ 0,00</div></div>
+<div class="card"><div class="label">Investimentos</div><div class="value" id="invest">R$ 0,00</div></div>
+<div class="card"><div class="label">Resultado</div><div class="value" id="result">R$ 0,00</div></div>
+</div>
+<nav class="tabs">
+<button class="tab active" data-tab="movements">Lançamentos</button>
+<button class="tab" data-tab="cash">Caixa</button>
+<button class="tab" data-tab="stock">Estoque</button>
+<button class="tab" data-tab="pending">Contas pendentes</button>
+<button class="tab" data-tab="settings">Configurações</button>
+</nav>
+<section class="section active" id="section-movements">
+<div class="layout">
+<div class="panel"><h2>Novo lançamento</h2>
+<form id="movementForm"><div class="formgrid">
+<div class="field"><label>Tipo *</label><select id="kind" required><option value="income">Receita</option><option value="expense">Despesa</option><option value="investment">Investimento</option><option value="pro_labore">Pró-labore</option><option value="refund">Reembolso</option></select></div>
+<div class="field"><label>Data *</label><input id="date" type="date" required></div>
+<div class="field wide"><label>Descrição *</label><input id="description" maxlength="180" required></div>
+<div class="field"><label>Categoria</label><input id="category" maxlength="80" placeholder="Serviço, aluguel..."></div>
+<div class="field"><label>Valor (R$) *</label><input id="amount" type="number" min=".01" step=".01" required></div>
+<div class="field"><label>Pagamento</label><select id="method"><option value="pix">Pix</option><option value="cash">Dinheiro</option><option value="card">Cartão</option><option value="transfer">Transferência</option><option value="other">Outro</option></select></div>
+<div class="field"><label>Situação</label><select id="state"><option value="paid">Pago/recebido</option><option value="pending">Pendente</option></select></div>
+<div class="field wide"><label>Vencimento (para pendências)</label><input id="due" type="date"></div>
+</div><div class="actions"><button id="save">Salvar lançamento</button><button type="button" class="secondary" id="clear">Limpar</button></div></form>
+<p class="small">Ajustes ou cancelamentos ficam no histórico. Esta tela não cria receitas automaticamente a partir dos agendamentos.</p>
+</div>
+<div class="panel"><h2>Lançamentos do mês</h2><div class="toolbar"><div class="field"><label>Filtrar tipo</label><select id="filter"><option value="">Todos</option><option value="income">Receitas</option><option value="expense">Despesas</option><option value="investment">Investimentos</option><option value="pro_labore">Pró-labore</option><option value="refund">Reembolsos</option></select></div></div>
+<div class="tablewrap"><table><thead><tr><th>Data / descrição</th><th>Tipo</th><th>Pagamento</th><th>Situação</th><th>Valor</th><th>Ação</th></tr></thead><tbody id="rows"><tr><td colspan="6" class="empty">Carregando…</td></tr></tbody></table></div></div>
+</div></section>
+<section class="section" id="section-cash"><div class="two">
+<div class="panel"><h2>Abertura de caixa</h2><form id="openCash"><div class="field"><label>Valor inicial em dinheiro (R$)</label><input id="opening" type="number" min="0" step=".01" value="0" required></div><div class="field"><label>Observação</label><input id="openNote" maxlength="250"></div><div class="actions"><button>Abrir caixa</button></div></form></div>
+<div class="panel"><h2>Fechamento de caixa</h2><form id="closeCash"><div class="field"><label>Dinheiro contado no caixa (R$)</label><input id="counted" type="number" min="0" step=".01" required></div><div class="field"><label>Observação</label><input id="closeNote" maxlength="250"></div><div class="actions"><button>Fechar caixa</button></div></form><div id="cashInfo" class="small">Carregando caixa…</div></div>
+</div><div class="panel" style="margin-top:12px"><h2>Histórico de caixas</h2><div class="tablewrap"><table><thead><tr><th>Abertura</th><th>Valor inicial</th><th>Fechamento</th><th>Contado</th><th>Diferença</th></tr></thead><tbody id="cashRows"></tbody></table></div></div></section>
+<section class="section" id="section-stock"><div class="layout">
+<div class="panel"><h2>Cadastrar produto</h2><form id="productForm"><div class="formgrid"><div class="field wide"><label>Nome *</label><input id="pname" required maxlength="120"></div><div class="field"><label>Categoria</label><input id="pcat" value="Produto"></div><div class="field"><label>Preço de venda</label><input id="psale" type="number" min="0" step=".01" value="0" required></div><div class="field"><label>Custo unitário</label><input id="pcost" type="number" min="0" step=".01" value="0" required></div><div class="field"><label>Estoque inicial</label><input id="pqty" type="number" min="0" step="1" value="0" required></div><div class="field"><label>Estoque mínimo</label><input id="pmin" type="number" min="0" step="1" value="0" required></div></div><div class="actions"><button>Cadastrar produto</button></div></form>
+<hr style="border-color:var(--line);margin:18px 0"><h2>Entrada / ajuste de estoque</h2><form id="stockForm"><div class="field"><label>Produto</label><select id="stockProduct" required></select></div><div class="formgrid"><div class="field"><label>Operação</label><select id="stockType"><option value="purchase">Compra/entrada</option><option value="adjustment">Ajuste positivo</option><option value="loss">Perda/avaria</option></select></div><div class="field"><label>Quantidade</label><input id="stockQty" type="number" min="1" step="1" required></div><div class="field wide"><label>Custo unitário (R$)</label><input id="stockCost" type="number" min="0" step=".01" value="0"></div></div><div class="actions"><button>Registrar movimento</button></div></form></div>
+<div class="panel"><h2>Estoque atual</h2><div class="tablewrap"><table><thead><tr><th>Produto</th><th>Preço</th><th>Custo</th><th>Qtd.</th><th>Mínimo</th><th>Status</th></tr></thead><tbody id="productRows"></tbody></table></div></div>
+</div></section>
+<section class="section" id="section-pending"><div class="panel"><h2>Contas pendentes</h2><p class="small">Inclui lançamentos pendentes com data de vencimento quando informada. Marcar como pago não gera um novo lançamento.</p><div class="tablewrap"><table><thead><tr><th>Vencimento</th><th>Descrição</th><th>Tipo</th><th>Valor</th><th>Ação</th></tr></thead><tbody id="pendingRows"></tbody></table></div></div></section>
+<section class="section" id="section-settings"><div class="panel" style="max-width:650px"><h2>Configurações financeiras</h2><form id="settingsForm"><div class="formgrid"><div class="field"><label>Pró-labore mensal (R$)</label><input id="proLabore" type="number" min="0" step=".01" value="0"></div><div class="field"><label>Taxa cartão (%)</label><input id="cardFee" type="number" min="0" max="100" step=".01" value="0"></div><div class="field wide"><label>Taxa por falta (R$)</label><input id="noShowFee" type="number" min="0" step=".01" value="0"></div></div><div class="actions"><button>Salvar configurações</button></div></form><p class="small">Nesta versão as configurações são armazenadas, mas não criam automaticamente cobranças, pró-labore ou taxas por falta.</p></div></section>
 </main>
 <script>
-(() => {
-  'use strict';
-  const SUPABASE_URL = 'https://esuvgaijkahzoctyyawe.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_bC-fW9ei_xw9ovFzPJE7cA_Fkd8QSsz';
-  const SESSION_KEY = 'bsjs_admin_session';
-  const $ = id => document.getElementById(id);
-  const money = n => Number(n || 0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-  const today = new Date();
-  const localDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  const monthStart = () => `${$('month').value}-01`;
-  const monthEnd = () => { const [y,m] = $('month').value.split('-').map(Number); return localDate(new Date(y,m,0)); };
-  let session = null, movements = [], settingsId = null;
-  function notice(msg, error=false){ const el=$('status'); el.textContent=msg; el.className=error?'error':'ok'; if(!msg){el.style.display='none';return} el.style.display='block'; }
-  function getSession(){
-    try { const raw=localStorage.getItem(SESSION_KEY); if(!raw) return null; const s=JSON.parse(raw); return s.access_token ? s : null; } catch { return null; }
-  }
-  async function api(path, options={}) {
-    if(!session?.access_token) throw new Error('Sua sessão de gestão não foi encontrada. Entre na gestão da barbearia e abra esta página pelo menu Financeiro.');
-    const headers = {'apikey':SUPABASE_KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json','Prefer':options.prefer || 'return=representation',...(options.headers||{})};
-    const res=await fetch(SUPABASE_URL+'/rest/v1/'+path,{...options,headers});
-    const body=await res.text();
-    if(!res.ok) { let msg=body; try{const j=JSON.parse(body);msg=j.message||j.error_description||j.hint||body}catch{} throw new Error(`Supabase (${res.status}): ${msg}`); }
-    if(!body) return null; try{return JSON.parse(body)}catch{return body}
-  }
-  function labelKind(k){return ({income:'Receita',expense:'Despesa',investment:'Investimento',pro_labore:'Pró-labore',refund:'Reembolso'})[k]||k}
-  function labelMethod(m){return ({cash:'Dinheiro',pix:'Pix',card:'Cartão',transfer:'Transferência',other:'Outro'})[m]||m||'—'}
-  function labelStatus(s){return s==='paid'?'Pago/recebido':s==='pending'?'Pendente':'Cancelado'}
-  function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-  function render(){
-    const paid=movements.filter(x=>x.status==='paid');
-    const sum=k=>paid.filter(x=>x.kind===k).reduce((a,x)=>a+Number(x.amount||0),0);
-    const income=sum('income'), expense=sum('expense'), invest=sum('investment');
-    $('totalIncome').textContent=money(income); $('totalExpense').textContent=money(expense); $('totalInvest').textContent=money(invest);
-    const result=income-expense-invest; $('totalResult').textContent=money(result); $('totalResult').className='value '+(result<0?'negative':'positive');
-    const filtered=movements.filter(x=>!$('filterKind').value||x.kind===$('filterKind').value);
-    $('countLabel').textContent=`${filtered.length} lançamento(s)`;
-    const body=$('movementRows');
-    if(!filtered.length){body.innerHTML='<tr><td colspan="6" class="empty">Nenhum lançamento neste filtro.</td></tr>';return}
-    body.innerHTML=filtered.map(x=>`<tr><td><strong>${escapeHtml(x.movement_date||'')}</strong><br>${escapeHtml(x.description||'')}${x.category?'<br><span class="small">'+escapeHtml(x.category)+'</span>':''}</td><td><span class="tag">${labelKind(x.kind)}</span></td><td>${labelMethod(x.payment_method)}</td><td>${labelStatus(x.status)}${x.due_date?'<br><span class="small">Vence '+escapeHtml(x.due_date)+'</span>':''}</td><td class="amount">${money(x.amount)}</td><td>${x.status==='cancelled'?'—':'<button class="danger" type="button" data-cancel="'+escapeHtml(x.id)+'">Cancelar</button>'}</td></tr>`).join('');
-  }
-  async function load(){
-    notice('');
-    try{
-      const start=monthStart(), end=monthEnd();
-      movements=await api(`finance_movements?select=*&movement_date=gte.${start}&movement_date=lte.${end}&order=movement_date.desc,created_at.desc`);
-      render();
-      const rows=await api('finance_settings?select=*&limit=1');
-      if(rows?.length){const s=rows[0];settingsId=s.id??null;$('proLabore').value=s.pro_labore_monthly??0;$('cardFee').value=s.card_fee_percent??0;$('noShowFee').value=s.no_show_fee??0;}
-    }catch(e){notice(e.message,true);$('movementRows').innerHTML='<tr><td colspan="6" class="empty">Não foi possível carregar os dados.</td></tr>'}
-  }
-  function clearForm(){ $('movementForm').reset(); $('date').value=localDate(new Date()); $('kind').value='income'; $('statusSelect').value='paid'; }
-  $('movementForm').addEventListener('submit',async e=>{
-    e.preventDefault(); const btn=$('saveBtn'); btn.disabled=true;
-    try{
-      const status=$('statusSelect').value;
-      const payload={kind:$('kind').value,movement_date:$('date').value,description:$('description').value.trim(),category:$('category').value.trim()||null,amount:Number($('amount').value),payment_method:$('method').value,status,due_date:status==='pending'?($('dueDate').value||null):null};
-      if(!payload.description||!Number.isFinite(payload.amount)||payload.amount<=0) throw new Error('Informe uma descrição e um valor maior que zero.');
-      await api('finance_movements',{method:'POST',body:JSON.stringify(payload)});
-      notice('Lançamento salvo.'); clearForm(); await load();
-    }catch(err){notice(err.message,true)}finally{btn.disabled=false}
-  });
-  $('movementRows').addEventListener('click',async e=>{
-    const b=e.target.closest('[data-cancel]'); if(!b)return;
-    if(!confirm('Cancelar este lançamento? Ele continuará no histórico, mas deixará de contar nos totais.'))return;
-    b.disabled=true;
-    try{await api('finance_movements?id=eq.'+encodeURIComponent(b.dataset.cancel),{method:'PATCH',body:JSON.stringify({status:'cancelled'})});notice('Lançamento cancelado.');await load()}catch(err){notice(err.message,true)}finally{b.disabled=false}
-  });
-  $('settingsBtn').addEventListener('click',async()=>{
-    const b=$('settingsBtn');b.disabled=true;
-    try{
-      const payload={pro_labore_monthly:Number($('proLabore').value||0),card_fee_percent:Number($('cardFee').value||0),no_show_fee:Number($('noShowFee').value||0),updated_at:new Date().toISOString()};
-      if(payload.pro_labore_monthly<0||payload.card_fee_percent<0||payload.card_fee_percent>100||payload.no_show_fee<0)throw new Error('Confira os valores das configurações.');
-      if(settingsId!==null) await api('finance_settings?id=eq.'+encodeURIComponent(settingsId),{method:'PATCH',body:JSON.stringify(payload)});
-      else await api('finance_settings',{method:'POST',body:JSON.stringify(payload)});
-      notice('Configurações salvas.');
-    }catch(err){notice(err.message,true)}finally{b.disabled=false}
-  });
-  $('refreshBtn').addEventListener('click',load);
-  $('month').addEventListener('change',load); $('filterKind').addEventListener('change',render);
-  $('clearBtn').addEventListener('click',clearForm);
-  $('backBtn').addEventListener('click',()=>location.href='gestao.html');
-  $('month').value=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
-  $('date').value=localDate(today);
-  session=getSession();
-  if(!session){notice('Sessão não encontrada. Faça login na gestão e abra o Financeiro por lá.',true)}
-  else load();
+(()=>{'use strict';
+const URL='https://esuvgaijkahzoctyyawe.supabase.co',KEY='sb_publishable_bC-fW9ei_xw9ovFzPJE7cA_Fkd8QSsz',SESSION='bsjs_admin_session';
+const $=id=>document.getElementById(id), money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const now=new Date(), fmtDate=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+let session=null,movements=[],products=[],cashSessions=[],settings=null;
+function msg(s,error=false){const e=$('status');e.textContent=s;e.className=error?'error':'ok';e.style.display=s?'block':'none'}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function getSession(){try{const s=JSON.parse(localStorage.getItem(SESSION)||'null');return s?.access_token?s:null}catch{return null}}
+async function api(path,opt={}){if(!session?.access_token)throw Error('Sessão não encontrada. Entre na gestão e abra o Financeiro pelo menu.');const h={'apikey':KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json','Prefer':opt.prefer||'return=representation',...(opt.headers||{})};const r=await fetch(URL+'/rest/v1/'+path,{...opt,headers:h});const t=await r.text();if(!r.ok){let m=t;try{const j=JSON.parse(t);m=j.message||j.hint||j.error_description||t}catch{}throw Error(`Supabase (${r.status}): ${m}`)}if(!t)return null;try{return JSON.parse(t)}catch{return t}}
+function dateRange(){const [y,m]=$('month').value.split('-').map(Number);return [`${y}-${String(m).padStart(2,'0')}-01`,fmtDate(new Date(y,m,0))]}
+const kindName=k=>({income:'Receita',expense:'Despesa',investment:'Investimento',pro_labore:'Pró-labore',refund:'Reembolso'})[k]||k;
+const methodName=m=>({pix:'Pix',cash:'Dinheiro',card:'Cartão',transfer:'Transferência',other:'Outro'})[m]||m;
+function renderMovements(){const paid=movements.filter(x=>x.status==='paid'),sum=k=>paid.filter(x=>x.kind===k).reduce((a,x)=>a+Number(x.amount||0),0),inc=sum('income'),exp=sum('expense'),inv=sum('investment'),res=inc-exp-inv;$('income').textContent=money(inc);$('expense').textContent=money(exp);$('invest').textContent=money(inv);$('result').textContent=money(res);$('result').className='value '+(res<0?'red':'green');
+const list=movements.filter(x=>!$('filter').value||x.kind===$('filter').value);$('rows').innerHTML=list.length?list.map(x=>`<tr><td><b>${esc(x.movement_date)}</b><br>${esc(x.description)}${x.category?'<br><span class="small">'+esc(x.category)+'</span>':''}</td><td><span class="tag">${kindName(x.kind)}</span></td><td>${methodName(x.payment_method)}</td><td>${x.status==='paid'?'Pago/recebido':x.status==='pending'?'Pendente':'Cancelado'}</td><td><b>${money(x.amount)}</b></td><td>${x.status==='cancelled'?'—':`<button class="danger" data-cancel="${x.id}">Cancelar</button>`}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Nenhum lançamento.</td></tr>';
+$('pendingRows').innerHTML=movements.filter(x=>x.status==='pending').length?movements.filter(x=>x.status==='pending').map(x=>`<tr><td>${esc(x.due_date||'Sem vencimento')}</td><td>${esc(x.description)}</td><td>${kindName(x.kind)}</td><td>${money(x.amount)}</td><td><button data-paid="${x.id}">Marcar pago</button></td></tr>`).join(''):'<tr><td colspan="5" class="empty">Nenhuma conta pendente.</td></tr>'}
+async function load(){msg('');try{const [start,end]=dateRange();movements=await api(`finance_movements?select=*&movement_date=gte.${start}&movement_date=lte.${end}&order=movement_date.desc,created_at.desc`);renderMovements();products=await api('finance_products?select=*&order=name.asc');renderProducts();cashSessions=await api('finance_cash_sessions?select=*&order=opened_at.desc&limit=30');renderCash();const s=await api('finance_settings?select=*&limit=1');settings=s?.[0]||null;if(settings){$('proLabore').value=settings.pro_labore_monthly||0;$('cardFee').value=settings.card_fee_percent||0;$('noShowFee').value=settings.no_show_fee||0}}catch(e){msg(e.message,true)}}
+function renderProducts(){$('productRows').innerHTML=products.length?products.map(p=>`<tr><td>${esc(p.name)}<br><span class="small">${esc(p.category||'')}</span></td><td>${money(p.sale_price)}</td><td>${money(p.cost_price)}</td><td>${p.stock_quantity}</td><td>${p.min_stock}</td><td>${p.stock_quantity<=p.min_stock?'<span class="tag red">Estoque baixo</span>':'Disponível'}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Cadastre o primeiro produto.</td></tr>';$('stockProduct').innerHTML=products.length?products.map(p=>`<option value="${p.id}">${esc(p.name)} — estoque ${p.stock_quantity}</option>`).join(''):'<option value="">Cadastre um produto primeiro</option>'}
+function renderCash(){const active=cashSessions.find(c=>!c.closed_at);$('cashInfo').textContent=active?`Caixa aberto desde ${new Date(active.opened_at).toLocaleString('pt-BR')} | Fundo inicial: ${money(active.opening_amount)}`:'Nenhum caixa aberto.';$('openCash').classList.toggle('hidden',!!active);$('closeCash').classList.toggle('hidden',!active);$('cashRows').innerHTML=cashSessions.length?cashSessions.map(c=>`<tr><td>${new Date(c.opened_at).toLocaleString('pt-BR')}</td><td>${money(c.opening_amount)}</td><td>${c.closed_at?new Date(c.closed_at).toLocaleString('pt-BR'):'Aberto'}</td><td>${c.counted_cash==null?'—':money(c.counted_cash)}</td><td>${c.difference==null?'—':money(c.difference)}</td></tr>`).join(''):'<tr><td colspan="5" class="empty">Sem histórico.</td></tr>'}
+$('movementForm').onsubmit=async e=>{e.preventDefault();const b=$('save');b.disabled=true;try{const st=$('state').value,p={kind:$('kind').value,movement_date:$('date').value,description:$('description').value.trim(),category:$('category').value.trim()||'Geral',amount:Number($('amount').value),payment_method:$('method').value,status:st,due_date:st==='pending'?($('due').value||null):null};if(!p.description||p.amount<=0)throw Error('Informe descrição e valor maior que zero.');await api('finance_movements',{method:'POST',body:JSON.stringify(p)});msg('Lançamento salvo.');$('movementForm').reset();$('date').value=fmtDate(new Date());await load()}catch(e){msg(e.message,true)}finally{b.disabled=false}};
+$('rows').onclick=async e=>{const c=e.target.closest('[data-cancel]');if(!c)return;if(!confirm('Cancelar lançamento? Ele ficará no histórico.'))return;try{await api(`finance_movements?id=eq.${c.dataset.cancel}`,{method:'PATCH',body:JSON.stringify({status:'cancelled'})});msg('Lançamento cancelado.');await load()}catch(e){msg(e.message,true)}};
+$('pendingRows').onclick=async e=>{const b=e.target.closest('[data-paid]');if(!b)return;if(!confirm('Marcar como pago/recebido? Isso atualizará o mesmo lançamento.'))return;try{await api(`finance_movements?id=eq.${b.dataset.paid}`,{method:'PATCH',body:JSON.stringify({status:'paid'})});msg('Situação atualizada.');await load()}catch(e){msg(e.message,true)}};
+$('productForm').onsubmit=async e=>{e.preventDefault();try{const p={name:$('pname').value.trim(),category:$('pcat').value.trim()||'Produto',sale_price:Number($('psale').value),cost_price:Number($('pcost').value),stock_quantity:Number($('pqty').value),min_stock:Number($('pmin').value),active:true};if(!p.name)throw Error('Informe o nome do produto.');const created=await api('finance_products',{method:'POST',body:JSON.stringify(p)});const item=created?.[0];if(item&&p.stock_quantity>0)await api('finance_stock_movements',{method:'POST',body:JSON.stringify({product_id:item.id,movement_type:'adjustment',quantity:p.stock_quantity,unit_cost:p.cost_price,description:'Estoque inicial',movement_date:fmtDate(new Date())})});msg('Produto cadastrado.');$('productForm').reset();await load()}catch(e){msg(e.message,true)}};
+$('stockForm').onsubmit=async e=>{e.preventDefault();try{const id=Number($('stockProduct').value),qty=Number($('stockQty').value),type=$('stockType').value,cost=Number($('stockCost').value||0),p=products.find(x=>x.id===id);if(!p||qty<1)throw Error('Selecione um produto e informe a quantidade.');if(type==='loss'&&qty>p.stock_quantity)throw Error('A quantidade de perda supera o estoque atual.');const delta=type==='loss'?-qty:qty;await api(`finance_products?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({stock_quantity:p.stock_quantity+delta,cost_price:type==='purchase'?cost:p.cost_price,updated_at:new Date().toISOString()})});await api('finance_stock_movements',{method:'POST',body:JSON.stringify({product_id:id,movement_type:type,quantity:qty,unit_cost:cost,description:type==='purchase'?'Compra/entrada':type==='loss'?'Perda/avaria':'Ajuste positivo',movement_date:fmtDate(new Date())})});if(type==='purchase')await api('finance_movements',{method:'POST',body:JSON.stringify({kind:'expense',movement_date:fmtDate(new Date()),description:`Compra de estoque: ${p.name}`,category:'Estoque',amount:qty*cost,payment_method:'other',status:'paid'})});msg('Estoque atualizado.');await load()}catch(e){msg(e.message,true)}};
+$('openCash').onsubmit=async e=>{e.preventDefault();try{const open=cashSessions.find(c=>!c.closed_at);if(open)throw Error('Já existe um caixa aberto.');await api('finance_cash_sessions',{method:'POST',body:JSON.stringify({opening_amount:Number($('opening').value),notes:$('openNote').value.trim()||null})});msg('Caixa aberto.');await load()}catch(e){msg(e.message,true)}};
+$('closeCash').onsubmit=async e=>{e.preventDefault();try{const c=cashSessions.find(x=>!x.closed_at);if(!c)throw Error('Não há caixa aberto.');const counted=Number($('counted').value);const [start,end]=dateRange();const ms=await api(`finance_movements?select=amount,kind,payment_method,status&movement_date=gte.${start}&movement_date=lte.${end}&status=eq.paid`);const expected=Number(c.opening_amount)+ms.filter(x=>x.payment_method==='cash'&&x.kind==='income').reduce((a,x)=>a+Number(x.amount),0)-ms.filter(x=>x.payment_method==='cash'&&['expense','pro_labore','refund'].includes(x.kind)).reduce((a,x)=>a+Number(x.amount),0);await api(`finance_cash_sessions?id=eq.${c.id}`,{method:'PATCH',body:JSON.stringify({closed_at:new Date().toISOString(),counted_cash:counted,expected_cash:expected,difference:counted-expected,notes:$('closeNote').value.trim()||null})});msg(`Caixa fechado. Diferença: ${money(counted-expected)}. Confira o resultado com os lançamentos do período.`);await load()}catch(e){msg(e.message,true)}};
+$('settingsForm').onsubmit=async e=>{e.preventDefault();try{const p={pro_labore_monthly:Number($('proLabore').value||0),card_fee_percent:Number($('cardFee').value||0),no_show_fee:Number($('noShowFee').value||0),updated_at:new Date().toISOString()};if(p.card_fee_percent<0||p.card_fee_percent>100||p.pro_labore_monthly<0||p.no_show_fee<0)throw Error('Confira os valores.');if(settings)await api('finance_settings?id=eq.true',{method:'PATCH',body:JSON.stringify(p)});else await api('finance_settings',{method:'POST',body:JSON.stringify({id:true,...p})});msg('Configurações salvas.');await load()}catch(e){msg(e.message,true)}};
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.section').forEach(x=>x.classList.toggle('active',x.id==='section-'+b.dataset.tab))});
+$('refresh').onclick=load;$('month').onchange=load;$('filter').onchange=renderMovements;$('clear').onclick=()=>{$('movementForm').reset();$('date').value=fmtDate(new Date())};$('back').onclick=()=>location.href='gestao.html';
+$('month').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;$('date').value=fmtDate(now);session=getSession();if(!session)msg('Sessão não encontrada. Entre na gestão e abra o Financeiro pelo menu.',true);else load();
 })();
-</script>
-</body>
-</html>
+</script></body></html>
