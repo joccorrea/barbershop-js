@@ -692,7 +692,7 @@ if(session)renderLoginOrPage();else loginView();
 
 </style>
 <style>
-/* v29: linha vermelha posicionada pelo horário exato, incluindo minutos */
+/* v35: linha vermelha começa no topo do horário, sem ficar no meio da marcação */
 #current-time-indicator{position:absolute!important;left:0!important;right:0!important;height:2px!important;background:#ef4444!important;z-index:80!important;pointer-events:none!important;display:none}
 #current-time-indicator:before{content:"";position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:#ef4444}
 </style>
@@ -711,7 +711,7 @@ if(session)renderLoginOrPage();else loginView();
   const a=[...new Set(times)].map(node=>{const q=(node.textContent||'').trim().match(/^(\d{1,2}):(\d{2})$/);return q?{node,minutes:+q[1]*60 + +q[2],rect:node.getBoundingClientRect()}:null}).filter(Boolean).sort((x,y)=>x.minutes-y.minutes);
   if(a.length<2)return;let lo=null,hi=null;for(let i=0;i<a.length-1;i++){if(m>=a[i].minutes&&m<=a[i+1].minutes){lo=a[i];hi=a[i+1];break;}}
   let line=document.getElementById(ID);if(!lo||!hi){if(line)line.style.display='none';return;}
-  const r=el.getBoundingClientRect(),f=(m-lo.minutes)/(hi.minutes-lo.minutes||30),loY=lo.rect.top+lo.rect.height/2,hiY=hi.rect.top+hi.rect.height/2,y=loY+(hiY-loY)*f;
+  const r=el.getBoundingClientRect(),f=(m-lo.minutes)/(hi.minutes-lo.minutes||30),loY=lo.rect.top,hiY=hi.rect.top,y=loY+(hiY-loY)*f;
   if(!line){line=document.createElement('div');line.id=ID;el.appendChild(line);}
   if(getComputedStyle(el).position==='static')el.style.position='relative';
   line.style.top=(y-r.top+el.scrollTop)+'px';line.style.display='block';
