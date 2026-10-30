@@ -86,6 +86,21 @@
 <div class="pill">Total recebido: <b id="paidTotal">R$ 0,00</b> · Saldo a receber: <b id="balanceTotal">R$ 0,00</b></div>
 <div class="actions"><button id="saveClosure">Salvar fechamento</button><button type="button" class="secondary" id="cancelClosure">Cancelar</button></div></div></div>
 <script>
+window.addEventListener('error',function(e){
+  const box=document.getElementById('status');
+  if(box){box.textContent='Erro no financeiro: '+(e.message||'falha JavaScript')+(e.filename?' ('+e.filename.split('/').pop()+':'+e.lineno+')':'');box.className='error';box.style.display='block';}
+});
+window.addEventListener('unhandledrejection',function(e){
+  const box=document.getElementById('status');
+  const reason=e.reason&&e.reason.message?e.reason.message:String(e.reason||'erro desconhecido');
+  if(box){box.textContent='Erro no financeiro: '+reason;box.className='error';box.style.display='block';}
+});
+document.addEventListener('click',function(e){
+ const b=e.target.closest('[data-tab]');
+ if(!b)return;
+ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));
+ document.querySelectorAll('.section').forEach(x=>x.classList.toggle('active',x.id==='section-'+b.dataset.tab));
+},true);
 (async()=>{'use strict';
 const URL='https://esuvgaijkahzoctyyawe.supabase.co',KEY='sb_publishable_bC-fW9ei_xw9ovFzPJE7cA_Fkd8QSsz',SESSION='bsjs_admin_session';
 const $=id=>document.getElementById(id), money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -95,7 +110,7 @@ function msg(s,error=false){const e=$('status');e.textContent=s;e.className=erro
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function getSession(){try{const s=JSON.parse(localStorage.getItem(SESSION)||'null');return s?.access_token?s:null}catch{return null}}
 function uid(){try{return session?.user?.id||JSON.parse(atob(session.access_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).sub||null}catch{return null}}
-async function refreshSession(){if(!session?.refresh_token)throw Error('Sua sessão expirou. Volte à gestão, saia da conta e entre novamente.');const r=await fetch(URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token})});const t=await r.json().catch(()=>({}));if(!r.ok||!t.access_token){localStorage.removeItem(SESSION);session=null;throw Error('Sua sessão expirou. Volte à gestão, saia da conta e entre novamente.')}session={...session,access_token:t.access_token,refresh_token:t.refresh_token||session.refresh_token,user:t.user||session.user};localStorage.setItem(SESSION,JSON.stringify(session));return session} async function api(path,opt={}){if(!session?.access_token)throw Error('Sessão não encontrada. Entre na gestão e abra o Financeiro pelo menu.');const request=()=>fetch(URL+'/rest/v1/'+path,{...opt,headers:{'apikey':KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json','Prefer':opt.prefer||'return=representation',...(opt.headers||{})}});let r=await request();if(r.status===401&&session.refresh_token){await refreshSession();r=await request()}const t=await r.text();if(!r.ok){let m=t;try{const j=JSON.parse(t);m=j.message||j.details||j.hint||j.code||t}catch{}throw Error('Supabase: '+m)}return t?JSON.parse(t):null}
+async function api(path,opt={}){if(!session?.access_token)throw Error('Sessão não encontrada. Entre na gestão e abra o Financeiro pelo menu.');const h={'apikey':KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json','Prefer':opt.prefer||'return=representation',...(opt.headers||{})};const r=await fetch(URL+'/rest/v1/'+path,{...opt,headers:h});const t=await r.text();if(!r.ok){let m=t;try{const j=JSON.parse(t);m=j.message||j.details||j.hint||j.code||t}catch{}throw Error('Supabase: '+m)}return t?JSON.parse(t):null}
 function monthRange(){const v=$('month').value||fmtDate(now).slice(0,7);return [v+'-01',v+'-'+new Date(Number(v.slice(0,4)),Number(v.slice(5,7)),0).getDate()]}
 function qsDate(d){return encodeURIComponent(d)}
 function kindName(k){return({income:'Receita',expense:'Despesa',investment:'Investimento',pro_labore:'Pró-labore',refund:'Reembolso'})[k]||k}
@@ -183,6 +198,6 @@ $('refresh').onclick=load;$('month').onchange=load;$('filter').onchange=renderMo
 function csvDownload(name,rows){const csv=rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
 $('exportCsv').onclick=()=>csvDownload('barber-shop-js-lancamentos.csv',[['Data','Tipo','Descrição','Categoria','Pagamento','Situação','Valor','Vencimento'],...movements.map(x=>[x.movement_date,kindName(x.kind),x.description,x.category,methodName(x.payment_method),x.status,x.amount,x.due_date])]);
 $('exportReport').onclick=()=>csvDownload('barber-shop-js-resumo.csv',[['Indicador','Valor'],['Receitas',sum(movements.filter(x=>x.status==='paid'&&x.kind==='income'),x=>x.amount)],['Despesas',sum(movements.filter(x=>x.status==='paid'&&['expense','pro_labore','refund'].includes(x.kind)),x=>x.amount)],['Investimentos',sum(movements.filter(x=>x.status==='paid'&&x.kind==='investment'),x=>x.amount)],['Pix',sum(movements.filter(x=>x.status==='paid'&&x.kind==='income'&&x.payment_method==='pix'),x=>x.amount)],['Dinheiro',sum(movements.filter(x=>x.status==='paid'&&x.kind==='income'&&x.payment_method==='cash'),x=>x.amount)],['Cartão',sum(movements.filter(x=>x.status==='paid'&&x.kind==='income'&&x.payment_method==='card'),x=>x.amount)]]);
-const params=new URLSearchParams(location.search);$('month').value=params.get('month')||`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;$('date').value=fmtDate(now);session=getSession();if(!session){msg('Sessão não encontrada. Entre na gestão e abra o Financeiro pelo menu.',true)}else{try{try{const p=await api('finance_user_permissions?select=*&user_id=eq.'+encodeURIComponent(uid()||''));me=p?.[0]||null;}catch(permissionError){me=null;}canEdit=true;await load();const bookingId=params.get('booking');if(bookingId){const selected=bookings.find(x=>String(x.id)===bookingId);if(!selected){msg('Agendamento não encontrado no mês selecionado. Verifique a data e tente novamente.',true)}else if(closures.some(c=>String(c.booking_id)===bookingId)){msg('Este atendimento já possui fechamento financeiro. Confira o histórico antes de alterar algo.')}else{await openClosure(bookingId)}}}catch(e){msg(e.message,true)}}
+const params=new URLSearchParams(location.search);$('month').value=params.get('month')||`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;$('date').value=fmtDate(now);session=getSession();if(!session){msg('Sessão não encontrada. Entre na gestão e abra o Financeiro pelo menu.',true)}else{try{const p=await api('finance_user_permissions?select=*&user_id=eq.'+encodeURIComponent(uid()||''));me=p?.[0]||null;canEdit=true;await load();const bookingId=params.get('booking');if(bookingId){const selected=bookings.find(x=>String(x.id)===bookingId);if(!selected){msg('Agendamento não encontrado no mês selecionado. Verifique a data e tente novamente.',true)}else if(closures.some(c=>String(c.booking_id)===bookingId)){msg('Este atendimento já possui fechamento financeiro. Confira o histórico antes de alterar algo.')}else{await openClosure(bookingId)}}}catch(e){msg(e.message,true)}}
 })();
 </script></body></html>
