@@ -315,8 +315,8 @@ async function showClosedBookingReport(b,closure,closeDetail){
  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h2 style="margin:0">Relatório do atendimento</h2><button id="closed-report-x" type="button" class="btn" aria-label="Fechar">×</button></div>
  <p style="color:#aeb6c2;margin:8px 0 18px">Fechamento registrado em ${esc(when)}</p>
  <h3>Agendamento</h3><div class="report-row"><span>Cliente</span><b>${esc(b.client_name||"Cliente")}</b></div>
- <div class="report-row"><span>Data e horário</span><b>${esc(bookingDate(b))} · ${String(Math.floor(b.start_min/60)).padStart(2,"0")}:${String(b.start_min%60).padStart(2,"0")}–${String(Math.floor(b.end_min/60)).padStart(2,"0")}:${String(b.end_min%60).padStart(2,"0")}</b></div>
- <div class="report-row"><span>Serviços</span><b>${esc(serviceNames(b))}</b></div>
+ <div class="report-row"><span>Data e horário</span><b>${esc(formatBookingDateBR(b.date))} · ${String(Math.floor(b.start_min/60)).padStart(2,"0")}:${String(b.start_min%60).padStart(2,"0")}–${String(Math.floor(b.end_min/60)).padStart(2,"0")}:${String(b.end_min%60).padStart(2,"0")}</b></div>
+ <div class="report-row"><span>Serviços</span><b>${esc((b.services||[]).map(x=>(x.name||x.service_name||"Serviço")+(Number(x.qty||1)>1?" ×"+x.qty:"")).join(", ")||"Não informado")}</b></div>
  <h3>Valores</h3><div class="report-row"><span>Total dos serviços</span><b>${fm(closure.service_total)}</b></div>
  <div class="report-row"><span>Produtos</span><b>${fm(closure.product_total)}</b></div>
  <div class="report-row"><span>Desconto</span><b>${fm(closure.discount)}</b></div>
