@@ -15,24 +15,26 @@ Financeiro.html
 <body>
 <header><div><div class="brand">BARBER SHOP <span>JS</span> · FINANCEIRO</div><div class="small">Caixa, atendimentos, estoque e resultado</div></div><button class="secondary" id="back">Voltar à gestão</button></header>
 <main>
-<div class="dashboard-only"><h1>Financeiro</h1><p class="muted">Feche atendimentos com pagamentos divididos, controle recebíveis, estoque e resultado mensal.</p></div>
+<div id="financeDashboard">
+<h1>Financeiro</h1><p class="muted">Feche atendimentos com pagamentos divididos, controle recebíveis, estoque e resultado mensal.</p>
 <div id="status" role="status"></div>
-<div class="toolbar dashboard-only"><div class="field"><label for="month">Mês de referência</label><input type="month" id="month"></div><button id="refresh">Atualizar</button><button class="secondary" id="exportCsv">Exportar lançamentos CSV</button></div>
-<div class="cards dashboard-only">
+<div class="toolbar"><div class="field"><label for="month">Mês de referência</label><input type="month" id="month"></div><button id="refresh">Atualizar</button><button class="secondary" id="exportCsv">Exportar lançamentos CSV</button></div>
+<div class="cards">
 <div class="card"><div class="label">Receitas recebidas</div><div class="value green" id="income">R$ 0,00</div></div>
 <div class="card"><div class="label">Despesas pagas</div><div class="value red" id="expense">R$ 0,00</div></div>
 <div class="card"><div class="label">Investimentos</div><div class="value" id="invest">R$ 0,00</div></div>
 <div class="card"><div class="label">Resultado após investimentos</div><div class="value" id="result">R$ 0,00</div></div>
 </div>
-<div class="cards dashboard-only">
+<div class="cards">
 <div class="card"><div class="label">Recebido em Pix</div><div class="value" id="sumPix">R$ 0,00</div></div>
 <div class="card"><div class="label">Recebido em dinheiro</div><div class="value" id="sumCash">R$ 0,00</div></div>
 <div class="card"><div class="label">Recebido em cartão</div><div class="value" id="sumCard">R$ 0,00</div></div>
 <div class="card"><div class="label">Contas a receber</div><div class="value" id="sumDue">R$ 0,00</div></div>
 </div>
-<nav class="tabs dashboard-only">
+<nav class="tabs">
 <button class="tab active" data-tab="appointments">Atendimentos</button><button class="tab" data-tab="movements">Lançamentos</button><button class="tab" data-tab="cash">Caixa</button><button class="tab" data-tab="stock">Estoque</button><button class="tab" data-tab="pending">Contas pendentes</button><button class="tab" data-tab="reports">Relatórios</button><button class="tab" data-tab="settings">Configurações</button><button class="tab" data-tab="packages">Pacotes</button>
 </nav>
+</div>
 <div id="sectionViewHeader" class="hidden" style="margin:14px 0 18px"><button type="button" class="secondary" id="sectionBack">← Voltar ao Financeiro</button><h1 id="sectionViewTitle" style="margin-top:14px"></h1></div>
 <section class="section" id="section-packages">
 <div class="layout">
@@ -53,7 +55,7 @@ Financeiro.html
 <div class="field"><label>Forma de pagamento</label><select id="pkgSaleMethod"><option value="pix">Pix</option><option value="cash">Dinheiro</option><option value="card">Cartão</option><option value="transfer">Transferência</option><option value="other">Outro</option></select></div></div>
 <button id="pkgSell">Confirmar venda do pacote</button><h3>Pacotes deste cliente</h3><div class="tablewrap"><table><thead><tr><th>Pacote</th><th>Compra</th><th>Validade</th><th>Serviços restantes</th><th>Status</th></tr></thead><tbody id="clientPkgRows"></tbody></table></div></div>
 </section>
-<section class="section active" id="section-appointments">
+<section class="section" id="section-appointments">
 <div class="panel"><h2>Atendimentos do mês</h2><p class="small">Finalize o atendimento por aqui. O fechamento fica vinculado ao agendamento e não pode ser criado duas vezes. Produtos vendidos são baixados do estoque.</p>
 <div class="toolbar"><div class="field"><label>Status</label><select id="bookingFilter"><option value="all">Todos os status</option><option value="confirmed">Confirmados</option><option value="completed">Realizados</option><option value="finalized">Finalizados</option><option value="no_show">Faltas</option><option value="cancelled">Cancelados</option></select></div><div class="field"><label>Buscar cliente</label><input id="bookingSearch" placeholder="Nome ou telefone"></div></div>
 <div class="tablewrap"><table><thead><tr><th>Data / horário</th><th>Cliente</th><th>Serviços</th><th>Total agendado</th><th>Status</th><th>Financeiro</th><th>Ação</th></tr></thead><tbody id="bookingRows"><tr><td colspan="7" class="empty">Carregando…</td></tr></tbody></table></div></div>
@@ -104,10 +106,10 @@ document.addEventListener('click',function(e){
  if(!b)return;
  e.preventDefault();
  e.stopImmediatePropagation();
- const url=new URL(window.location.href);
- url.searchParams.set('aba',b.dataset.tab);
- const month=document.getElementById('month');if(month&&month.value)url.searchParams.set('month',month.value);
- window.open(url.href,'_blank','noopener');
+ const params=new URLSearchParams(window.location.search);
+ params.set('aba',b.dataset.tab);
+ const href=window.location.pathname+'?'+params.toString()+window.location.hash;
+ window.open(href,'_blank');
 },true);
 (async()=>{'use strict';
 const URL='https://esuvgaijkahzoctyyawe.supabase.co',KEY='sb_publishable_bC-fW9ei_xw9ovFzPJE7cA_Fkd8QSsz',SESSION='bsjs_admin_session';
@@ -206,24 +208,31 @@ $('refresh').onclick=load;$('month').onchange=load;$('filter').onchange=renderMo
 function csvDownload(name,rows){const csv=rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
 $('exportCsv').onclick=()=>csvDownload('barber-shop-js-lancamentos.csv',[['Data','Tipo','Descrição','Categoria','Pagamento','Situação','Valor','Vencimento'],...movements.map(x=>[x.movement_date,kindName(x.kind),x.description,x.category,methodName(x.payment_method),x.status,x.amount,x.due_date])]);
 $('exportReport').onclick=()=>csvDownload('barber-shop-js-resumo.csv',[['Indicador','Valor'],['Receitas',sum(movements.filter(x=>x.status==='paid'&&x.kind==='income'),x=>x.amount)],['Despesas',sum(movements.filter(x=>x.status==='paid'&&['expense','pro_labore','refund'].includes(x.kind)),x=>x.amount)],['Investimentos',sum(movements.filter(x=>x.status==='paid'&&x.kind==='investment'),x=>x.amount)],['Pix',sum(movements.filter(x=>x.status==='paid'&&x.kind==='income'&&x.payment_method==='pix'),x=>x.amount)],['Dinheiro',sum(movements.filter(x=>x.status==='paid'&&x.kind==='income'&&x.payment_method==='cash'),x=>x.amount)],['Cartão',sum(movements.filter(x=>x.status==='paid'&&x.kind==='income'&&x.payment_method==='card'),x=>x.amount)]]);
-const params=new URLSearchParams(location.search);
+const params=new URLSearchParams(window.location.search);
 const requestedTab=params.get('aba');
 const sectionTitles={appointments:'Atendimentos',movements:'Lançamentos',cash:'Caixa',stock:'Estoque',pending:'Contas pendentes',reports:'Relatórios',settings:'Configurações',packages:'Pacotes'};
-function openSectionInCurrentTab(tab){
- const url=new URL(window.location.href);url.searchParams.set('aba',tab);window.location.href=url.href;
+function showFinanceSection(tab){
+ const target=document.getElementById('section-'+tab);
+ if(!target)return;
+ document.querySelectorAll('.section').forEach(x=>x.classList.toggle('active',x===target));
+ $('financeDashboard').classList.add('hidden');
+ $('sectionViewHeader').classList.remove('hidden');
+ $('sectionViewTitle').textContent=sectionTitles[tab]||'Financeiro';
+ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));
 }
-function returnToFinanceHome(){
- const url=new URL(window.location.href);url.searchParams.delete('aba');window.location.href=url.href;
+function returnToFinanceDashboard(){
+ const params=new URLSearchParams(window.location.search);
+ params.delete('aba');
+ const query=params.toString();
+ window.location.href=window.location.pathname+(query?'?'+query:'')+window.location.hash;
 }
-if(requestedTab&&document.getElementById('section-'+requestedTab)){
- document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===requestedTab));
- document.querySelectorAll('.section').forEach(x=>x.classList.toggle('active',x.id==='section-'+requestedTab));
- document.querySelectorAll('.dashboard-only').forEach(x=>x.classList.add('hidden'));
- $('sectionViewHeader').classList.remove('hidden');$('sectionViewTitle').textContent=sectionTitles[requestedTab]||'Financeiro';
-}else{
+$('sectionBack').onclick=returnToFinanceDashboard;
+if(requestedTab&&document.getElementById('section-'+requestedTab)){showFinanceSection(requestedTab)}
+else{
  document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+ $('financeDashboard').classList.remove('hidden');
+ $('sectionViewHeader').classList.add('hidden');
 }
-$('sectionBack').onclick=returnToFinanceHome;
 $('month').value=params.get('month')||`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;$('date').value=fmtDate(now);session=getSession();if(!session){msg('Sessão não encontrada. Entre na gestão e abra o Financeiro pelo menu.',true)}else{try{const p=await api('finance_user_permissions?select=*&user_id=eq.'+encodeURIComponent(uid()||''));me=p?.[0]||null;canEdit=true;await load();const bookingId=params.get('booking');if(bookingId){const selected=bookings.find(x=>String(x.id)===bookingId);if(!selected){msg('Agendamento não encontrado no mês selecionado. Verifique a data e tente novamente.',true)}else if(closures.some(c=>String(c.booking_id)===bookingId)){msg('Este atendimento já possui fechamento financeiro. Confira o histórico antes de alterar algo.')}else{await openClosure(bookingId)}}}catch(e){msg(e.message,true)}}
 })();
 </script></body></html>
