@@ -206,6 +206,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid #2378d42a;border-color
 .professional-actions{display:flex;gap:8px;align-items:center}
 .professional-form{background:#fff;color:#252a31;border:1px solid #dce1e8;border-radius:18px;padding:16px;margin:12px 0}
 .professional-form input,.professional-form select,.professional-form textarea{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+.professional-form .btn.danger{background:#e34b4b!important;border:1px solid #e34b4b!important;color:#fff!important}
+.professional-form-actions .btn{min-height:52px}
+@media(max-width:390px){.professional-form-actions{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important;gap:6px!important}.professional-form-actions .btn{padding:10px 8px!important;font-size:14px}}
 @media(max-width:520px){
  .settings-menu-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
  .settings-menu-button{min-height:165px;padding:16px 8px;border-radius:22px!important}
@@ -303,7 +306,7 @@ async function loadAgenda(){const date=key(day),wd=day.getDay();try{[bookings,ho
 const setting=(await api("business_hour_settings?select=slot_step_minutes&id=eq.true"))[0];slotStep=Number(setting?.slot_step_minutes||30);slotStepDraft=slotStep;const selected=hourPeriods.filter(p=>p.start_date<=date&&(!p.end_date||p.end_date>=date)).sort((a,b)=>b.start_date.localeCompare(a.start_date)||b.id-a.id)[0];if(selected){dayRanges=normalizeSchedule(selected.schedule)[wd];hours=dayRanges.length?[{open_min:Math.min(...dayRanges.map(x=>x.start_min)),close_min:Math.max(...dayRanges.map(x=>x.end_min)),lunch_start:null,lunch_end:null}]:[]}else{hours=await api(`business_hours?select=*&weekday=eq.${wd}`);const h=hours?.[0];dayRanges=h&&h.open_min!=null?(h.lunch_start!=null&&h.lunch_end!=null?[{start_min:h.open_min,end_min:h.lunch_start},{start_min:h.lunch_end,end_min:h.close_min}]:[{start_min:h.open_min,end_min:h.close_min}]):[]}const localStatuses=getLocalBookingStatuses();bookings=bookings.map(b=>localStatuses[String(b.id)]?{...b,status:localStatuses[String(b.id)]}:b);renderAgenda()}catch(e){shell("Agenda",`<p class="error">${esc(e.message)}</p><button class="btn" id="retry">Tentar novamente</button>`)}}
 function renderAgenda(){
  let cfg=hours?.[0];
- let nav=`<div class="card agenda-toolbar"><button class="agenda-arrow" data-day="-1" aria-label="Dia anterior">‹</button><div class="agenda-date">${DW[day.getDay()]}, ${day.toLocaleDateString("pt-BR")}</div><button class="agenda-arrow" data-day="1" aria-label="Próximo dia">›</button><button class="btn agenda-mini" id="toggle-goto">Ir para data</button><button class="btn agenda-mini" id="today">Hoje</button><div class="agenda-slot-setting"><label class="muted" for="agenda-slot-step">Intervalo</label><select id="agenda-slot-step"><option value="15" ${slotStep===15?"selected":""}>15 min</option><option value="30" ${slotStep===30?"selected":""}>30 min</option><option value="45" ${slotStep===45?"selected":""}>45 min</option><option value="60" ${slotStep===60?"selected":""}>1 hora</option><option value="custom" ${![15,30,45,60].includes(slotStep)?"selected":""}>Outro valor</option></select><input id="agenda-slot-custom" type="number" min="5" max="180" step="1" value="${![15,30,45,60].includes(slotStep)?slotStep:15}" style="width:76px;${![15,30,45,60].includes(slotStep)?"":"display:none"}"><button class="btn primary agenda-mini" id="save-agenda-slot">Gravar</button></div></div><div class="goto-panel" id="goto-panel"><div class="field"><label>Escolha a data</label><input type="date" id="goto-date" value="${key(day)}"></div><button class="btn primary agenda-mini" id="goto">Ir</button></div>`;
+ let nav=`<div class="card agenda-toolbar"><button class="agenda-arrow" data-day="-1" aria-label="Dia anterior">‹</button><div class="agenda-date">${DW[day.getDay()]}, ${day.toLocaleDateString("pt-BR")}</div><button class="agenda-arrow" data-day="1" aria-label="Próximo dia">›</button><button class="btn agenda-mini" id="toggle-goto">Ir para data</button><button class="btn agenda-mini" id="today">Hoje</button></div><div class="goto-panel" id="goto-panel"><div class="field"><label>Escolha a data</label><input type="date" id="goto-date" value="${key(day)}"></div><button class="btn primary agenda-mini" id="goto">Ir</button></div>`;
  if(!cfg||cfg.open_min==null){shell("Agenda",nav+`<p class="notice">Estabelecimento fechado ou horário não configurado para este dia.</p>`);return}
  const step=Math.max(5,Number(slotStep)||30);
  let n=0;
@@ -510,9 +513,26 @@ function openProfessionalForm(id){
   <div class="field"><label for="prof-email">E-mail</label><input id="prof-email" type="email" value="${esc(x.email||"")}"></div>
   <div class="field"><label for="prof-notes">Informações adicionais</label><textarea id="prof-notes" rows="3">${esc(x.notes||"")}</textarea></div>
   <label style="display:flex;gap:8px;align-items:center;margin:12px 0"><input id="prof-active" type="checkbox" ${x.active?"checked":""} style="width:auto"> Profissional ativo</label>
-  <div class="row"><button class="btn primary grow" type="submit">Salvar</button><button class="btn" type="button" id="cancel-professional">Cancelar</button></div>
+  <div class="row professional-form-actions" style="display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:stretch">
+   <button class="btn primary" type="submit">Salvar</button>
+   ${x.id?'<button class="btn danger" type="button" id="delete-professional" style="background:#e34b4b!important;border-color:#e34b4b!important;color:#fff!important">Excluir</button>':'<span></span>'}
+   <button class="btn" type="button" id="cancel-professional">Cancelar</button>
+  </div>
  </form>`;
  $("#cancel-professional").onclick=()=>host.innerHTML="";
+ const deleteProfessional=$("#delete-professional");
+ if(deleteProfessional)deleteProfessional.onclick=async()=>{
+  if(!confirm(`Tem certeza que deseja excluir o profissional ${x.name}? Esta ação não poderá ser desfeita.`))return;
+  deleteProfessional.disabled=true;
+  try{
+   await api(`barbers?id=eq.${encodeURIComponent(x.id)}`,{method:"DELETE"});
+   await loadProfessionals();
+   setNotice("Profissional excluído.","success");
+  }catch(err){
+   deleteProfessional.disabled=false;
+   alert("Não foi possível excluir este profissional. Ele pode estar vinculado a agendamentos ou a outros registros. Se for esse o caso, desative o profissional em vez de excluí-lo. Detalhe: "+err.message);
+  }
+ };
  $("#professional-form").onsubmit=async e=>{
   e.preventDefault();
   const data={name:$("#prof-name").value.trim(),role:$("#prof-role").value,phone:$("#prof-phone").value.trim(),email:$("#prof-email").value.trim(),notes:$("#prof-notes").value.trim(),active:$("#prof-active").checked};
@@ -616,7 +636,6 @@ if(b.dataset.day){day=new Date(day.getFullYear(),day.getMonth(),day.getDate()+Nu
 if(b.id==="toggle-goto"){$("#goto-panel")?.classList.toggle("open");return}
 if(b.id==="goto"){if(val("goto-date"))day=new Date(val("goto-date")+"T12:00:00");await loadAgenda();return}
 if(b.id==="today"){day=new Date();await loadAgenda();return}
-if(b.id==="save-agenda-slot"){const sel=$("#agenda-slot-step"),v=sel?.value==="custom"?Number($("#agenda-slot-custom")?.value):Number(sel?.value);if(!Number.isInteger(v)||v<5||v>180)throw Error("Informe um intervalo entre 5 e 180 minutos.");await api("business_hour_settings?id=eq.true",{method:"PATCH",body:JSON.stringify({slot_step_minutes:v,updated_at:new Date().toISOString()})});slotStep=v;slotStepDraft=v;await loadAgenda();setNotice("Intervalo da agenda salvo.","success");return}
 if(b.dataset.openBooking){await showBookingDetail(b.dataset.openBooking);return}
 if(b.dataset.openBlock){const block=blocks.find(x=>String(x.id)===String(b.dataset.openBlock));if(block)await showBlockSheet(block);return}
 if(b.id==="agenda-new-booking"){await openBooking(null);return}
@@ -645,7 +664,6 @@ if(b.id==="month-next"){month=new Date(month.getFullYear(),month.getMonth()+1,1)
 }catch(err){let n=$("#notice");if(n)n.innerHTML=`<div class="notice error">${esc(err.message)}</div>`;else shell("Erro",`<p class="error">${esc(err.message)}</p>`)}
 });
 app.addEventListener("change",e=>{
- if(e.target.id==="agenda-slot-step"){const c=$("#agenda-slot-custom");if(c)c.style.display=e.target.value==="custom"?"inline-block":"none"}
  if(e.target.matches("[data-service]")&&bookingDraft){
   const id=e.target.dataset.service;
   const svc=bookingDraft.catalog.find(x=>String(x.id)===String(id));
