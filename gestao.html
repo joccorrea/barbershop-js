@@ -166,21 +166,32 @@ input:focus,select:focus,textarea:focus{outline:2px solid #2378d42a;border-color
 #app{width:100%;min-width:0;max-width:100%;overflow-x:hidden}
 #app .card,#app .field,#app .grid{min-width:0;max-width:100%}
 #app input,#app select,#app textarea{box-sizing:border-box;width:100%;max-width:100%;min-width:0}
-.settings-menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.settings-menu-button{width:100%;min-width:0;text-align:left;display:flex;flex-direction:column;gap:8px;padding:22px;cursor:pointer}
-.settings-menu-button b{font-size:20px}
-.settings-menu-icon{font-size:30px;color:#397bd1;line-height:1}
+/* Configurações em cartões grandes, lado a lado, conforme referência enviada */
+.settings-menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;width:100%;min-width:0}
+.settings-menu-button{width:100%;min-width:0;min-height:190px;text-align:center;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:22px 12px;background:#242424!important;color:#fff!important;border:0!important;border-radius:24px!important;box-shadow:none!important}
+.settings-menu-button b{font-size:20px;font-weight:500}
+.settings-menu-button .muted{font-size:15px;color:#bdbdbd}
+.settings-menu-icon{font-size:38px;color:#4384df;line-height:1}
 .settings-back-row{margin:0 0 14px}
-.hours-day-card{width:100%;min-width:0;overflow:hidden;margin:12px 0;padding:18px}
-.hours-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px;width:100%;min-width:0}
-.hours-grid .field{width:100%;min-width:0;margin:0}
-.hours-grid .field input{display:block;width:100%;min-width:0;max-width:100%}
-.professional-card{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.hours-day-card{display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;overflow:hidden!important;margin:12px 0;padding:18px!important}
+.hours-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin-top:12px;width:100%;min-width:0;max-width:100%}
+.hours-grid .field{display:block;width:100%!important;min-width:0!important;max-width:100%!important;margin:0;overflow:hidden}
+.hours-grid .field input{display:block!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:100%!important;margin:0!important;flex:1 1 auto!important} .hours-grid .field label{display:block;max-width:100%;overflow-wrap:anywhere}
+.professional-card{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;max-width:100%}
+.professional-card .professional-edit{flex:1;min-width:0;text-align:left;background:transparent!important;border:0!important;padding:4px 0!important;font-weight:750}
+.professional-actions{display:flex;gap:8px;align-items:center}
+.professional-form{background:#fff;color:#252a31;border:1px solid #dce1e8;border-radius:18px;padding:16px;margin:12px 0}
+.professional-form input,.professional-form select,.professional-form textarea{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 @media(max-width:520px){
- .settings-menu-grid{grid-template-columns:minmax(0,1fr)}
+ .settings-menu-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .settings-menu-button{min-height:165px;padding:16px 8px;border-radius:22px!important}
+ .settings-menu-button b{font-size:18px}
+ .settings-menu-button .muted{font-size:13px}
+ .settings-menu-icon{font-size:34px}
+ .hours-day-card{padding:16px!important}
  .hours-grid{grid-template-columns:minmax(0,1fr)}
- .hours-day-card{padding:16px}
 }
+@media(min-width:521px){.hours-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 </style>
 </head>
@@ -287,7 +298,7 @@ $("#cancel-service").onclick=loadServices}
 async function loadProducts(){try{products=await api("products?select=*&order=name");shell("Produtos",`<div class="notice">Cadastro e edição de produtos. A baixa automática de estoque por venda ainda não está implementada.</div><div class="row between"><span class="muted">${products.length} produto(s)</span><button class="btn primary" id="new-product">＋ Adicionar produto</button></div>`+products.map(p=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(p.name)}</b><div class="muted">${esc(p.description||"")}</div><div>${fm(p.price)} · Estoque: ${p.stock} ${p.active?"":"· Inativo"}</div></div><button class="btn small" data-edit-product="${p.id}">Editar</button></div></div>`).join(""))}catch(e){shell("Produtos",`<p class="error">${esc(e.message)}</p><p class="muted">Se o banco informar que a tabela products não existe, a migração precisa ser aplicada no Supabase.</p>`)}}
 async function editProduct(id=null){editProductId=id;let p=products.find(x=>x.id===id)||{name:"",description:"",price:0,cost:0,stock:0,active:true};shell(id?"Editar produto":"Novo produto",`<form id="product-form">${field("Nome","pr-name",p.name)}${area("Descrição","pr-description",p.description)}<div class="grid">${field("Preço de venda (R$)","pr-price",p.price,"number",'step="0.01" min="0"')}${field("Custo (R$)","pr-cost",p.cost,"number",'step="0.01" min="0"')}${field("Estoque","pr-stock",p.stock,"number",'step="1" min="0"')}</div><label><input style="width:auto" type="checkbox" id="pr-active"> Produto ativo</label><div class="form-actions"><button class="btn primary">Salvar produto</button><button class="btn" type="button" id="cancel-product">Voltar</button></div></form>`);$("#pr-active").checked=!!p.active;$("#product-form").onsubmit=async e=>{e.preventDefault();try{let data={name:val("pr-name").trim(),description:val("pr-description"),price:num("pr-price"),cost:num("pr-cost"),stock:num("pr-stock"),active:checked("pr-active")};if(!data.name)throw Error("Informe o nome.");if(id)await api(`products?id=eq.${id}`,{method:"PATCH",body:JSON.stringify(data)});else await api("products",{method:"POST",body:JSON.stringify(data)});await loadProducts();notice="Produto salvo.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};$("#cancel-product").onclick=loadProducts}
 async function loadSettings(){
- shell("Configurações",`<div class="notice">Escolha o que deseja configurar.</div><div class="settings-menu-grid"><button type="button" class="card settings-menu-button" id="open-hours"><span class="settings-menu-icon">◷</span><b>Horários</b><span class="muted">Dias e horários de funcionamento</span></button><button type="button" class="card settings-menu-button" id="open-professionals"><span class="settings-menu-icon">♙</span><b>Profissionais</b><span class="muted">Consultar profissionais cadastrados</span></button></div>`);
+ shell("Configurações",`<div class="notice">Escolha o que deseja configurar.</div><div class="settings-menu-grid"><button type="button" class="card settings-menu-button" id="open-hours"><span class="settings-menu-icon">◷</span><b>Horários</b><span class="muted">Funcionamento</span></button><button type="button" class="card settings-menu-button" id="open-professionals"><span class="settings-menu-icon">♧</span><b>Profissionais</b><span class="muted">Equipe cadastrada</span></button></div>`);
  $("#open-hours").onclick=()=>navigate("settings-hours");
  $("#open-professionals").onclick=()=>navigate("settings-professionals");
 }
@@ -301,10 +312,45 @@ async function loadHours(){
 async function loadProfessionals(){
  try{
   barbers=await api("barbers?select=*&order=id");
-  shell("Profissionais",`<div class="settings-back-row"><button type="button" class="btn" id="settings-back">← Configurações</button></div>${barbers.map(x=>`<div class="card professional-card"><b>${esc(x.name)}</b><span class="pill">${x.active?"Ativo":"Inativo"}</span></div>`).join("")||'<p class="muted">Nenhum profissional cadastrado.</p>'}`);
+  const rows=barbers.map(x=>`<div class="card professional-card">
+    <button type="button" class="professional-edit" data-edit-professional="${x.id}">${esc(x.name)}</button>
+    <div class="professional-actions"><span class="pill">${x.active?"Ativo":"Inativo"}</span><button type="button" class="btn small" data-edit-professional="${x.id}">Editar</button></div>
+   </div>`).join("");
+  shell("Profissionais",`<div class="settings-back-row"><button type="button" class="btn" id="settings-back">← Configurações</button></div>
+   ${rows||'<p class="muted">Nenhum profissional cadastrado.</p>'}
+   <button type="button" class="btn primary" id="add-professional" style="width:100%;margin-top:8px">＋ Adicionar colaborador</button>
+   <div id="professional-editor"></div>`);
   $("#settings-back").onclick=()=>navigate("settings");
+  $("#add-professional").onclick=()=>openProfessionalForm(null);
+  $("#app").querySelectorAll("[data-edit-professional]").forEach(b=>b.onclick=()=>openProfessionalForm(Number(b.dataset.editProfessional)));
  }catch(e){shell("Profissionais",`<div class="settings-back-row"><button type="button" class="btn" id="settings-back">← Configurações</button></div><p class="error">${esc(e.message)}</p>`);$("#settings-back").onclick=()=>navigate("settings")}
 }
+function openProfessionalForm(id){
+ const x=barbers.find(b=>Number(b.id)===Number(id))||{id:null,name:"",active:true,role:"barber",phone:"",email:"",notes:""};
+ const host=$("#professional-editor");
+ host.innerHTML=`<form id="professional-form" class="professional-form">
+  <h3 style="margin:0 0 14px">${x.id?"Editar profissional":"Adicionar colaborador"}</h3>
+  <div class="field"><label for="prof-name">Nome completo *</label><input id="prof-name" required maxlength="100" value="${esc(x.name)}"></div>
+  <div class="field"><label for="prof-role">Função</label><select id="prof-role"><option value="owner" ${x.role==="owner"?"selected":""}>Proprietário</option><option value="manager" ${x.role==="manager"?"selected":""}>Gerente</option><option value="barber" ${(!x.role||x.role==="barber")?"selected":""}>Colaborador</option></select></div>
+  <div class="field"><label for="prof-phone">Telefone</label><input id="prof-phone" type="tel" value="${esc(x.phone||"")}"></div>
+  <div class="field"><label for="prof-email">E-mail</label><input id="prof-email" type="email" value="${esc(x.email||"")}"></div>
+  <div class="field"><label for="prof-notes">Informações adicionais</label><textarea id="prof-notes" rows="3">${esc(x.notes||"")}</textarea></div>
+  <label style="display:flex;gap:8px;align-items:center;margin:12px 0"><input id="prof-active" type="checkbox" ${x.active?"checked":""} style="width:auto"> Profissional ativo</label>
+  <div class="row"><button class="btn primary grow" type="submit">Salvar</button><button class="btn" type="button" id="cancel-professional">Cancelar</button></div>
+ </form>`;
+ $("#cancel-professional").onclick=()=>host.innerHTML="";
+ $("#professional-form").onsubmit=async e=>{
+  e.preventDefault();
+  const data={name:$("#prof-name").value.trim(),role:$("#prof-role").value,phone:$("#prof-phone").value.trim(),email:$("#prof-email").value.trim(),notes:$("#prof-notes").value.trim(),active:$("#prof-active").checked};
+  if(!data.name){alert("Informe o nome.");return}
+  try{
+   if(x.id) await api(`barbers?id=eq.${encodeURIComponent(x.id)}`,{method:"PATCH",body:JSON.stringify(data)});
+   else await api("barbers",{method:"POST",body:JSON.stringify(data)});
+   await loadProfessionals();
+  }catch(err){alert("Não foi possível salvar. Confirme se a atualização SQL de profissionais foi executada. Detalhe: "+err.message)}
+ };
+}
+
 function mins(id){let v=val(id);if(!v)return null;let [h,m]=v.split(":").map(Number);return h*60+m}
 $("#app").addEventListener("submit",async e=>{if(e.target.id!=="hours-form")return;e.preventDefault();try{for(const x of hours){let wd=x.weekday,o=mins("o-"+wd),c=mins("c-"+wd),ls=mins("ls-"+wd),le=mins("le-"+wd);if((o==null)!=(c==null))throw Error("Informe abertura e fechamento ou deixe ambos vazios.");if(o!=null&&c<=o)throw Error("Fechamento deve ser depois da abertura: "+DW[wd]);await api(`business_hours?weekday=eq.${wd}`,{method:"PATCH",body:JSON.stringify({open_min:o,close_min:c,lunch_start:ls,lunch_end:le})})}await loadHours();notice="Horários atualizados.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}});
 async function loadBirthdays(){try{clients=await api("clients?select=name,phone,birth_date&birth_date=not.is.null");let list=clients.filter(c=>c.birth_date&&Number(c.birth_date.split("-")[1])===month.getMonth()+1).sort((a,b)=>Number(a.birth_date.split("-")[2])-Number(b.birth_date.split("-")[2]));shell("Aniversários",`<div class="row between"><button class="btn" id="month-prev">‹</button><b>${MONTH[month.getMonth()]} ${month.getFullYear()}</b><button class="btn" id="month-next">›</button></div>`+(list.map(c=>{let d=c.birth_date.split("-")[2],first=c.name.split(" ")[0],text=`Feliz aniversário, ${first}! 🎂 A Barber Shop JS deseja um dia incrível pra você.`;return `<div class="card"><b>${d}/${String(month.getMonth()+1).padStart(2,"0")} · ${esc(c.name)}</b><div class="muted">${esc(c.phone)}</div><div class="actions"><a class="btn small" target="_blank" rel="noopener" href="https://wa.me/${esc(c.phone)}?text=${encodeURIComponent(text)}">Enviar parabéns</a></div></div>`}).join("")||`<p class="muted">Nenhum aniversariante neste mês.</p>`))}catch(e){shell("Aniversários",`<p class="error">${esc(e.message)}</p>`)}}
@@ -349,6 +395,24 @@ async function showBookingDetail(id){try{const b=(await api(`bookings?select=*&i
 async function showBlockSheet(block){const id=block.id;document.body.classList.add("sheet-open");const scrollY=window.scrollY;app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="block-sheet"><section class="action-sheet" role="dialog" aria-modal="true" aria-label="Detalhes do bloqueio"><div class="sheet-grabber"></div><h2 class="section-title">Bloqueio de horário</h2><div class="sheet-detail"><b>${esc(block.date||key(day))}</b><div>${hm(block.start_min)}–${hm(block.end_min)}</div><div class="muted">Período bloqueado: ${hm(block.start_min)} até ${hm(block.end_min)}</div><div>${esc(block.reason||"Sem motivo informado")}</div></div><button class="sheet-action" id="block-edit"><span class="sheet-icon">✎</span><span>Editar bloqueio</span></button><button class="sheet-action cancel" id="block-cancel"><span class="sheet-icon">✕</span><span>Cancelar bloqueio</span></button><button class="btn sheet-close" id="block-close">Fechar</button></section></div>`);const close=()=>{const el=$("#block-sheet");if(el){el.remove();document.body.classList.remove("sheet-open");window.scrollTo(0,scrollY)}};$("#block-close").onclick=close;$("#block-sheet").addEventListener("click",e=>{if(e.target.id==="block-sheet")close()});$("#block-edit").onclick=()=>{close();openBooking(Number(block.start_min),"block",{date:block.date,start_min:block.start_min,end_min:block.end_min,reason:block.reason,blockId:block.id})};$("#block-cancel").onclick=async()=>{if(!confirm("Deseja realmente remover este bloqueio?"))return;await api(`blocked_slots?id=eq.${encodeURIComponent(id)}`,{method:"DELETE"});close();await loadAgenda()};bindSheetDrag($("#block-sheet"),close)}
 
 async function navigate(p){page=p;setMenuOpen(false);$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p||((p==="settings-hours"||p==="settings-professionals")&&b.dataset.page==="settings")));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="settings-hours")await loadHours();else if(p==="settings-professionals")await loadProfessionals();else if(p==="birthdays")await loadBirthdays()}
+// Gesto lateral: arrastar da esquerda para a direita retorna à página anterior.
+(function(){
+ let sx=0,sy=0,tracking=false;
+ document.addEventListener("touchstart",e=>{
+  if(e.touches.length!==1)return;
+  sx=e.touches[0].clientX;sy=e.touches[0].clientY;tracking=sx<42;
+ },{passive:true});
+ document.addEventListener("touchend",e=>{
+  if(!tracking||!e.changedTouches.length)return;
+  const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+  tracking=false;
+  if(dx<110||Math.abs(dy)>85)return;
+  if(document.body.classList.contains("sheet-open"))return;
+  if(page==="settings-hours"||page==="settings-professionals"){navigate("settings");return}
+  if(page!=="agenda"){navigate("agenda");return}
+  if($("#menu").classList.contains("open"))setMenuOpen(false);
+ },{passive:true});
+})();
 function setMenuOpen(open){$("#menu").classList.toggle("open",open);$("#menu-backdrop").classList.toggle("open",open);document.body.style.overflow=open?"hidden":""}
 $("#hamb").onclick=()=>setMenuOpen(!$("#menu").classList.contains("open"));
 $("#finance-menu").onclick=()=>{setMenuOpen(false);location.href="financeiro.html";};
