@@ -41,7 +41,7 @@ const get=p=>fetch(SB+"/rest/v1/"+p,{headers:hd}).then(r=>{if(!r.ok)throw 0;retu
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const ER={dados_invalidos:"Confira seu nome e WhatsApp (com DDD).",nascimento_invalido:"Data de nascimento inválida.",precisa_nascimento:"Informe sua data de nascimento.",horario_invalido:"Horário indisponível. Escolha outro.",horario_ocupado:"Esse horário acabou de ser ocupado. Escolha outro."};
 const DW=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
-let SV=[],H={},BR={id:1,name:"Josué"},q=[],st=0,date=null,time=null,busy=[],who={},res=null,cres=null,msg="";
+let SV=[],H=[],LEGACY={},BR={id:1,name:"Josué"},q=[],st=0,date=null,time=null,busy=[],who={},res=null,cres=null,msg="";
 const fm=n=>"R$ "+Number(n).toFixed(2).replace(".",",");
 const cuts=()=>SV.reduce((a,s,i)=>a+(s.is_cut?q[i]:0),0);
 const dur=()=>30*Math.max(1,cuts());
@@ -51,10 +51,11 @@ const hm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2
 const key=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const lab=d=>DW[d.getDay()]+" "+String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0");
 const pd=s=>{const [y,m,d]=s.split("-");return new Date(+y,m-1,+d)};
-const open=d=>{const o=H[d.getDay()];return o&&o.open_min!=null?o:null};
+const activePeriod=d=>H.filter(p=>p.active&&p.start_date<=key(d)&&(!p.end_date||p.end_date>=key(d))).sort((a,b)=>b.start_date.localeCompare(a.start_date)||b.id-a.id)[0]||null;
+const intervals=d=>{const p=activePeriod(d);if(p){const v=p.schedule?.[String(d.getDay())];return Array.isArray(v)?v:[]}const o=LEGACY[d.getDay()];if(!o||o.open_min==null)return [];const out=[];if(o.lunch_start!=null&&o.lunch_end!=null&&o.lunch_end>o.lunch_start){out.push({start_min:o.open_min,end_min:o.lunch_start},{start_min:o.lunch_end,end_min:o.close_min})}else out.push({start_min:o.open_min,end_min:o.close_min});return out};
+const open=d=>intervals(d).length>0;
 function days(){const r=[],n=new Date();for(let i=0;r.length<14&&i<40;i++){const x=new Date(n.getFullYear(),n.getMonth(),n.getDate()+i);if(open(x))r.push(x)}return r}
-function slots(d){const o=open(d),n=dur(),now=new Date(),td=key(now)==key(d),nm=now.getHours()*60+now.getMinutes(),r=[];if(!o)return r;
-for(let t=o.open_min;t+n<=o.close_min;t+=30){if(t<o.lunch_end&&t+n>o.lunch_start)continue;if(busy.some(x=>t<x.end_min&&t+n>x.start_min))continue;if(td&&t<=nm)continue;r.push(t)}return r}
+function slots(d){const ranges=intervals(d),n=dur(),now=new Date(),td=key(now)==key(d),nm=now.getHours()*60+now.getMinutes(),r=[];for(const o of ranges){for(let t=Number(o.start_min);t+n<=Number(o.end_min);t+=30){if(busy.some(x=>t<x.end_min&&t+n>x.start_min))continue;if(td&&t<=nm)continue;r.push(t)}}return r}
 async function loadBusy(){const d=date;try{const b=await rpc("get_busy",{p_date:key(d),p_barber:BR.id});if(date===d){busy=b;render()}}catch(e){msg="Erro ao carregar horários. Tente de novo.";render()}}
 function render(){const a=$("#app"),M=msg?`<p class=er>${esc(msg)}</p>`:"";
 if(st==0){a.innerHTML=`<p class=mu>${msg?esc(msg):"Carregando…"}</p>`}
@@ -105,5 +106,5 @@ else if(t.id=="find"){await find();return}
 else if(t.dataset.c){await cancel();return}
 else return;
 render();if(p!==st)window.scrollTo(0,0)});
-(async()=>{try{const[s,h,b]=await Promise.all([get("services?select=id,name,price,is_cut&active=eq.true&order=sort"),get("business_hours?select=*"),get("barbers?select=id,name&active=eq.true&order=id&limit=1")]);SV=s;q=s.map(()=>0);h.forEach(x=>H[x.weekday]=x);if(b[0])BR=b[0];st=1}catch(e){msg="Não foi possível carregar. Tente novamente em instantes."}render()})();
+(async()=>{try{const[s,h,b]=await Promise.all([get("services?select=id,name,price,is_cut&active=eq.true&order=sort"),get("business_hour_periods?select=id,start_date,end_date,active,schedule&active=eq.true&order=start_date.desc"),get("barbers?select=id,name&active=eq.true&order=id&limit=1")]);SV=s;q=s.map(()=>0);H=h;try{const old=await get("business_hours?select=*");old.forEach(x=>LEGACY[x.weekday]=x)}catch(_){}if(b[0])BR=b[0];st=1}catch(e){msg="Não foi possível carregar. Tente novamente em instantes."}render()})();
 </script></body></html>
