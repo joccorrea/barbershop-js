@@ -8,7 +8,7 @@
 <link rel="manifest" href="/barbershop-js/manifest.json">
 <link rel="apple-touch-icon" href="/barbershop-js/logo.jpg">
 <title>Barber Shop JS · Administração</title>
-<meta name="app-version" content="gestao-admin-2026-10-26-r10">
+<meta name="app-version" content="gestao-admin-2026-11-05-r11">
 <style>
 :root{--bg:#faf8f5;--card:#fff;--tx:#1d1b19;--mu:#6b655e;--ac:#b4562a;--bd:#e4ded6;--danger:#c0392b;--green:#269b54;color-scheme:light}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
@@ -108,7 +108,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #2378d42a;border-color
 
 
 /* Agenda em duas colunas: horários à esquerda e conteúdo à direita. */
-.agenda-grid{display:grid;grid-template-columns:72px minmax(0,1fr);grid-auto-rows:50px;column-gap:8px;row-gap:5px;margin:10px 0 24px;align-items:stretch;grid-auto-flow:row}
+.agenda-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.agenda-slot-setting{width:100%;justify-content:flex-end}.agenda-slot-setting select{min-width:90px;max-width:130px;padding:9px;border:1px solid var(--bd);border-radius:9px;background:var(--card);color:var(--tx)}.agenda-grid{display:grid;grid-template-columns:72px minmax(0,1fr);grid-auto-rows:calc(50px * var(--agenda-step,1));column-gap:8px;row-gap:5px;margin:10px 0 24px;align-items:stretch;grid-auto-flow:row}
 .agenda-time-cell{grid-column:1;grid-row:auto;display:flex;align-items:center;justify-content:center;border:1px solid var(--bd);border-radius:13px;background:var(--card);color:#3f83df;font-weight:800;font-size:15px;min-width:0}
 .agenda-time-cell.outside{opacity:.55}.agenda-time-cell.lunch{opacity:.65}
 .agenda-slot{grid-column:2;grid-row:auto;width:100%;min-width:0;height:100%;min-height:0;margin:0;padding:8px 10px;border-radius:13px;background:var(--card);border-color:var(--bd);box-shadow:0 3px 12px #00000008}
@@ -215,7 +215,42 @@ input:focus,select:focus,textarea:focus{outline:2px solid #2378d42a;border-color
  .hours-day-card{padding:16px!important}
  .hours-grid{grid-template-columns:minmax(0,1fr)}
 }
+
 @media(min-width:521px){.hours-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Editor de horários: ações com ícones e gravação fixa na base */
+.period-actions{gap:16px}
+.period-actions button{display:grid;place-items:center;width:42px;height:42px;padding:6px;color:#222}
+.period-actions button svg{width:27px;height:27px;display:block}
+.period-actions .delete{color:#ed5555}
+.period-interval{grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr) 42px 42px}
+.period-interval button{display:grid;place-items:center;width:40px;height:44px;padding:4px;color:var(--ac)}
+.period-interval button svg{width:26px;height:26px}
+.period-editor-page{padding-bottom:110px}
+.period-savebar{position:fixed;z-index:80;right:18px;bottom:calc(16px + env(safe-area-inset-bottom,0px));margin:0}
+.period-savebar .btn{min-width:170px;min-height:64px;border-radius:40px!important;font-size:17px;letter-spacing:2px}
+.period-copy{display:grid;place-items:center}
+.period-copy svg{width:27px;height:27px}
+.period-copy-modal{position:fixed;inset:0;z-index:2000;background:#0008;display:flex;align-items:center;justify-content:center;padding:18px}
+.period-copy-panel{width:min(100%,560px);max-height:90dvh;overflow:auto;background:#fff;color:#222;border-radius:22px;padding:22px;box-shadow:0 20px 60px #0004}
+.period-copy-panel h2{font-size:23px;margin:0;display:flex;align-items:center;gap:12px}
+.period-copy-panel .copy-days{display:grid;gap:0;margin:18px 0}
+.period-copy-panel .copy-day{display:flex;align-items:center;gap:18px;padding:16px 4px;border-bottom:1px solid #eee;font-size:18px}
+.period-copy-panel .copy-day input{width:23px;height:23px;accent-color:#5630b4}
+.period-copy-panel .copy-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.period-copy-panel button{min-height:52px;border-radius:10px}
+.period-copy-panel .copy-close{border:1px solid #bbb;background:#fff;color:#5933b5}
+.period-copy-panel .copy-apply{border:0;background:#5933b5;color:#fff}
+.period-time-modal{position:fixed;inset:0;z-index:2000;background:#0008;display:flex;align-items:center;justify-content:center;padding:18px}
+.period-time-panel{width:min(100%,420px);background:#fff;color:#222;border-radius:20px;padding:22px}
+.period-time-panel input{width:100%;padding:12px;border:1px solid #ccc;border-radius:10px;font-size:18px}
+.slot-setting{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
+.slot-setting .field{flex:1;min-width:150px}
+.slot-setting .btn{min-height:44px}
+.agenda-slot-setting{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.agenda-slot-setting select{max-width:150px}
+.agenda-savebar{position:sticky;bottom:8px;z-index:30;display:flex;justify-content:flex-end;padding:8px 0;pointer-events:none}
+.agenda-savebar .btn{pointer-events:auto;box-shadow:0 5px 16px #0002}
+@media(max-width:420px){.period-interval{grid-template-columns:minmax(0,1fr) 16px minmax(0,1fr) 34px 34px;padding:9px 5px;gap:3px}.period-interval button{width:32px}.period-savebar{right:14px}.period-savebar .btn{min-width:150px;min-height:58px}}
 
 </style>
 </head>
@@ -245,7 +280,7 @@ const key=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+Stri
 const fm=n=>"R$ "+Number(n||0).toFixed(2).replace(".",",");
 const DW=["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
 const MONTH=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-let session=null,page="agenda",day=new Date(),month=new Date(),bookings=[],hours=null,dayRanges=[],hourPeriods=[],editingPeriodId=null,periodDraft=null,clients=[],services=[],products=[],barbers=[],blocks=[],notice="",confirmCancel=null,editClientPhone=null,editServiceId=null,editProductId=null;
+let session=null,page="agenda",day=new Date(),month=new Date(),bookings=[],hours=null,dayRanges=[],hourPeriods=[],editingPeriodId=null,periodDraft=null,slotStep=30,slotStepDraft=30,clients=[],services=[],products=[],barbers=[],blocks=[],notice="",confirmCancel=null,editClientPhone=null,editServiceId=null,editProductId=null;
 try{session=JSON.parse(localStorage.getItem("bsjs_admin_session")||"null")}catch(e){}
 function saveSession(){session?localStorage.setItem("bsjs_admin_session",JSON.stringify(session)):localStorage.removeItem("bsjs_admin_session")}
 async function auth(body,grant="password"){let r=await fetch(SB+"/auth/v1/token?grant_type="+grant,{method:"POST",headers:{apikey:KEY,"Content-Type":"application/json"},body:JSON.stringify(body)});let j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.msg||j.message||j.error_description||"Falha no login");session={access_token:j.access_token,refresh_token:j.refresh_token};saveSession()}
@@ -264,45 +299,52 @@ function loginView(){app.innerHTML=`<div class="card" id="login-card"><div class
 function showError(e){notice=e?.message||"Ocorreu um erro.";renderNotice("error")}
 function getLocalBookingStatuses(){try{return JSON.parse(localStorage.getItem("barberShopJSBookingStatuses")||"{}")}catch(_){return {}}}
 function setLocalBookingStatus(id,status){const all=getLocalBookingStatuses();all[String(id)]=status;localStorage.setItem("barberShopJSBookingStatuses",JSON.stringify(all))}
-async function loadAgenda(){const date=key(day),wd=day.getDay();try{[bookings,hourPeriods,blocks]=await Promise.all([api(`bookings?select=*&date=eq.${date}&status=not.in.(cancelled,cancelado,canceled)&order=start_min`),api("business_hour_periods?select=id,start_date,end_date,active,schedule&active=eq.true"),api(`blocked_slots?select=*&date=eq.${date}&order=start_min`)]);const selected=hourPeriods.filter(p=>p.start_date<=date&&(!p.end_date||p.end_date>=date)).sort((a,b)=>b.start_date.localeCompare(a.start_date)||b.id-a.id)[0];if(selected){dayRanges=normalizeSchedule(selected.schedule)[wd];hours=dayRanges.length?[{open_min:Math.min(...dayRanges.map(x=>x.start_min)),close_min:Math.max(...dayRanges.map(x=>x.end_min)),lunch_start:null,lunch_end:null}]:[]}else{hours=await api(`business_hours?select=*&weekday=eq.${wd}`);const h=hours?.[0];dayRanges=h&&h.open_min!=null?(h.lunch_start!=null&&h.lunch_end!=null?[{start_min:h.open_min,end_min:h.lunch_start},{start_min:h.lunch_end,end_min:h.close_min}]:[{start_min:h.open_min,end_min:h.close_min}]):[]}const localStatuses=getLocalBookingStatuses();bookings=bookings.map(b=>localStatuses[String(b.id)]?{...b,status:localStatuses[String(b.id)]}:b);renderAgenda()}catch(e){shell("Agenda",`<p class="error">${esc(e.message)}</p><button class="btn" id="retry">Tentar novamente</button>`)}}
-function renderAgenda(){let cfg=hours?.[0];let nav=`<div class="card agenda-toolbar"><button class="agenda-arrow" data-day="-1" aria-label="Dia anterior">‹</button><div class="agenda-date">${DW[day.getDay()]}, ${day.toLocaleDateString("pt-BR")}</div><button class="agenda-arrow" data-day="1" aria-label="Próximo dia">›</button><button class="btn agenda-mini" id="toggle-goto">Ir para data</button><button class="btn agenda-mini" id="today">Hoje</button></div><div class="goto-panel" id="goto-panel"><div class="field"><label>Escolha a data</label><input type="date" id="goto-date" value="${key(day)}"></div><button class="btn primary agenda-mini" id="goto">Ir</button></div>`;
-if(!cfg||cfg.open_min==null){shell("Agenda",nav+`<p class="notice">Estabelecimento fechado ou horário não configurado para este dia.</p>`);return}
-let n=0;const open=Number(cfg.open_min),close=Number(cfg.close_min),ls=Number(cfg.lunch_start),le=Number(cfg.lunch_end);
-const earliest=bookings.length?Math.min(...bookings.map(x=>Number(x.start_min)||0)):open;
-const latest=bookings.length?Math.max(...bookings.map(x=>Number(x.end_min)||0)):close;
-const agendaStart=Math.max(0,Math.floor(Math.min(open-60,earliest)/30)*30);
-const agendaEnd=Math.min(1440,Math.ceil(Math.max(close+60,latest)/30)*30);
-const times=[],right=[]; const renderedBookings=[];
-for(let m=agendaStart;m<agendaEnd;m+=30){
- const row=times.length+1;
- const b=bookings.find(x=>Number(x.start_min)===m);
- const occupying=bookings.find(x=>Number(x.start_min)<m&&Number(x.end_min)>m);
- const block=blocks.find(x=>Number(x.start_min)<=m&&Number(x.end_min)>m);
- const inRange=dayRanges.some(r=>m>=Number(r.start_min)&&m<Number(r.end_min));
- const lunch=!inRange&&m>=open&&m<close;
- const slotClass=!inRange?"outside":"";
- times.push(`<div class="agenda-time-cell ${slotClass}" style="grid-row:${row};grid-column:1"><b>${hm(m)}</b></div>`);
- if(b){
+async function loadAgenda(){const date=key(day),wd=day.getDay();try{[bookings,hourPeriods,blocks]=await Promise.all([api(`bookings?select=*&date=eq.${date}&status=not.in.(cancelled,cancelado,canceled)&order=start_min`),api("business_hour_periods?select=id,start_date,end_date,active,schedule&active=eq.true"),api(`blocked_slots?select=*&date=eq.${date}&order=start_min`)]);
+const setting=(await api("business_hour_settings?select=slot_step_minutes&id=eq.true"))[0];slotStep=Number(setting?.slot_step_minutes||30);slotStepDraft=slotStep;const selected=hourPeriods.filter(p=>p.start_date<=date&&(!p.end_date||p.end_date>=date)).sort((a,b)=>b.start_date.localeCompare(a.start_date)||b.id-a.id)[0];if(selected){dayRanges=normalizeSchedule(selected.schedule)[wd];hours=dayRanges.length?[{open_min:Math.min(...dayRanges.map(x=>x.start_min)),close_min:Math.max(...dayRanges.map(x=>x.end_min)),lunch_start:null,lunch_end:null}]:[]}else{hours=await api(`business_hours?select=*&weekday=eq.${wd}`);const h=hours?.[0];dayRanges=h&&h.open_min!=null?(h.lunch_start!=null&&h.lunch_end!=null?[{start_min:h.open_min,end_min:h.lunch_start},{start_min:h.lunch_end,end_min:h.close_min}]:[{start_min:h.open_min,end_min:h.close_min}]):[]}const localStatuses=getLocalBookingStatuses();bookings=bookings.map(b=>localStatuses[String(b.id)]?{...b,status:localStatuses[String(b.id)]}:b);renderAgenda()}catch(e){shell("Agenda",`<p class="error">${esc(e.message)}</p><button class="btn" id="retry">Tentar novamente</button>`)}}
+function renderAgenda(){
+ let cfg=hours?.[0];
+ let nav=`<div class="card agenda-toolbar"><button class="agenda-arrow" data-day="-1" aria-label="Dia anterior">‹</button><div class="agenda-date">${DW[day.getDay()]}, ${day.toLocaleDateString("pt-BR")}</div><button class="agenda-arrow" data-day="1" aria-label="Próximo dia">›</button><button class="btn agenda-mini" id="toggle-goto">Ir para data</button><button class="btn agenda-mini" id="today">Hoje</button><div class="agenda-slot-setting"><label class="muted" for="agenda-slot-step">Intervalo</label><select id="agenda-slot-step"><option value="15" ${slotStep===15?"selected":""}>15 min</option><option value="30" ${slotStep===30?"selected":""}>30 min</option><option value="45" ${slotStep===45?"selected":""}>45 min</option><option value="60" ${slotStep===60?"selected":""}>1 hora</option><option value="custom" ${![15,30,45,60].includes(slotStep)?"selected":""}>Outro valor</option></select><input id="agenda-slot-custom" type="number" min="5" max="180" step="1" value="${![15,30,45,60].includes(slotStep)?slotStep:15}" style="width:76px;${![15,30,45,60].includes(slotStep)?"":"display:none"}"><button class="btn primary agenda-mini" id="save-agenda-slot">Gravar</button></div></div><div class="goto-panel" id="goto-panel"><div class="field"><label>Escolha a data</label><input type="date" id="goto-date" value="${key(day)}"></div><button class="btn primary agenda-mini" id="goto">Ir</button></div>`;
+ if(!cfg||cfg.open_min==null){shell("Agenda",nav+`<p class="notice">Estabelecimento fechado ou horário não configurado para este dia.</p>`);return}
+ const step=Math.max(5,Number(slotStep)||30);
+ let n=0;
+ const gridSet=new Set();
+ dayRanges.forEach(r=>{
+  const a=Number(r.start_min),z=Number(r.end_min);
+  for(let m=a;m<z;m+=step)gridSet.add(m);
+  if(dayRanges.length>1)gridSet.add(z);
+ });
+ bookings.forEach(b=>gridSet.add(Number(b.start_min)));
+ blocks.forEach(b=>gridSet.add(Number(b.start_min)));
+ const gridTimes=[...gridSet].filter(Number.isFinite).sort((a,b)=>a-b);
+ const times=[],right=[],renderedBookings=[];
+ for(let i=0;i<gridTimes.length;i++){
+  const m=gridTimes[i],row=i+1;
+  const b=bookings.find(x=>Number(x.start_min)===m);
+  const occupying=bookings.find(x=>Number(x.start_min)<m&&Number(x.end_min)>m);
+  const block=blocks.find(x=>Number(x.start_min)<=m&&Number(x.end_min)>m);
+  const inRange=dayRanges.some(r=>m>=Number(r.start_min)&&m<Number(r.end_min));
+  const lunch=!inRange&&dayRanges.length>1&&m>=Math.min(...dayRanges.map(x=>x.end_min))&&m<Math.max(...dayRanges.map(x=>x.start_min));
+  const slotClass=!inRange?"outside":"";
+  times.push(`<div class="agenda-time-cell ${slotClass}" style="grid-row:${row};grid-column:1"><b>${hm(m)}</b></div>`);
+  if(b){
    n++;
-   const start=Number(b.start_min), end=Number(b.end_min);
+   const start=Number(b.start_min),end=Number(b.end_min);
    const overlapping=renderedBookings.filter(x=>start<Number(x.end_min)&&end>Number(x.start_min));
    const lane=overlapping.length;
-   const durationSlots=Math.max(1,Math.ceil((end-start)/30));
+   const durationSlots=Math.max(1,gridTimes.filter(t=>t>=start&&t<end).length);
    renderedBookings.push(b);
    right.push(`<button class="card appointment-card agenda-appointment ${appointmentCardStatus(b.status)}" data-open-booking="${esc(b.id)}" style="grid-column:2;grid-row:${row} / span ${durationSlots};width:calc(100% - ${lane*54}px);margin-left:${lane*54}px;z-index:${10+lane}"><div class="agenda-appt-main"><b class="agenda-client">${esc(b.client_name)}</b></div><span class="agenda-chevron">›</span></button>`);
- }else if(occupying){
-   // O horário permanece visível na coluna esquerda; o espaço da direita fica
-   // vazio porque o cartão do agendamento já ocupa esse intervalo.
- }else if(block){
+  }else if(occupying){
+  }else if(block){
    right.push(`<button class="btn slot agenda-slot blocked" data-open-block="${esc(block.id)}" style="grid-column:2;grid-row:${row}"><span class="desc">Bloqueado${block.reason?" · "+esc(block.reason):""}</span><span class="pill">Opções</span></button>`);
- }else if(lunch){
+  }else if(lunch){
    right.push(`<button class="btn slot agenda-slot lunch" data-slot="${m}" style="grid-column:2;grid-row:${row}"><span class="desc">Intervalo de almoço</span></button>`);
- }else{
+  }else{
    right.push(`<button class="btn slot agenda-slot ${slotClass}" data-slot="${m}" aria-label="Agendar ou bloquear às ${hm(m)}" style="grid-column:2;grid-row:${row}"></button>`);
+  }
  }
-}
-const out=`<div class="agenda-grid">${times.join("")}${right.join("")}</div><button class="agenda-fab" id="agenda-new-booking" aria-label="Novo agendamento" title="Novo agendamento">＋</button>`;
-shell("Agenda",nav+`<div class="muted agenda-summary">${n} agendamento(s) · ${fm(bookings.reduce((sum,x)=>sum+Number(x.total||0),0))}</div>`+out+`<div class="muted">Toque em um horário para agendar ou bloquear.</div>`);
+ const out=`<div class="agenda-grid" style="--agenda-step:${step/30}">${times.join("")}${right.join("")}</div><button class="agenda-fab" id="agenda-new-booking" aria-label="Novo agendamento" title="Novo agendamento">＋</button>`;
+ shell("Agenda",nav+`<div class="muted agenda-summary">${n} agendamento(s) · ${fm(bookings.reduce((sum,x)=>sum+Number(x.total||0),0))}</div>`+out+`<div class="muted">Toque em um horário para agendar ou bloquear.</div>`);
 }
 async function loadClients(){try{clients=await api("clients?select=*&order=name");shell("Clientes",`<div class="row between"><span class="muted">${clients.length} cadastro(s)</span><button class="btn primary" id="new-client">＋ Adicionar novo cliente</button></div><input id="client-search" placeholder="Buscar por nome ou telefone"><div id="client-list">${clientList(clients)}</div>`)}catch(e){shell("Clientes",`<p class="error">${esc(e.message)}</p>`)}}
 function clientList(list){return list.map(c=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(c.name)}</b><div class="muted">${esc(c.nickname||"")} ${c.phone?"· "+esc(c.phone):""}</div><div class="muted">${c.birth_date?"Nascimento: "+esc(c.birth_date):""}</div></div><button class="btn small" data-edit-client="${esc(c.phone)}">Editar</button></div><div class="actions"><a class="btn small" href="https://wa.me/${esc(String(c.phone||"").replace(/\D/g,""))}" target="_blank" rel="noopener">WhatsApp</a><button class="btn small" data-history="${esc(c.phone)}">Agendamentos</button></div></div>`).join("")||`<p class="muted">Nenhum cliente cadastrado.</p>`}
@@ -332,47 +374,97 @@ function fmtPeriodDate(s){if(!s)return "Sem data final";const [y,m,d]=s.split("-
 function normalizeSchedule(s){const out={};for(let d=0;d<7;d++){const arr=Array.isArray(s?.[String(d)])?s[String(d)]:[];out[d]=arr.map(x=>({start_min:Number(x.start_min),end_min:Number(x.end_min)})).filter(x=>Number.isFinite(x.start_min)&&Number.isFinite(x.end_min)&&x.end_min>x.start_min)}return out}
 async function loadHours(){
  try{
-  hourPeriods=await api("business_hour_periods?select=*&order=start_date.desc,id.desc");
+  [hourPeriods]=await Promise.all([api("business_hour_periods?select=*&order=start_date.desc,id.desc")]);
+  const setting=(await api("business_hour_settings?select=slot_step_minutes&id=eq.true"))[0];slotStep=Number(setting?.slot_step_minutes||30);slotStepDraft=slotStep;
   const rows=hourPeriods.map(p=>{
    const schedule=normalizeSchedule(p.schedule);
    const details=PERIOD_DAYS.map((day,d)=>{const ranges=schedule[d];return `<div class="period-day"><span class="period-day-name">${day}</span><span class="period-day-times">${ranges.length?ranges.map(x=>`${hm(x.start_min)} – ${hm(x.end_min)}`).join("<br>"):"Sem atendimento"}</span></div>`}).join("");
-   return `<article class="period-card"><div class="period-head"><span style="font-size:22px;color:var(--mu)">▣</span><div class="period-date">${fmtPeriodDate(p.start_date)}${p.end_date?" – "+fmtPeriodDate(p.end_date):" em diante"}</div><span class="pill ${p.active?"success":""}">${p.active?"Ativo":"Inativo"}</span><div class="period-actions"><button type="button" title="Duplicar período" data-duplicate-period="${p.id}">▢</button><button type="button" title="Editar período" data-edit-period="${p.id}">✎</button><button type="button" class="delete" title="Excluir período" data-delete-period="${p.id}">▣</button></div></div><div class="period-details"><div class="muted" style="margin-bottom:8px">Horários</div>${details}</div></article>`;
+   return `<article class="period-card"><div class="period-head"><span style="font-size:22px;color:var(--mu)">▣</span><div class="period-date">${fmtPeriodDate(p.start_date)}${p.end_date?" – "+fmtPeriodDate(p.end_date):" em diante"}</div><span class="pill ${p.active?"success":""}">${p.active?"Ativo":"Inativo"}</span><div class="period-actions"><button type="button" title="Duplicar período" aria-label="Duplicar período" data-duplicate-period="${p.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="13" height="15" rx="1"/><path d="M5 7v14h13"/></svg></button><button type="button" title="Editar período" aria-label="Editar período" data-edit-period="${p.id}"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.8 9.95l-3.75-3.75L3 17.25zM20.7 7.05a1 1 0 0 0 0-1.4l-2.35-2.35a1 1 0 0 0-1.4 0l-1.8 1.8 3.75 3.75 1.8-1.8z"/></svg></button><button type="button" class="delete" title="Excluir período" aria-label="Excluir período" data-delete-period="${p.id}"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 7h12l-1 14H7L6 7zm2-4h8l1 2h4v2H3V5h4l1-2z"/></svg></button></div></div><div class="period-details"><div class="muted" style="margin-bottom:8px">Horários</div>${details}</div></article>`;
   }).join("");
   shell("Horários",`<div class="settings-back-row"><button type="button" class="btn" id="settings-back">← Configurações</button></div>
-   <h3>Configuração de exibição de horários</h3><div class="card"><div class="field"><label>Intervalo entre horários disponíveis</label><select id="period-slot-step"><option value="30" selected>30 minutos</option><option value="15">15 minutos</option><option value="60">60 minutos</option></select></div></div>
+   <h3>Configuração de exibição de horários</h3><div class="card"><div class="slot-setting"><div class="field"><label for="period-slot-step">Intervalo entre horários disponíveis</label><select id="period-slot-step"><option value="15" ${slotStep===15?"selected":""}>15 minutos</option><option value="30" ${slotStep===30?"selected":""}>30 minutos</option><option value="45" ${slotStep===45?"selected":""}>45 minutos</option><option value="60" ${slotStep===60?"selected":""}>1 hora</option><option value="custom" ${![15,30,45,60].includes(slotStep)?"selected":""}>Outro valor</option></select></div><div class="field" id="period-slot-custom-wrap" style="${![15,30,45,60].includes(slotStep)?"":"display:none"}"><label for="period-slot-custom">Outro valor (minutos)</label><input id="period-slot-custom" type="number" min="5" max="180" step="1" value="${![15,30,45,60].includes(slotStep)?slotStep:15}"></div><button type="button" class="btn primary" id="save-period-slot">Gravar</button></div></div>
    <div class="period-toolbar"><h2 style="margin:0">Horários</h2><button type="button" class="btn primary" id="new-period">＋ Novo período</button></div>
    ${rows||'<div class="card muted">Nenhum período cadastrado.</div>'}`);
   $("#settings-back").onclick=()=>navigate("settings");
+  const stepSelect=$("#period-slot-step"),customWrap=$("#period-slot-custom-wrap");
+  stepSelect.onchange=()=>{customWrap.style.display=stepSelect.value==="custom"?"block":"none"};
+  $("#save-period-slot").onclick=async()=>{const v=stepSelect.value==="custom"?Number($("#period-slot-custom").value):Number(stepSelect.value);if(!Number.isInteger(v)||v<5||v>180){alert("Informe um intervalo entre 5 e 180 minutos.");return}try{await api("business_hour_settings?id=eq.true",{method:"PATCH",body:JSON.stringify({slot_step_minutes:v,updated_at:new Date().toISOString()})});slotStep=v;setNotice("Intervalo de exibição salvo.","success");await loadHours()}catch(e){alert("Não foi possível gravar: "+e.message)}};
   $("#new-period").onclick=()=>openPeriodEditor(null);
   $("#app").querySelectorAll("[data-edit-period]").forEach(b=>b.onclick=()=>openPeriodEditor(Number(b.dataset.editPeriod)));
   $("#app").querySelectorAll("[data-duplicate-period]").forEach(b=>b.onclick=()=>openPeriodEditor(Number(b.dataset.duplicatePeriod),true));
   $("#app").querySelectorAll("[data-delete-period]").forEach(b=>b.onclick=async()=>{const id=Number(b.dataset.deletePeriod);if(!confirm("Excluir este período de funcionamento?"))return;try{await api(`business_hour_periods?id=eq.${id}`,{method:"DELETE"});await loadHours()}catch(e){alert("Não foi possível excluir: "+e.message)}});
  }catch(e){shell("Horários",`<div class="settings-back-row"><button type="button" class="btn" id="settings-back">← Configurações</button></div><p class="error">${esc(e.message)}</p>`);$("#settings-back").onclick=()=>navigate("settings")}
 }
+
+function syncPeriodDraftFromInputs(){
+ if(!periodDraft)return;
+ for(let d=0;d<7;d++){
+  const host=$("#period-ranges-"+d);if(!host)continue;
+  const inputs=[...host.querySelectorAll("input[data-range-part]")],ranges=[];
+  for(let i=0;i<inputs.length;i+=2){
+   const a=inputs[i]?.value,b=inputs[i+1]?.value;if(!a||!b)continue;
+   const [ah,am]=a.split(":").map(Number),[bh,bm]=b.split(":").map(Number);
+   ranges.push({start_min:ah*60+am,end_min:bh*60+bm});
+  }
+  periodDraft.schedule[d]=ranges;
+ }
+}
+function openCopyDayModal(sourceDay){
+ const names=PERIOD_DAYS;
+ const modal=document.createElement("div");modal.className="period-copy-modal";modal.id="period-copy-modal";
+ modal.innerHTML=`<section class="period-copy-panel" role="dialog" aria-modal="true" aria-labelledby="copy-period-title">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 id="copy-period-title"><span style="color:#5933b5">▢</span> Copiar horário</h2><button type="button" class="btn" id="copy-period-x" aria-label="Fechar" style="font-size:28px;border:0">×</button></div>
+  <p style="font-size:18px">Copiar horários de <b>${names[sourceDay]}</b> para:</p>
+  <div class="copy-days"><label class="copy-day"><input type="checkbox" id="copy-select-all"> Selecionar todos</label>
+  ${names.map((n,d)=>`<label class="copy-day" style="${d===sourceDay?"color:#aaa":""}"><input type="checkbox" class="copy-target-day" value="${d}" ${d===sourceDay?"disabled":""}><span style="color:${d===sourceDay?"#aaa":"#5933b5"}">▢</span>${n}</label>`).join("")}</div>
+  <div class="copy-actions"><button type="button" class="copy-close" id="copy-period-cancel">Cancelar</button><button type="button" class="copy-apply" id="copy-period-apply" disabled>Continuar</button></div>
+ </section>`;
+ document.body.appendChild(modal);
+ const close=()=>modal.remove(),all=$("#copy-select-all",modal),checks=[...modal.querySelectorAll(".copy-target-day")],apply=$("#copy-period-apply",modal);
+ const refresh=()=>{const count=checks.filter(x=>x.checked).length;apply.disabled=!count;all.checked=count===checks.length;all.indeterminate=count>0&&count<checks.length};
+ all.onchange=()=>{checks.forEach(x=>x.checked=all.checked);refresh()};
+ checks.forEach(x=>x.onchange=refresh);
+ $("#copy-period-x",modal).onclick=close;$("#copy-period-cancel",modal).onclick=close;
+ apply.onclick=()=>{syncPeriodDraftFromInputs();checks.filter(x=>x.checked).forEach(x=>periodDraft.schedule[Number(x.value)]=periodDraft.schedule[sourceDay].map(r=>({...r})));close();drawPeriodEditor()};
+ modal.addEventListener("click",e=>{if(e.target===modal)close()});
+}
+function openRangeTimeModal(dayIndex,rangeIndex){
+ syncPeriodDraftFromInputs();
+ const current=periodDraft.schedule[dayIndex][rangeIndex];if(!current)return;
+ const modal=document.createElement("div");modal.className="period-time-modal";
+ modal.innerHTML=`<section class="period-time-panel" role="dialog" aria-modal="true"><h2 style="margin-top:0">Alterar horário</h2><div class="field"><label>Início</label><input id="range-time-start" type="time" value="${hm(current.start_min)}"></div><div class="field"><label>Fim</label><input id="range-time-end" type="time" value="${hm(current.end_min)}"></div><div class="copy-actions" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px"><button class="copy-close" id="range-time-cancel">Cancelar</button><button class="copy-apply" id="range-time-save">Gravar</button></div></section>`;
+ document.body.appendChild(modal);const close=()=>modal.remove();
+ $("#range-time-cancel",modal).onclick=close;
+ $("#range-time-save",modal).onclick=()=>{const a=$("#range-time-start",modal).value,b=$("#range-time-end",modal).value;if(!a||!b){alert("Preencha o início e o fim.");return}const [ah,am]=a.split(":").map(Number),[bh,bm]=b.split(":").map(Number),start=ah*60+am,end=bh*60+bm;if(end<=start){alert("O horário final precisa ser depois do inicial.");return}const arr=periodDraft.schedule[dayIndex];if(arr.some((r,i)=>i!==rangeIndex&&start<r.end_min&&end>r.start_min)){alert("Esse horário se sobrepõe a outro período do dia.");return}arr[rangeIndex]={start_min:start,end_min:end};close();drawPeriodEditor()};
+ modal.addEventListener("click",e=>{if(e.target===modal)close()});
+}
+let drawPeriodEditor=()=>{};
 function openPeriodEditor(id,duplicate=false){
  const old=hourPeriods.find(x=>Number(x.id)===Number(id));
  const p=old?JSON.parse(JSON.stringify(old)):{start_date:new Date().toISOString().slice(0,10),end_date:null,active:true,schedule:{}};
  if(duplicate){p.id=null;p.start_date=p.end_date?new Date(new Date(p.end_date+"T12:00:00").getTime()+86400000).toISOString().slice(0,10):new Date().toISOString().slice(0,10);p.end_date=null}
  editingPeriodId=duplicate?null:(p.id||null);
  periodDraft={...p,schedule:normalizeSchedule(p.schedule)};
- const draw=()=>{
-  const days=PERIOD_DAYS.map((name,d)=>`<section class="period-edit-card"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><b>${name}</b><button type="button" class="period-copy" title="Copiar horários deste dia para os demais" data-copy-day="${d}">▢</button></div><div id="period-ranges-${d}">${periodDraft.schedule[d].map((r,i)=>`<div class="period-interval"><div class="field"><label>Início</label><input type="time" data-range-day="${d}" data-range-index="${i}" data-range-part="start_min" value="${hm(r.start_min)}"></div><span class="arrow">➜</span><div class="field"><label>Fim</label><input type="time" data-range-day="${d}" data-range-index="${i}" data-range-part="end_min" value="${hm(r.end_min)}"></div><button type="button" title="Remover horário" data-remove-range="${d}" data-range-index="${i}" style="color:#e05252">▢</button><span></span></div>`).join("")}</div><button type="button" class="period-add" data-add-range="${d}">＋ Adicionar horário</button></section>`).join("");
-  shell("Horário de atendimento",`<div class="settings-back-row"><button type="button" class="btn" id="period-back">← Voltar</button></div>
+ const draw=drawPeriodEditor=()=>{
+  const days=PERIOD_DAYS.map((name,d)=>`<section class="period-edit-card"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><b>${name}</b><button type="button" class="period-copy" title="Copiar horários deste dia" aria-label="Copiar horários" data-copy-day="${d}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="13" height="15" rx="1"/><path d="M5 7v14h13"/></svg></button></div><div id="period-ranges-${d}">${periodDraft.schedule[d].map((r,i)=>`<div class="period-interval"><div class="field"><label>Início</label><input type="time" data-range-day="${d}" data-range-index="${i}" data-range-part="start_min" value="${hm(r.start_min)}"></div><span class="arrow">➜</span><div class="field"><label>Fim</label><input type="time" data-range-day="${d}" data-range-index="${i}" data-range-part="end_min" value="${hm(r.end_min)}"></div><button type="button" title="Alterar horário" aria-label="Alterar horário" data-edit-range="${d}" data-range-index="${i}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button><button type="button" title="Excluir horário" aria-label="Excluir horário" data-remove-range="${d}" data-range-index="${i}" style="color:#ed5555"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 7h12l-1 14H7L6 7zm2-4h8l1 2h4v2H3V5h4l1-2z"/></svg></button></div>`).join("")}</div><button type="button" class="period-add" data-add-range="${d}">＋ Adicionar horário</button></section>`).join("");
+  shell("Horário de atendimento",`<div class="period-editor-page"><div class="settings-back-row"><button type="button" class="btn" id="period-back">← Voltar</button></div>
    <div class="card"><h3 style="margin-top:0">Período</h3><div class="period-range"><div class="field"><label>Data inicial</label><input type="date" id="period-start" value="${periodDraft.start_date||""}" required></div><div class="field"><label>Data final</label><input type="date" id="period-end" value="${periodDraft.end_date||""}"><button type="button" class="lnk" id="clear-period-end">Limpar data final</button></div></div></div>
-   ${days}<div class="period-savebar"><button type="button" class="btn primary" id="save-period">▣ &nbsp; Gravar</button></div>`);
+   ${days}<div class="period-savebar"><button type="button" class="btn primary" id="save-period">▣ &nbsp; Gravar</button></div></div>`);
   $("#period-back").onclick=()=>loadHours();
   $("#clear-period-end").onclick=()=>{$("#period-end").value=""};
-  $("#app").querySelectorAll("[data-add-range]").forEach(b=>b.onclick=()=>{const d=Number(b.dataset.addRange);const arr=periodDraft.schedule[d];let start=arr.length?arr[arr.length-1].end_min:540;let end=Math.min(1440,start+240);if(start>=1440){alert("Não há espaço para adicionar outro horário.");return}arr.push({start_min:start,end_min:end});draw()});
-  $("#app").querySelectorAll("[data-remove-range]").forEach(b=>b.onclick=()=>{const d=Number(b.dataset.removeRange),i=Number(b.dataset.rangeIndex);periodDraft.schedule[d].splice(i,1);draw()});
-  $("#app").querySelectorAll("[data-copy-day]").forEach(b=>b.onclick=()=>{const d=Number(b.dataset.copyDay);if(!confirm(`Copiar os horários de ${PERIOD_DAYS[d]} para todos os outros dias?`))return;for(let k=0;k<7;k++)if(k!==d)periodDraft.schedule[k]=periodDraft.schedule[d].map(x=>({...x}));draw()});
+  $("#app").querySelectorAll("[data-add-range]").forEach(b=>b.onclick=()=>{syncPeriodDraftFromInputs();const d=Number(b.dataset.addRange);const arr=periodDraft.schedule[d];let start=arr.length?arr[arr.length-1].end_min:540;let end=Math.min(1440,start+240);if(start>=1440){alert("Não há espaço para adicionar outro horário.");return}arr.push({start_min:start,end_min:end});drawPeriodEditor()});
+  $("#app").querySelectorAll("[data-remove-range]").forEach(b=>b.onclick=()=>{syncPeriodDraftFromInputs();const d=Number(b.dataset.removeRange),i=Number(b.dataset.rangeIndex);periodDraft.schedule[d].splice(i,1);drawPeriodEditor()});
+  $("#app").querySelectorAll("[data-copy-day]").forEach(b=>b.onclick=()=>openCopyDayModal(Number(b.dataset.copyDay)));
+  $("#app").querySelectorAll("[data-edit-range]").forEach(b=>b.onclick=()=>openRangeTimeModal(Number(b.dataset.editRange),Number(b.dataset.rangeIndex)));
   $("#save-period").onclick=savePeriod;
  };
- draw();
+ drawPeriodEditor();
 }
 async function savePeriod(){
  const start=$("#period-start").value,end=$("#period-end").value;
  if(!start){alert("Informe a data inicial.");return}
  if(end&&end<start){alert("A data final não pode ser anterior à inicial.");return}
+ syncPeriodDraftFromInputs();
  const schedule={};
  for(let d=0;d<7;d++){
   const inputs=[...$("#period-ranges-"+d).querySelectorAll("input[data-range-part]")];
@@ -524,6 +616,7 @@ if(b.dataset.day){day=new Date(day.getFullYear(),day.getMonth(),day.getDate()+Nu
 if(b.id==="toggle-goto"){$("#goto-panel")?.classList.toggle("open");return}
 if(b.id==="goto"){if(val("goto-date"))day=new Date(val("goto-date")+"T12:00:00");await loadAgenda();return}
 if(b.id==="today"){day=new Date();await loadAgenda();return}
+if(b.id==="save-agenda-slot"){const sel=$("#agenda-slot-step"),v=sel?.value==="custom"?Number($("#agenda-slot-custom")?.value):Number(sel?.value);if(!Number.isInteger(v)||v<5||v>180)throw Error("Informe um intervalo entre 5 e 180 minutos.");await api("business_hour_settings?id=eq.true",{method:"PATCH",body:JSON.stringify({slot_step_minutes:v,updated_at:new Date().toISOString()})});slotStep=v;slotStepDraft=v;await loadAgenda();setNotice("Intervalo da agenda salvo.","success");return}
 if(b.dataset.openBooking){await showBookingDetail(b.dataset.openBooking);return}
 if(b.dataset.openBlock){const block=blocks.find(x=>String(x.id)===String(b.dataset.openBlock));if(block)await showBlockSheet(block);return}
 if(b.id==="agenda-new-booking"){await openBooking(null);return}
@@ -552,6 +645,7 @@ if(b.id==="month-next"){month=new Date(month.getFullYear(),month.getMonth()+1,1)
 }catch(err){let n=$("#notice");if(n)n.innerHTML=`<div class="notice error">${esc(err.message)}</div>`;else shell("Erro",`<p class="error">${esc(err.message)}</p>`)}
 });
 app.addEventListener("change",e=>{
+ if(e.target.id==="agenda-slot-step"){const c=$("#agenda-slot-custom");if(c)c.style.display=e.target.value==="custom"?"inline-block":"none"}
  if(e.target.matches("[data-service]")&&bookingDraft){
   const id=e.target.dataset.service;
   const svc=bookingDraft.catalog.find(x=>String(x.id)===String(id));
