@@ -688,7 +688,6 @@ async function showBookingDetail(id){
   $("#detail-edit")?.addEventListener("click",()=>{close();openBooking(Number(b.start_min),"book",b)});
   const finishAction=async(status,message,confirmText)=>{
    if(confirmText&&!confirm(confirmText))return;
-   const waWindow=window.open("about:blank","_blank");
    try{
     await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status})});
     const waMessage=status==="confirmed"
@@ -697,9 +696,9 @@ async function showBookingDetail(id){
     const waUrl="https://wa.me/"+phone+"?text="+encodeURIComponent(waMessage);
     close();
     await loadAgenda();
-    if(phone){if(waWindow)waWindow.location.href=waUrl;else alert("Status atualizado. Abra o WhatsApp para enviar a mensagem ao cliente.");}
-    else {if(waWindow)waWindow.close();alert("Status atualizado, mas o cadastro não possui número de WhatsApp.");}
-   }catch(err){if(waWindow)waWindow.close();alert("Não foi possível atualizar o agendamento: "+err.message)}
+    if(phone){window.location.href=waUrl;}
+    else {alert("Status atualizado, mas o cadastro não possui número de WhatsApp.");}
+   }catch(err){alert("Não foi possível atualizar o agendamento: "+err.message)}
   };
   if(isPending){
    $("#detail-confirm").onclick=()=>finishAction("confirmed","Seu agendamento está CONFIRMADO!",null);
