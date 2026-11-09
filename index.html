@@ -81,7 +81,7 @@ if(n.length<2||p.length<10){er(ER.dados_invalidos);return}
 if(bv&&!bd){er(ER.precisa_nascimento);return}
 $("#n3").disabled=true;
 try{const r=await rpc("create_booking",{p_name:n,p_phone:p,p_birth:bv&&bd?bd:null,p_date:key(date),p_start:time,p_items:SV.map((s,i)=>({id:s.id,qty:q[i]})).filter(x=>x.qty)});
-if(r.ok){res=r;st=4;render();window.scrollTo(0,0);return}
+if(r.ok){if(r.id){fetch("https://esuvgaijkahzoctyyawe.supabase.co/functions/v1/booking-push",{method:"POST",headers:{apikey:KEY,"Content-Type":"application/json"},body:JSON.stringify({action:"notify_booking",booking_id:r.id})}).catch(()=>{})}res=r;st=4;render();window.scrollTo(0,0);return}
 if(r.error=="horario_ocupado"||r.error=="horario_invalido"){st=2;time=null;msg=ER[r.error];render();loadBusy();return}
 if(r.error=="precisa_nascimento")$("#bw").style.display="block";
 er(ER[r.error]||"Não foi possível agendar.")}catch(e){er("Erro de conexão. Tente de novo.")}
