@@ -255,6 +255,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #2378d42a;border-color
 .agenda-savebar .btn{pointer-events:auto;box-shadow:0 5px 16px #0002}
 @media(max-width:420px){.period-interval{grid-template-columns:minmax(0,1fr) 16px minmax(0,1fr) 34px 34px;padding:9px 5px;gap:3px}.period-interval button{width:32px}.period-savebar{right:14px}.period-savebar .btn{min-width:150px;min-height:58px}}
 
+.management-pushbar{display:flex;justify-content:flex-end;margin:0 0 8px}.management-pushbar .btn{border-radius:999px;padding:8px 13px;font-size:13px}.booking-review-card{padding:20px}.booking-review-card h2{font-size:23px;margin:14px 0}.booking-review-card p{margin:10px 0}.review-actions{display:grid;gap:10px;margin-top:22px}.review-actions .btn{width:100%;min-height:50px}.review-actions .danger{background:#d94343!important;color:#fff!important;border-color:#d94343!important}
 </style>
 </head>
 <body><main>
@@ -290,7 +291,63 @@ async function auth(body,grant="password"){let r=await fetch(SB+"/auth/v1/token?
 async function api(path,opts={}){if(!session?.access_token)throw Error("Faça login novamente.");let headers={apikey:KEY,Authorization:"Bearer "+session.access_token,"Content-Type":"application/json",Prefer:"return=representation",...(opts.headers||{})};let r=await fetch(SB+"/rest/v1/"+path,{...opts,headers});if(r.status===401&&session.refresh_token){try{await auth({refresh_token:session.refresh_token},"refresh_token")}catch(e){session=null;saveSession();throw Error("Sessão expirada. Entre novamente.")}headers.Authorization="Bearer "+session.access_token;r=await fetch(SB+"/rest/v1/"+path,{...opts,headers})}let text=await r.text();if(!r.ok)throw Error(text||("Erro "+r.status));return text?JSON.parse(text):null}
 function setNotice(s="",kind=""){notice=s;renderNotice(kind)}
 function renderNotice(kind=""){let n=$("#notice");if(n)n.innerHTML=notice?`<div class="notice ${kind}">${esc(notice)}</div>`:""}
-function shell(title,content){app.innerHTML=`<div class="section-title">${title}</div><div id="notice"></div>${content}`;renderNotice()}
+function shell(title,content){app.innerHTML=`<div class="management-pushbar"><button type="button" class="btn" id="push-enable">🔔 Ativar notificações</button></div><div class="section-title">${title}</div><div id="notice"></div>${content}`;renderNotice();refreshPushButton()}
+const PUSH_PUBLIC_KEY="BJdDRDbZ52N0ps678L_pgbVyqdr6TVEH1CgiDJ14UHS0VNGiA4RF4Myac7WzQ9l4OUC_Qd2ETEz5WrE705Z9gfQ";
+const PUSH_FUNCTION="https://esuvgaijkahzoctyyawe.supabase.co/functions/v1/booking-push";
+function b64urlBytes(value){const pad="=".repeat((4-value.length%4)%4);const raw=atob((value+pad).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(raw,c=>c.charCodeAt(0))}
+async function refreshPushButton(){
+ const b=$("#push-enable");if(!b)return;
+ if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)){b.textContent="Notificações não suportadas";b.disabled=true;return}
+ const reg=await navigator.serviceWorker.getRegistration("/barbershop-js/").catch(()=>null);
+ const sub=reg?await reg.pushManager.getSubscription():null;
+ b.textContent=sub&&Notification.permission==="granted"?"🔔 Notificações ativadas":"🔔 Ativar notificações";
+}
+async function enablePushNotifications(){
+ if(!session?.access_token)throw Error("Entre na gestão para ativar as notificações.");
+ if(!("serviceWorker" in navigator)||!("PushManager" in window))throw Error("Este navegador não oferece suporte a notificações push.");
+ const permission=await Notification.requestPermission();
+ if(permission!=="granted")throw Error("Permissão de notificações não concedida. Ative nas configurações do iPhone.");
+ const reg=await navigator.serviceWorker.register("/barbershop-js/sw.js",{scope:"/barbershop-js/"});
+ await navigator.serviceWorker.ready;
+ let sub=await reg.pushManager.getSubscription();
+ if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64urlBytes(PUSH_PUBLIC_KEY)});
+ const response=await fetch(PUSH_FUNCTION,{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+session.access_token,"Content-Type":"application/json"},body:JSON.stringify({action:"subscribe",subscription:sub.toJSON()})});
+ const result=await response.json().catch(()=>({}));
+ if(!response.ok||!result.ok)throw Error(result.error||"Não foi possível registrar este aparelho.");
+ refreshPushButton();alert("Notificações ativadas neste aparelho! Você receberá avisos de novos agendamentos.");
+}
+async function showBookingReview(id){
+ try{
+  const rows=await api(`bookings?select=*&id=eq.${encodeURIComponent(id)}&limit=1`);
+  const b=rows[0];if(!b){shell("Agendamento não encontrado",`<button class="btn" id="review-back">Voltar à agenda</button>`);return}
+  const services=(b.services||[]).map(x=>`${esc(x.name)} × ${Number(x.qty||1)}`).join("<br>");
+  const date=new Date(b.date+"T12:00:00").toLocaleDateString("pt-BR");
+  const time=hm(b.start_min),end=hm(b.end_min);
+  const phone=String(b.client_phone||"").replace(/\D/g,"");
+  const msg=`Olá, ${b.client_name}! Seu agendamento na Barber Shop JS está confirmado para ${date} às ${time}. Serviços: ${(b.services||[]).map(x=>x.name+" x"+(x.qty||1)).join(", ")}. Valor: ${fm(b.total)}. Aguardamos você!`;
+  shell("Detalhes do agendamento",`<div class="card booking-review-card"><span class="pill ${b.status==="pending"?"pending":""}">${statusPortuguese(b.status)}</span><h2>${esc(b.client_name)}</h2><p><b>WhatsApp:</b> ${esc(b.client_phone)}</p><p><b>Data:</b> ${date}</p><p><b>Horário:</b> ${time} às ${end}</p><p><b>Serviços:</b><br>${services}</p><p><b>Valor:</b> ${fm(b.total)}</p><div class="row review-actions"><button class="btn primary" id="review-confirm" data-id="${esc(b.id)}">Confirmar agendamento</button><button class="btn danger" id="review-cancel" data-id="${esc(b.id)}">Cancelar agendamento</button></div></div><button class="btn" id="review-back">Voltar à agenda</button>`);
+  $("#review-confirm").onclick=async()=>{
+   const waWindow=window.open("about:blank","_blank");
+   try{
+    await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"confirmed"})});
+    day=new Date(b.date+"T12:00:00");history.replaceState({},"","/barbershop-js/gestao.html");
+    const url="https://wa.me/"+phone+"?text="+encodeURIComponent(msg);
+    if(waWindow)waWindow.location.href=url;else alert("Agendamento confirmado. Abra o WhatsApp para enviar a confirmação ao cliente.");
+    await loadAgenda();
+   }catch(err){if(waWindow)waWindow.close();alert("Não foi possível confirmar: "+err.message)}
+  };
+  $("#review-cancel").onclick=async()=>{
+   if(!confirm("Deseja realmente cancelar este agendamento?"))return;
+   await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});
+   day=new Date(b.date+"T12:00:00");history.replaceState({},"","/barbershop-js/gestao.html");await loadAgenda();
+  };
+  $("#review-back").onclick=async()=>{history.replaceState({},"","/barbershop-js/gestao.html");await loadAgenda()};
+ }catch(e){shell("Não foi possível abrir o agendamento",`<p class="error">${esc(e.message)}</p><button class="btn" id="review-back">Voltar</button>`);$("#review-back").onclick=()=>loadAgenda()}
+}
+document.addEventListener("click",async e=>{
+ const push=e.target.closest("#push-enable");if(push){try{push.disabled=true;await enablePushNotifications()}catch(err){alert(err.message)}finally{push.disabled=false;refreshPushButton()}}
+});
+
 function field(label,name,value="",type="text",extra=""){return `<div class="field"><label for="${name}">${label}</label><input id="${name}" name="${name}" type="${type}" value="${esc(value)}" ${extra}></div>`}
 function area(label,name,value=""){return `<div class="field"><label for="${name}">${label}</label><textarea id="${name}" name="${name}">${esc(value)}</textarea></div>`}
 function val(id){return $("#"+id)?.value??""}
@@ -556,7 +613,7 @@ function openProfessionalForm(id){
 function mins(id){let v=val(id);if(!v)return null;let [h,m]=v.split(":").map(Number);return h*60+m}
 $("#app").addEventListener("submit",async e=>{if(e.target.id!=="hours-form")return;e.preventDefault();try{for(const x of hours){let wd=x.weekday,o=mins("o-"+wd),c=mins("c-"+wd),ls=mins("ls-"+wd),le=mins("le-"+wd);if((o==null)!=(c==null))throw Error("Informe abertura e fechamento ou deixe ambos vazios.");if(o!=null&&c<=o)throw Error("Fechamento deve ser depois da abertura: "+DW[wd]);await api(`business_hours?weekday=eq.${wd}`,{method:"PATCH",body:JSON.stringify({open_min:o,close_min:c,lunch_start:ls,lunch_end:le})})}await loadHours();notice="Horários atualizados.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}});
 async function loadBirthdays(){try{clients=await api("clients?select=name,phone,birth_date&birth_date=not.is.null");let list=clients.filter(c=>c.birth_date&&Number(c.birth_date.split("-")[1])===month.getMonth()+1).sort((a,b)=>Number(a.birth_date.split("-")[2])-Number(b.birth_date.split("-")[2]));shell("Aniversários",`<div class="row between"><button class="btn" id="month-prev">‹</button><b>${MONTH[month.getMonth()]} ${month.getFullYear()}</b><button class="btn" id="month-next">›</button></div>`+(list.map(c=>{let d=c.birth_date.split("-")[2],first=c.name.split(" ")[0],text=`Feliz aniversário, ${first}! 🎂 A Barber Shop JS deseja um dia incrível pra você.`;return `<div class="card"><b>${d}/${String(month.getMonth()+1).padStart(2,"0")} · ${esc(c.name)}</b><div class="muted">${esc(c.phone)}</div><div class="actions"><a class="btn small" target="_blank" rel="noopener" href="https://wa.me/${esc(c.phone)}?text=${encodeURIComponent(text)}">Enviar parabéns</a></div></div>`}).join("")||`<p class="muted">Nenhum aniversariante neste mês.</p>`))}catch(e){shell("Aniversários",`<p class="error">${esc(e.message)}</p>`)}}
-function renderLoginOrPage(){if(!session){loginView();return}currentUserUI();navigate(page)}
+function renderLoginOrPage(){if(!session){loginView();return}currentUserUI();const pendingReview=new URLSearchParams(location.search).get("booking");if(pendingReview){showBookingReview(pendingReview);return}navigate(page)}
 function serviceDurationMinutes(service){
  const name=String(service?.name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
  const thirtyMinuteServices=new Set(["corte simples","degrade na zero","degrade navalhado","degrade na shaver","undercut feminino","corte feminino"]);
@@ -953,7 +1010,7 @@ document.addEventListener("click",e=>{
   }
 },true);
 
-if(session)renderLoginOrPage();else loginView();
+if(session){const pendingReview=new URLSearchParams(location.search).get("booking");if(pendingReview)showBookingReview(pendingReview);else renderLoginOrPage()}else loginView();
 </script>
 <style>
 /* v22: corrigir status Finalizado vindo do banco e deixar ações superiores sem borda */
