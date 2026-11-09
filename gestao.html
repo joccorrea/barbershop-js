@@ -316,6 +316,12 @@ async function enablePushNotifications(){
  if(!response.ok||!result.ok)throw Error(result.error||"Não foi possível registrar este aparelho.");
  refreshPushButton();alert("Notificações ativadas neste aparelho! Você receberá avisos de novos agendamentos.");
 }
+function whatsappBrazilNumber(value){
+ let digits=String(value||"").replace(/\D/g,"");
+ if(!digits)return "";
+ digits=digits.replace(/^0+/,"");
+ return digits.startsWith("55")?digits:"55"+digits;
+}
 async function showBookingReview(id){
  try{
   const rows=await api(`bookings?select=*&id=eq.${encodeURIComponent(id)}&limit=1`);
@@ -323,7 +329,7 @@ async function showBookingReview(id){
   const services=(b.services||[]).map(x=>`${esc(x.name)} × ${Number(x.qty||1)}`).join("<br>");
   const date=new Date(b.date+"T12:00:00").toLocaleDateString("pt-BR");
   const time=hm(b.start_min),end=hm(b.end_min);
-  const phone=String(b.client_phone||"").replace(/\D/g,"");
+  const phone=whatsappBrazilNumber(b.client_phone);
   const msg=`Olá, ${b.client_name}! Seu agendamento na Barber Shop JS está confirmado para ${date} às ${time}. Serviços: ${(b.services||[]).map(x=>x.name+" x"+(x.qty||1)).join(", ")}. Valor: ${fm(b.total)}. Aguardamos você!`;
   shell("Detalhes do agendamento",`<div class="card booking-review-card"><span class="pill ${b.status==="pending"?"pending":""}">${statusPortuguese(b.status)}</span><h2>${esc(b.client_name)}</h2><p><b>WhatsApp:</b> ${esc(b.client_phone)}</p><p><b>Data:</b> ${date}</p><p><b>Horário:</b> ${time} às ${end}</p><p><b>Serviços:</b><br>${services}</p><p><b>Valor:</b> ${fm(b.total)}</p><div class="row review-actions"><button class="btn primary" id="review-confirm" data-id="${esc(b.id)}">Confirmar agendamento</button><button class="btn danger" id="review-cancel" data-id="${esc(b.id)}">Cancelar agendamento</button></div></div><button class="btn" id="review-back">Voltar à agenda</button>`);
   $("#review-confirm").onclick=async()=>{
@@ -654,7 +660,7 @@ async function showBookingDetail(id){
  try{
   const b=(await api(`bookings?select=*&id=eq.${encodeURIComponent(id)}`))[0];
   if(!b)throw Error("Agendamento não encontrado.");
-  const phone=String(b.client_phone||"").replace(/\D/g,"");
+  const phone=whatsappBrazilNumber(b.client_phone);
   const isPending=normalizedStatus(b.status)==="pending";
   const dateLabel=formatBookingDateBR(b.date);
   const services=(b.services||[]).map(x=>x.name+(x.qty>1?" ×"+x.qty:"")).join(", ");
