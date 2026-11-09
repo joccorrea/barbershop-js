@@ -347,7 +347,7 @@ function renderAgenda(){
   }else if(block){
    right.push(`<button class="btn slot agenda-slot blocked" data-open-block="${esc(block.id)}" style="grid-column:2;grid-row:${row}"><span class="desc">Bloqueado${block.reason?" · "+esc(block.reason):""}</span><span class="pill">Opções</span></button>`);
   }else if(outside){
-   right.push(`<div class="btn slot agenda-slot outside" aria-hidden="true" style="grid-column:2;grid-row:${row}"></div>`);
+   right.push(`<button type="button" class="btn slot agenda-slot outside" data-slot="${m}" aria-label="Agendar manualmente às ${hm(m)} — fora do expediente" title="Agendar manualmente fora do expediente" style="grid-column:2;grid-row:${row}"></button>`);
   }else if(lunch){
    right.push(`<div class="btn slot agenda-slot lunch" aria-hidden="true" style="grid-column:2;grid-row:${row}"><span class="desc">Intervalo de almoço</span></div>`);
   }else{
@@ -846,11 +846,29 @@ async function saveBookingForm(){
  try{
   if(d.start==null||!$("#booking-start")?.value){err.textContent="Escolha o horário de início do agendamento.";err.classList.remove("hidden");$("#booking-start")?.focus();return}
   if(!d.services.length)throw Error("Selecione pelo menos um serviço.");
-  let client=d.clients.find(c=>c.phone===d.selectedPhone);
+  // Confere se o período completo do atendimento cabe em um intervalo de expediente.
+  // Se não couber, o usuário pode confirmar o encaixe ou voltar e alterar o horário.
+  const bookingDate=key(d.date);
+  let allowedRanges=[];
+  const periodsForDate=await api("business_hour_periods?select=start_date,end_date,active,schedule&active=eq.true");
+  const matchingPeriod=periodsForDate
+    .filter(p=>p.start_date<=bookingDate&&(!p.end_date||p.end_date>=bookingDate))
+    .sort((a,b)=>b.start_date.localeCompare(a.start_date))[0];
+  if(matchingPeriod){
+    allowedRanges=normalizeSchedule(matchingPeriod.schedule)[d.date.getDay()]||[];
+  }else{
+    const legacyDay=(await api(`business_hours?select=*&weekday=eq.${d.date.getDay()}`))[0];
+    if(legacyDay&&legacyDay.open_min!=null){
+      allowedRanges=legacyDay.lunch_start!=null&&legacyDay.lunch_end!=null
+        ?[{start_min:Number(legacyDay.open_min),end_min:Number(legacyDay.lunch_start)},{start_min:Number(legacyDay.lunch_end),end_min:Number(legacyDay.close_min)}]
+        :[{start_min:Number(legacyDay.open_min),end_min:Number(legacyDay.close_min)}];
+    }
+  }
+  let client=d.clients.find(c=>c.phone===d.selectedPhone),newClientData=null;
   if(!client&&d.addingClient){
    const name=d.newName.trim(),phone=d.newPhone.replace(/\D/g,'');
    if(!name||phone.length<10)throw Error("Informe nome e telefone com DDD para cadastrar o novo cliente.");
-   await api("clients?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify({phone,name})});client={phone,name};
+   newClientData={phone,name};client={phone,name};
   }
   if(!client)throw Error("Selecione um cliente cadastrado ou toque em + para cadastrar um novo.");
   const duration=Math.max(30,d.services.reduce((a,x)=>a+Math.max(Number(x.duration_min||0),x.is_cut?30*Number(x.qty||1):0),0));
@@ -858,8 +876,16 @@ async function saveBookingForm(){
   const end=Number.isFinite(d.end)&&d.end>d.start?d.end:suggestedEnd;
   if(end<=d.start)throw Error("O horário final precisa ser depois do horário inicial.");
   if(end>1440)throw Error("O atendimento não pode terminar após a meia-noite. Divida o atendimento em outro agendamento.");
+  const insideBusinessHours=allowedRanges.some(r=>d.start>=Number(r.start_min)&&end<=Number(r.end_min));
+  if(!insideBusinessHours){
+    const confirmed=confirm("O horário de agendamento está fora do expediente.\n\nDeseja confirmar esse agendamento mesmo assim?\n\nOK: continuar e salvar.\nCancelar: voltar ao formulário para alterar o horário.");
+    if(!confirmed)return;
+  }
   const conflicts=bookings.filter(b=>String(b.id)!==String(d.editingId)&&Number(b.start_min)<end&&Number(b.end_min)>d.start);if(conflicts.length){const aceitaConflito=confirm("Atenção: este horário entra em conflito com outro agendamento ("+conflicts.map(b=>b.client_name+" às "+hm(b.start_min)).join(", ")+"). Deseja realizar mesmo assim?");if(!aceitaConflito)return;}
   if(blocks.some(b=>Number(b.start_min)<end&&Number(b.end_min)>d.start))throw Error("Esse horário está bloqueado.");
+  if(newClientData){
+    await api("clients?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify(newClientData)});
+  }
   const barber=d.barbers[0];if(!barber)throw Error("Cadastre um profissional ativo.");
   const total=d.services.reduce((a,x)=>a+Number(x.price||0)*Number(x.qty||1),0);
   const payload={barber_id:barber.id,date:key(d.date),start_min:d.start,end_min:end,client_name:client.name,client_phone:client.phone,services:d.services.map(x=>({id:x.id,name:x.name,qty:Number(x.qty||1),price:Number(x.price||0)})),total,status:d.existingStatus||"confirmed"};if(d.editingId)await api(`bookings?id=eq.${encodeURIComponent(d.editingId)}`,{method:"PATCH",body:JSON.stringify(payload)});else await api("bookings",{method:"POST",body:JSON.stringify(payload)});
