@@ -346,6 +346,13 @@ button.cb-pill{cursor:pointer;font-family:inherit}
 .pay-inclrow{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px dashed #F0C070;color:#5a3a00}.pay-inclrow span{flex:1;min-width:0}.pay-inclrow small{display:block;font-size:12px;color:#7A4300}.pay-inclrow input{width:22px;height:22px;accent-color:#E08A00}
 .pay-body{padding-bottom:120px!important}
 .pay-edit-banner{background:#EAF4FF;border:1px solid #9CC7F0;color:#1F4B75;border-radius:12px;padding:9px 12px;font-size:13.5px;font-weight:700;margin-bottom:10px}
+.cpk{background:#fff;border:1px solid #CFE0F3;border-radius:16px;padding:11px 13px;margin:0 0 8px;box-shadow:0 4px 14px rgba(30,70,140,.08)}
+.cpk.wait{opacity:.65}
+.cpk-h{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.cpk-h b{font-size:15px}.cpk-h small{color:#5B7A99;font-size:12px;text-align:right}
+.cpk-i{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.cpk-i span{background:#EAF3FF;border:1px solid #CFE0F3;border-radius:999px;padding:3px 10px;font-size:13px;color:#1F4E86}
+.cpk-i span.z{opacity:.5;text-decoration:line-through}
 .pay-addprod{width:100%;height:46px;border:1.5px dashed #6FA8DC;background:#F3F9FF;color:#2f6fb0;border-radius:14px;font-weight:800;font-size:15px;margin-top:4px}
 .pay-money{margin-left:auto;width:auto!important;min-width:0;padding:0 4px 0 8px!important;background:transparent!important;border:0!important}
 .pay-money input{width:96px!important;flex:none;text-align:right!important;background:#F3F9FF!important;border:1px solid #C4DFF8!important;border-radius:10px!important;padding:0 10px!important;height:42px!important}
@@ -657,11 +664,12 @@ const setSub=(go,key)=>{window.__subBack={go,key}};
 let clientFromAgenda=false;
 const backFromClient=()=>clientBackTo?showClientCard(clientBackTo):loadClients();
 async function editClient(phone=null){editClientPhone=phone;let c=clients.find(x=>x.phone===phone)||{name:"",phone:"",nickname:"",birth_date:""},profile={};if(phone){try{profile=(await api(`client_profiles?select=*&phone=eq.${encodeURIComponent(phone)}`))[0]||{}}catch(e){profile={}}}let history=[];if(phone){try{history=await api(`bookings?select=id,date,start_min,end_min,status,services,total,client_name,client_phone&client_phone=eq.${encodeURIComponent(phone)}&order=date.desc`)}catch(e){}}
-shell(phone?"Editar cliente":"Novo cliente",`<div class="subnav"><button type="button" class="btn small on" data-formtab="cadastro">Cadastro</button><button type="button" class="btn small" data-formtab="endereco">Endereço</button><button type="button" class="btn small" data-formtab="fotos">Fotos</button><button type="button" class="btn small" data-formtab="historico">Agenda</button></div><form id="client-form"><div id="client-form-body"><div class="grid">${field("Nome completo","c-name",c.name)}${field("Telefone/WhatsApp","c-phone",c.phone,"tel",phone?"readonly":"")}${field("Apelido","c-nickname",c.nickname||"")}${field("Data de nascimento","c-birth",c.birth_date||"","date")}</div></div><div class="form-actions cf-actions">${phone?`<button class="cf-del" type="button" id="delete-client" aria-label="Excluir cliente" title="Excluir cliente"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></button>`:""}<button class="btn primary cf-save" type="submit">Salvar cliente</button></div><p class="muted cf-note">Fotos: use links públicos de imagens (upload direto ainda não disponível).</p></form>`);
+shell(phone?"Editar cliente":"Novo cliente",`<div class="subnav"><button type="button" class="btn small on" data-formtab="cadastro">Cadastro</button><button type="button" class="btn small" data-formtab="endereco">Endereço</button><button type="button" class="btn small" data-formtab="fotos">Fotos</button><button type="button" class="btn small" data-formtab="historico">Agenda</button>${phone?`<button type="button" class="btn small" data-formtab="pacotes">Pacotes</button>`:""}</div><form id="client-form"><div id="client-form-body"><div class="grid">${field("Nome completo","c-name",c.name)}${field("Telefone/WhatsApp","c-phone",c.phone,"tel",phone?"readonly":"")}${field("Apelido","c-nickname",c.nickname||"")}${field("Data de nascimento","c-birth",c.birth_date||"","date")}</div></div><div class="form-actions cf-actions">${phone?`<button class="cf-del" type="button" id="delete-client" aria-label="Excluir cliente" title="Excluir cliente"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></button>`:""}<button class="btn primary cf-save" type="submit">Salvar cliente</button></div><p class="muted cf-note">Fotos: use links públicos de imagens (upload direto ainda não disponível).</p></form>`);
 setSub(backFromClient,clientBackTo?"card":"clients");
 let formtab="cadastro";const draw=()=>{app.querySelectorAll("[data-formtab]").forEach(x=>x.classList.toggle("on",x.dataset.formtab===formtab));const body=$("#client-form-body");if(formtab==="cadastro")body.innerHTML=`<div class="grid">${field("Nome completo","c-name",c.name)}${field("Telefone/WhatsApp","c-phone",c.phone,"tel",phone?"readonly":"")}${field("Apelido","c-nickname",c.nickname||"")}${field("Data de nascimento","c-birth",c.birth_date||"","date")}</div>`;
 if(formtab==="endereco")body.innerHTML=`<div class="grid">${field("Rua","p-street",profile.street)}${field("Número","p-number",profile.number)}${field("Complemento","p-complement",profile.complement)}${field("Bairro","p-neighborhood",profile.neighborhood)}${field("Cidade","p-city",profile.city)}${field("Estado","p-state",profile.state)}${field("CEP","p-postal",profile.postal_code)}</div>${area("Observações","p-notes",profile.notes)}`;
 if(formtab==="fotos")body.innerHTML=`${area("URLs das fotos (uma por linha)","p-photos",(profile.photos||[]).join("\n"))}<p class="muted">Use links públicos de imagens. As URLs serão guardadas no cadastro.</p>`;
+if(formtab==="pacotes"){body.innerHTML=`<div class="muted">Carregando…</div>`;clientPkgsHtml(phone).then(h=>{if(formtab==="pacotes")body.innerHTML=h})}
 if(formtab==="historico")body.innerHTML=history.filter(notCancelled).length?histRows(history.filter(notCancelled)):`<p class="muted">Nenhum agendamento encontrado.</p>`};
 draw();$("#client-form").onsubmit=async e=>{e.preventDefault();try{let ph=String(val("c-phone")||c.phone||"").replace(/\D/g,""),name=String(val("c-name")||c.name||"").trim();if(name.length<2||ph.length<10)throw Error("Informe nome e telefone com DDD.");let bd=val("c-birth")||c.birth_date||null;await api("clients?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify({phone:ph,name,nickname:val("c-nickname")||c.nickname||"",birth_date:bd})});let prof={phone:ph,street:val("p-street")||profile.street||"",number:val("p-number")||profile.number||"",complement:val("p-complement")||profile.complement||"",neighborhood:val("p-neighborhood")||profile.neighborhood||"",city:val("p-city")||profile.city||"",state:val("p-state")||profile.state||"",postal_code:val("p-postal")||profile.postal_code||"",notes:val("p-notes")||profile.notes||"",photos:(val("p-photos")?val("p-photos").split("\n").map(s=>s.trim()).filter(Boolean):(profile.photos||[])),updated_at:new Date().toISOString()};await api("client_profiles?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify(prof)});if(clientBackTo){await showClientCard(clientBackTo)}else await loadClients();notice="Cliente salvo com sucesso.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};
 app.querySelectorAll("[data-formtab]").forEach(b=>b.onclick=()=>{formtab=b.dataset.formtab;draw()});const deleteButton=$("#delete-client");if(deleteButton)deleteButton.onclick=async()=>{if(!phone)return;if(!confirm(`Tem certeza que deseja excluir o cliente ${c.name||phone}? Os agendamentos antigos serão mantidos no histórico.`))return;deleteButton.disabled=true;try{await api(`client_profiles?phone=eq.${encodeURIComponent(phone)}`,{method:"DELETE"});await api(`clients?phone=eq.${encodeURIComponent(phone)}`,{method:"DELETE"});await loadClients();notice="Cliente excluído com sucesso.";renderNotice("success")}catch(err){deleteButton.disabled=false;const n=$("#notice");if(n)n.innerHTML=`<div class="notice error">Não foi possível excluir o cliente: ${esc(err.message)}</div>`}}}
@@ -767,6 +775,31 @@ async function mergeClientDialog(c){
   m.addEventListener("click",e=>{if(e.target===m)m.remove()});
   stepPick();
 }
+async function fetchClientPkgs(phone,excludeId){
+ const enc=encodeURIComponent(phone);
+ const cps=await api(`client_packages?select=*&client_phone=eq.${enc}&status=eq.active`);
+ let its=[];if(cps.length)its=await api(`client_package_services?select=*&client_package_id=in.(${cps.map(p=>p.id).join(",")})`);
+ const bks=await api(`bookings?select=id,services,status&client_phone=eq.${enc}&status=in.(pending,confirmed,completed)`);
+ const pb=bks.filter(b=>String(b.id)!==String(excludeId)&&(b.services||[]).some(x=>x&&x.pkg));
+ let reds=[];if(pb.length)reds=await api(`client_package_redemptions?select=booking_id&booking_id=in.(${pb.map(b=>b.id).join(",")})`);
+ const done=new Set(reds.map(r=>String(r.booking_id))),reserved={};
+ pb.filter(b=>!done.has(String(b.id))).forEach(b=>b.services.forEach(x=>{if(x&&x.pkg){const k=x.pkg+"|"+x.id;reserved[k]=(reserved[k]||0)+Number(x.pkgQty||0)}}));
+ return cps.filter(p=>(!p.expires_at||new Date(p.expires_at)>new Date())&&!pkgBlockedG(p,cps)).map(p=>({id:p.id,name:p.package_name,expires_at:p.expires_at,items:its.filter(i=>i.client_package_id===p.id).map(i=>({service_id:i.service_id,name:i.service_name,rem:Math.max(0,Number(i.quantity_remaining)-(reserved[p.id+"|"+i.service_id]||0))}))})).filter(p=>p.items.some(i=>i.rem>0)).sort((a,b)=>String(a.expires_at||"9").localeCompare(String(b.expires_at||"9"))||a.id-b.id);
+}
+async function clientPkgsHtml(phone){
+ try{
+  const enc=encodeURIComponent(phone);
+  const cps=await api(`client_packages?select=*&client_phone=eq.${enc}&order=purchased_at.desc,id.desc`);
+  if(!cps.length)return `<div class="muted">Nenhum pacote comprado.</div>`;
+  const its=await api(`client_package_services?select=*&client_package_id=in.(${cps.map(p=>p.id).join(",")})`);
+  const now=new Date(),act=cps.filter(p=>p.status==="active");
+  const live=act.filter(p=>!p.expires_at||new Date(p.expires_at)>now),old=cps.length-live.length;
+  const card=p=>{const mine=its.filter(i=>i.client_package_id===p.id).sort((a,b)=>String(a.service_name).localeCompare(String(b.service_name),"pt"));const wait=pkgBlockedG(p,act);
+   const val=p.expires_at?"até "+pkgDateBR(p.expires_at):(p.validity_start_mode==="first_use"?"validade a partir do 1º uso":"sem validade");
+   return `<div class="cpk${wait?" wait":""}"><div class="cpk-h"><b>${esc(p.package_name)}</b><small>${wait?"em espera (sequência)":esc(val)}</small></div><div class="cpk-i">${mine.map(i=>`<span class="${Number(i.quantity_remaining)<=0?"z":""}">${esc(i.service_name)} ${Number(i.quantity_remaining)}/${Number(i.quantity_purchased)}</span>`).join("")}</div></div>`};
+  return (live.length?live.map(card).join(""):`<div class="muted">Nenhum pacote ativo.</div>`)+(old?`<div class="muted" style="margin-top:4px">${old} pacote(s) já utilizado(s) ou vencido(s).</div>`:"");
+ }catch(e){return `<div class="muted">Pacotes indisponíveis.</div>`}
+}
 async function showClientCard(phone){
   try{
     let c=(await api(`clients?select=*&phone=eq.${encodeURIComponent(phone)}`))[0]||clients.find(x=>String(x.phone)===String(phone))||{name:"Cliente",phone};
@@ -780,12 +813,14 @@ async function showClientCard(phone){
     <div class="cc-badge ${badge.cls}"><b>${badge.t}</b><span>${badge.s}</span></div>
     ${owed>0?`<div class="cc-badge owe"><b>💰 Valor a receber: ${fm(owed)}</b><span>${owing.map(o=>fmtB(o.b)+" — "+fm(o.v)).join("<br>")}</span></div>`:""}
     <div class="cc-credit"><div><small>Crédito disponível</small><b>${fm(creditSum)}</b></div><div class="cc-btns"><button type="button" class="btn small" id="cc-sell-credit">＋ Crédito</button><button type="button" class="btn small" id="cc-sell-pkg">＋ Pacote</button></div></div>
+    <h3 class="cc-h">Pacotes</h3><div id="cc-pkgs"><div class="muted">Carregando…</div></div>
     <div class="cc-stats"><div><b>${attended.length}</b><span>Atendimentos</span></div><div><b>${noshows.length}</b><span>Faltas</span></div><div><b>${fm(spent)}</b><span>Total pago</span></div></div>
     <h3 class="cc-h">Agendados${scheduled.length?` <small>(${scheduled.length})</small>`:""}</h3><div class="hlist">${histRows(scheduled,{group:false})||`<div class="muted">Nenhum agendamento marcado.</div>`}</div>
     ${noshows.length?`<h3 class="cc-h">Não compareceu</h3><div class="hlist">${histRows(noshows,{group:false})}</div>`:""}
     <h3 class="cc-h">Últimos atendimentos${cancelledN?` <small>(${cancelledN} cancelado(s) não contam)</small>`:""}</h3><div class="hlist">${histRows(attended.slice(0,5),{group:false})||`<div class="muted">Nenhum atendimento concluído ainda.</div>`}</div>`);
     if(clientFromAgenda){$("#back-clients").remove();const tt=app.querySelector(".section-title");tt.style.cssText="display:flex;align-items:center;justify-content:space-between";tt.insertAdjacentHTML("beforeend",'<button type="button" class="cc-x" id="cc-x" aria-label="Fechar">✕</button>');$("#cc-x").onclick=()=>navigate("agenda");setSub(()=>navigate("agenda"),"agenda")}else{$("#back-clients").onclick=loadClients;setSub(loadClients,"clients")}window.__snaps.card=app.innerHTML;softIn();
     $("#cc-merge").onclick=()=>mergeClientDialog(c);$("#cc-sell-credit").onclick=()=>sellCreditDialog(c,()=>showClientCard(phone));$("#cc-sell-pkg").onclick=()=>sellPackageDialog(c,()=>showClientCard(phone));
+    clientPkgsHtml(phone).then(h=>{const x=$("#cc-pkgs");if(x){x.innerHTML=h;window.__snaps.card=app.innerHTML}});
   }catch(e){shell("Cliente",`<p class="error">${esc(e.message)}</p><button class="btn" id="back-clients">← Clientes</button>`);$("#back-clients").onclick=loadClients}
 }
 async function loadServices(){try{services=await api("services?select=*&order=sort");shell("Serviços",`<div class="row between"><span class="muted">${services.length} serviço(s)</span><button class="btn primary" id="new-service" aria-label="Adicionar serviço" title="Adicionar serviço">＋</button></div><div class="svc-list">`+services.map(s=>{const dm=Number(s.duration_min||0)||(s.is_cut?30:0);return `<div class="lrow ${s.active?"":"off"}" data-svc="${s.id}"><div class="lav sq">${ICO.cut}</div><div class="lg"><b>${esc(s.name)}</b><div class="lsub">${fm(s.price)}${dm?" · "+dm+" min":""}${s.active?"":" · Inativo"}</div></div></div>`}).join("")+`</div>`);
@@ -2123,14 +2158,14 @@ async function openPaymentScreen(b,opts={}){
   document.body.appendChild(el);document.body.classList.add("sheet-open");
   const close=()=>{el.remove();document.body.classList.remove("sheet-open")};
   el.querySelector("#pay-back").onclick=close;
-  const total=Math.round(Number(b.total||0)*100)/100;
+  let total=Math.round(Number(b.total||0)*100)/100;
   let ex=null;try{ex=(await api(`finance_booking_closures?select=*&booking_id=eq.${encodeURIComponent(b.id)}`))[0]||null}catch(e){}
   await ensurePM();
   let catalog=[];try{catalog=await api("finance_products?select=*&active=eq.true&order=name")}catch(e){}
   let credits=[];try{if(b.client_phone)credits=await api(`client_credits?select=*&client_phone=eq.${encodeURIComponent(b.client_phone)}&status=eq.available&remaining_amount=gt.0&order=created_at`)}catch(e){}
   let creditAvail=Math.round(credits.reduce((a,c)=>a+Number(c.remaining_amount||0),0)*100)/100;
   let others=[];try{if(b.client_phone){const cs=await clientStats(b.client_phone);others=cs.owing.filter(o=>String(o.b.id)!==String(b.id))}}catch(e){}
-  const pkgSvcs=(Array.isArray(b.services)?b.services:[]).filter(x=>x&&x.pkg&&Number(x.pkgQty)>0);
+  let pkgSvcs=(Array.isArray(b.services)?b.services:[]).filter(x=>x&&x.pkg&&Number(x.pkgQty)>0);
   let pkgRed=[];try{if(pkgSvcs.length)pkgRed=await api(`client_package_redemptions?select=id&booking_id=eq.${encodeURIComponent(b.id)}`)}catch(e){}
   let pkgPending=pkgSvcs.length>0&&!pkgRed.length;
   const incl=new Set();
@@ -2185,6 +2220,7 @@ async function openPaymentScreen(b,opts={}){
     <h3 class="pay-h">Produtos</h3>
     ${prods.length?`<div class="pay-prods">${prods.map((p,i)=>`<div class="pay-prod"><div class="pp-n"><b>${esc(p.name)}</b><span>${fm(p.unit_price)} cada</span></div><div class="pp-q"><button type="button" data-pq="-1" data-i="${i}">−</button><b>${p.quantity}</b><button type="button" data-pq="1" data-i="${i}">+</button></div><div class="pp-t">${fm(p.quantity*p.unit_price)}</div><button type="button" class="pay-x" data-prd="${i}" aria-label="Remover">✕</button></div>`).join("")}</div>`:""}
     <button type="button" class="pay-addprod" id="pay-addprod">＋ Adicionar produto</button>
+    ${b.client_phone&&!ex&&!pkgRed.length&&!already?`<button type="button" data-bb="x" class="pay-addprod" id="pay-sellpkg">🎟️ Vender pacote</button>`:""}
     ${settled&&pt<=0?(pkgPending?`<div class="pay-diff ok" style="margin-top:6px">Serviços cobertos pelo pacote ✓ — é só confirmar para dar baixa.</div>${needsDoneToggle?`<div class="pay-opts"><label class="pay-optrow"><span>Serviço já realizado?<small>${serviceDone?"O agendamento ficará concluído":"Fica marcado como pago, falta atender"}</small></span><input type="checkbox" id="pay-done" ${serviceDone?"checked":""}></label></div>`:""}`:`<div class="pay-diff ok" style="margin-top:6px">Atendimento totalmente pago ✓</div>`):`<h3 class="pay-h">Como foi pago?</h3>
     <div class="pay-grid">${methods.map(m=>`<button type="button" class="pay-tile ${has(m[0])?"on":""} ${m[0]==="credit"?"pay-tile-credit":""}" data-pick="${m[0]}" ${m[0]==="credit"&&creditAvail<=0&&!has("credit")?"disabled":""}><span>${m[2]}</span>${m[1]}${m[0]==="credit"?`<small>Saldo ${fm(creditAvail)}</small>`:""}</button>`).join("")}</div>
     ${parts.length?`<div class="pay-amts">${parts.map((p,i)=>{const mm=methods.find(x=>x[0]===p.method)||[p.method,payName(p.method),"💰"];return `<label class="pay-amt"><span>${mm[2]} ${mm[1]}</span><div class="pay-money"><i>R$</i><input data-pa="${i}" type="text" inputmode="decimal" autocomplete="off" value="${String(p.amount).replace(".",",")}"></div></label>`}).join("")}</div>`:`<p class="pay-hint">Toque na forma de pagamento. Para dividir, toque em mais de uma e informe o valor de cada.</p>`}
@@ -2205,12 +2241,32 @@ async function openPaymentScreen(b,opts={}){
     qa("[data-pq]").forEach(x=>x.onclick=()=>{const p=prods[+x.dataset.i],cat=catalog.find(c=>c.id===p.product_id),nq=p.quantity+Number(x.dataset.pq);if(nq<1)return;if(cat&&nq>Number(cat.stock_quantity)){alert("Estoque insuficiente: restam "+cat.stock_quantity+" unidade(s).");return}p.quantity=nq;resync();draw()});
     qa("[data-prd]").forEach(x=>x.onclick=()=>{prods.splice(+x.dataset.prd,1);resync();draw()});
     q("#pay-addprod").onclick=()=>{pickerOpen=true;draw()};
+    q("#pay-sellpkg")?.addEventListener("click",sellPkgHere);
     q("#pp-close")?.addEventListener("click",()=>{pickerOpen=false;draw()});
     q("#pay-picker")?.addEventListener("click",ev=>{if(ev.target.id==="pay-picker"){pickerOpen=false;draw()}});
     qa("[data-pp]").forEach(x=>x.onclick=()=>{const c=catalog.find(z=>String(z.id)===x.dataset.pp);const f=prods.find(p=>p.product_id===c.id);if(f){if(f.quantity+1>Number(c.stock_quantity)){alert("Estoque insuficiente.");return}f.quantity++}else prods.push({product_id:c.id,name:c.name,quantity:1,unit_price:Number(c.sale_price),unit_cost:Number(c.cost_price||0)});pickerOpen=false;resync();draw()});
     q("#pay-alter")?.addEventListener("click",enterEdit);
     q("#pay-cancel")?.addEventListener("click",()=>showAppConfirm("Tem certeza que deseja cancelar o pagamento já registrado?",async()=>{try{await undoPayment(b.id);if(!needsDoneToggle)await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"completed"})});close();await loadAgenda()}catch(err){alert("Não foi possível cancelar o pagamento: "+err.message)}}));
     q("#pay-ok")?.addEventListener("click",save);
+  };
+  const sellPkgHere=async()=>{
+    let before=new Set();try{before=new Set((await fetchClientPkgs(b.client_phone,b.id)).map(p=>p.id))}catch(e){}
+    await sellPackageDialog({name:b.client_name,phone:b.client_phone},async()=>{
+      try{
+        const list=(await fetchClientPkgs(b.client_phone,b.id)).filter(p=>!before.has(p.id));
+        const svcs=(Array.isArray(b.services)?b.services:[]).map(x=>({...x}));
+        let applied=null;
+        for(const p of list){let val=0;const ns=svcs.map(x=>{if(x.pkg)return x;const it=p.items.find(i=>Number(i.service_id)===Number(x.id));const c=it?Math.min(Number(x.qty||1),it.rem):0;if(c>0){val+=Number(x.price||0)*c;return {...x,pkg:p.id,pkgQty:c}}return x});if(val>0){applied={ns,val};break}}
+        if(applied){
+          const nt=Math.max(0,Math.round((total-applied.val)*100)/100);
+          await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({services:applied.ns,total:nt})});
+          b.services=applied.ns;b.total=nt;total=nt;baseRemaining=nt;
+          pkgSvcs=applied.ns.filter(x=>x&&x.pkg&&Number(x.pkgQty)>0);pkgPending=true;
+          if(remaining()<=0)parts=[];else if(parts.length===1&&parts[0].method!=="credit")parts[0].amount=remaining();
+        }else if(list.length){alert("Pacote vendido, mas nenhum serviço deste agendamento faz parte dele.")}
+      }catch(err){alert("Pacote vendido, mas não foi possível aplicar neste agendamento: "+err.message)}
+      draw();
+    });
   };
   const save=async()=>{
     const btn=el.querySelector("#pay-ok");btn.disabled=true;btn.textContent="Salvando…";
