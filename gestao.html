@@ -296,6 +296,20 @@ main{padding-bottom:110px!important}
 .pay-picker{position:fixed;inset:0;z-index:5200;background:rgba(10,30,50,.45);display:flex;align-items:flex-end}.pay-picker-card{background:#fff;width:100%;max-height:70vh;overflow:auto;border-radius:18px 18px 0 0;padding:8px 12px calc(14px + env(safe-area-inset-bottom))}
 .pay-picker-h{display:flex;justify-content:space-between;align-items:center;padding:8px 2px}.pp-item{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;padding:12px;margin-bottom:6px;border:1px solid #C4DFF8;border-radius:12px;background:#F3F9FF;color:#10304F;font-size:16px}.pp-item small{display:block;color:#5b7a99;font-weight:400}.pp-item:disabled{opacity:.4}
 .app-confirm-scrim{z-index:6000!important}
+.cb-row{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}.cb-row:empty{display:none}
+.cb-pill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 10px;font-size:12.5px;font-weight:700;border:1px solid}
+.cb-pill.good{background:#E3F6EA;border-color:#8fd3a8;color:#14683a}.cb-pill.new{background:#EAF4FF;border-color:#C4DFF8;color:#1F4B75}.cb-pill.warn{background:#FFF1D6;border-color:#F0C070;color:#7A4300}.cb-pill.bad{background:#FFE5E5;border-color:#E58A8A;color:#8f1d1d}.cb-pill.owe{background:#FFE9C7;border-color:#F0A030;color:#7A4300}
+.cc-row{display:flex;flex-direction:column;gap:2px}.cc-meta{font-size:13px;color:#5b7a99}.cc-meta b{color:#1F4B75}
+.subnav{display:grid!important;grid-template-columns:repeat(4,1fr);gap:4px!important;background:#E3EFFC;border:1px solid #C4DFF8;border-radius:12px;padding:3px!important;margin:6px 0 12px!important;overflow:visible!important}
+.subnav .btn{min-height:0!important;height:34px;padding:0 2px!important;font-size:13px!important;border:0!important;background:transparent!important;border-radius:9px!important;box-shadow:none!important;color:#1F4B75!important;white-space:nowrap;width:auto}
+.subnav .btn.on{background:#fff!important;box-shadow:0 1px 4px #1F4B7533!important;font-weight:800}
+#client-form .grid{display:grid!important;grid-template-columns:1fr 1fr;gap:10px!important}#client-form .grid>*:first-child{grid-column:1/-1}
+#client-form .field{min-width:0;margin:0!important}#client-form label{font-size:13px!important;font-weight:700;color:#1F4B75;margin:0 0 4px!important}
+#client-form input,#client-form textarea,#client-form select{width:100%;min-width:0;box-sizing:border-box;height:44px;font-size:16px!important;padding:0 12px!important;border:1px solid #C4DFF8!important;border-radius:12px!important;background:#fff!important;text-align:left}
+#client-form textarea{height:auto;min-height:90px;padding:10px 12px!important}
+#client-form input[type=date]{-webkit-appearance:none;appearance:none;display:block;text-align:left}#client-form input[type=date]::-webkit-date-and-time-value{text-align:left}
+#client-form .form-actions{display:grid!important;grid-template-columns:1fr 1fr;gap:8px!important;margin-top:14px}#client-form .form-actions .primary{grid-column:1/-1;height:46px}#client-form .form-actions .btn{height:42px;min-height:0!important;margin:0!important}
+.cf-note{font-size:12.5px;margin-top:10px}
 .slot.lunch{cursor:pointer}.slot-h{font-size:15px!important;margin:10px 2px 6px!important}
 .slot-card{padding:10px 12px!important;border-radius:14px!important}
 .slot-compact{display:flex!important;flex-wrap:wrap!important;justify-content:space-between;align-items:center!important;gap:8px!important}
@@ -342,7 +356,7 @@ async function auth(body,grant="password"){let r=await fetch(SB+"/auth/v1/token?
 async function api(path,opts={}){if(!session?.access_token)throw Error("Faça login novamente.");let headers={apikey:KEY,Authorization:"Bearer "+session.access_token,"Content-Type":"application/json",Prefer:"return=representation",...(opts.headers||{})};let r=await fetch(SB+"/rest/v1/"+path,{...opts,headers});if(r.status===401&&session.refresh_token){try{await auth({refresh_token:session.refresh_token},"refresh_token")}catch(e){session=null;saveSession();throw Error("Sessão expirada. Entre novamente.")}headers.Authorization="Bearer "+session.access_token;r=await fetch(SB+"/rest/v1/"+path,{...opts,headers})}let text=await r.text();if(!r.ok)throw Error(text||("Erro "+r.status));return text?JSON.parse(text):null}
 function setNotice(s="",kind=""){notice=s;renderNotice(kind)}
 function renderNotice(kind=""){let n=$("#notice");if(n)n.innerHTML=notice?`<div class="notice ${kind}">${esc(notice)}</div>`:""}
-function shell(title,content){app.innerHTML=`<div class="management-pushbar"><button type="button" class="btn" id="push-enable">🔔 Ativar notificações</button></div><div class="section-title">${title}</div><div id="notice"></div>${content}`;renderNotice();refreshPushButton()}
+function shell(title,content){window.__subBack=null;app.innerHTML=`<div class="management-pushbar"><button type="button" class="btn" id="push-enable">🔔 Ativar notificações</button></div><div class="section-title">${title}</div><div id="notice"></div>${content}`;renderNotice();refreshPushButton()}
 const PUSH_PUBLIC_KEY="BJdDRDbZ52N0ps678L_pgbVyqdr6TVEH1CgiDJ14UHS0VNGiA4RF4Myac7WzQ9l4OUC_Qd2ETEz5WrE705Z9gfQ";
 const PUSH_FUNCTION="https://esuvgaijkahzoctyyawe.supabase.co/functions/v1/booking-push";
 function b64urlBytes(value){const pad="=".repeat((4-value.length%4)%4);const raw=atob((value+pad).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(raw,c=>c.charCodeAt(0))}
@@ -503,51 +517,60 @@ function clientList(list){
  });
  return html||`<p class="muted">Nenhum cliente encontrado.</p>`;
 }
+let clientBackTo=null;
+const setSub=(go,key)=>{window.__subBack={go,key}};
+const backFromClient=()=>clientBackTo?showClientCard(clientBackTo):loadClients();
 async function editClient(phone=null){editClientPhone=phone;let c=clients.find(x=>x.phone===phone)||{name:"",phone:"",nickname:"",birth_date:""},profile={};if(phone){try{profile=(await api(`client_profiles?select=*&phone=eq.${encodeURIComponent(phone)}`))[0]||{}}catch(e){profile={}}}let history=[];if(phone){try{history=await api(`bookings?select=id,date,start_min,end_min,status,services,total,client_name,client_phone&client_phone=eq.${encodeURIComponent(phone)}&order=date.desc`)}catch(e){}}
-shell(phone?"Editar cliente":"Novo cliente",`<div class="subnav"><button class="btn small" data-formtab="cadastro">Cadastro</button><button class="btn small" data-formtab="endereco">Endereço</button><button class="btn small" data-formtab="fotos">Fotos</button><button class="btn small" data-formtab="historico">Agendamentos</button></div><form id="client-form"><div id="client-form-body"><div class="grid">${field("Nome completo","c-name",c.name)}${field("Telefone/WhatsApp","c-phone",c.phone,"tel",phone?"readonly":"")}${field("Apelido","c-nickname",c.nickname||"")}${field("Data de nascimento","c-birth",c.birth_date||"","date")}</div></div><div class="form-actions"><button class="btn primary" type="submit">Salvar cliente</button><button class="btn" type="button" id="cancel-edit">Voltar</button>${phone?`<button class="btn danger" type="button" id="delete-client">Excluir cliente</button>`:""}</div><p class="muted">Fotos: informe URLs das imagens já hospedadas; upload direto de fotos ainda não está configurado.</p></form>`);
-let formtab="cadastro";const draw=()=>{const body=$("#client-form-body");if(formtab==="cadastro")body.innerHTML=`<div class="grid">${field("Nome completo","c-name",c.name)}${field("Telefone/WhatsApp","c-phone",c.phone,"tel",phone?"readonly":"")}${field("Apelido","c-nickname",c.nickname||"")}${field("Data de nascimento","c-birth",c.birth_date||"","date")}</div>`;
+shell(phone?"Editar cliente":"Novo cliente",`<div class="subnav"><button type="button" class="btn small on" data-formtab="cadastro">Cadastro</button><button type="button" class="btn small" data-formtab="endereco">Endereço</button><button type="button" class="btn small" data-formtab="fotos">Fotos</button><button type="button" class="btn small" data-formtab="historico">Agenda</button></div><form id="client-form"><div id="client-form-body"><div class="grid">${field("Nome completo","c-name",c.name)}${field("Telefone/WhatsApp","c-phone",c.phone,"tel",phone?"readonly":"")}${field("Apelido","c-nickname",c.nickname||"")}${field("Data de nascimento","c-birth",c.birth_date||"","date")}</div></div><div class="form-actions"><button class="btn primary" type="submit">Salvar cliente</button><button class="btn" type="button" id="cancel-edit">Voltar</button>${phone?`<button class="btn danger" type="button" id="delete-client">Excluir cliente</button>`:""}</div><p class="muted cf-note">Fotos: use links públicos de imagens (upload direto ainda não disponível).</p></form>`);
+setSub(backFromClient,clientBackTo?"card":"clients");
+let formtab="cadastro";const draw=()=>{app.querySelectorAll("[data-formtab]").forEach(x=>x.classList.toggle("on",x.dataset.formtab===formtab));const body=$("#client-form-body");if(formtab==="cadastro")body.innerHTML=`<div class="grid">${field("Nome completo","c-name",c.name)}${field("Telefone/WhatsApp","c-phone",c.phone,"tel",phone?"readonly":"")}${field("Apelido","c-nickname",c.nickname||"")}${field("Data de nascimento","c-birth",c.birth_date||"","date")}</div>`;
 if(formtab==="endereco")body.innerHTML=`<div class="grid">${field("Rua","p-street",profile.street)}${field("Número","p-number",profile.number)}${field("Complemento","p-complement",profile.complement)}${field("Bairro","p-neighborhood",profile.neighborhood)}${field("Cidade","p-city",profile.city)}${field("Estado","p-state",profile.state)}${field("CEP","p-postal",profile.postal_code)}</div>${area("Observações","p-notes",profile.notes)}`;
 if(formtab==="fotos")body.innerHTML=`${area("URLs das fotos (uma por linha)","p-photos",(profile.photos||[]).join("\n"))}<p class="muted">Use links públicos de imagens. As URLs serão guardadas no cadastro.</p>`;
 if(formtab==="historico")body.innerHTML=history.filter(notCancelled).length?history.filter(notCancelled).map(b=>`<div class="card hist-item"><b>${esc(b.date.split("-").reverse().join("/"))} · ${hm(b.start_min)}</b><div class="muted">${esc((b.services||[]).map(s=>s.name).join(", "))} · ${fm(b.total)}</div><span class="pill">${esc(statusPortuguese(b.status))}</span><div class="hist-go"><button type="button" class="btn primary small" data-goto-booking="${esc(b.id)}" data-date="${esc(b.date)}">Ir para agendamento</button></div></div>`).join(""):`<p class="muted">Nenhum agendamento encontrado.</p>`};
-draw();$("#client-form").onsubmit=async e=>{e.preventDefault();try{let ph=String(val("c-phone")||c.phone||"").replace(/\D/g,""),name=String(val("c-name")||c.name||"").trim();if(name.length<2||ph.length<10)throw Error("Informe nome e telefone com DDD.");let bd=val("c-birth")||c.birth_date||null;await api("clients?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify({phone:ph,name,nickname:val("c-nickname")||c.nickname||"",birth_date:bd})});let prof={phone:ph,street:val("p-street")||profile.street||"",number:val("p-number")||profile.number||"",complement:val("p-complement")||profile.complement||"",neighborhood:val("p-neighborhood")||profile.neighborhood||"",city:val("p-city")||profile.city||"",state:val("p-state")||profile.state||"",postal_code:val("p-postal")||profile.postal_code||"",notes:val("p-notes")||profile.notes||"",photos:(val("p-photos")?val("p-photos").split("\n").map(s=>s.trim()).filter(Boolean):(profile.photos||[])),updated_at:new Date().toISOString()};await api("client_profiles?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify(prof)});await loadClients();notice="Cliente salvo com sucesso.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};
-app.querySelectorAll("[data-formtab]").forEach(b=>b.onclick=()=>{formtab=b.dataset.formtab;draw()});$("#cancel-edit").onclick=loadClients;const deleteButton=$("#delete-client");if(deleteButton)deleteButton.onclick=async()=>{if(!phone)return;if(!confirm(`Tem certeza que deseja excluir o cliente ${c.name||phone}? Os agendamentos antigos serão mantidos no histórico.`))return;deleteButton.disabled=true;deleteButton.textContent="Excluindo...";try{await api(`client_profiles?phone=eq.${encodeURIComponent(phone)}`,{method:"DELETE"});await api(`clients?phone=eq.${encodeURIComponent(phone)}`,{method:"DELETE"});await loadClients();notice="Cliente excluído com sucesso.";renderNotice("success")}catch(err){deleteButton.disabled=false;deleteButton.textContent="Excluir cliente";const n=$("#notice");if(n)n.innerHTML=`<div class="notice error">Não foi possível excluir o cliente: ${esc(err.message)}</div>`}}}
-async function showHistory(phone){try{let h=await api(`bookings?select=id,date,start_min,end_min,status,services,total,client_name,client_phone&client_phone=eq.${encodeURIComponent(phone)}&order=date.desc`);shell("Histórico de agendamentos",`<button class="btn" id="back-clients">← Clientes</button>`+(h.filter(notCancelled).map(b=>`<div class="card hist-item"><b>${esc(b.date.split("-").reverse().join("/"))} · ${hm(b.start_min)}–${hm(b.end_min)}</b><div>${esc((b.services||[]).map(s=>s.name+" ×"+s.qty).join(", "))}</div><div>${fm(b.total)} · ${esc(statusPortuguese(b.status))}</div><div class="hist-go"><button type="button" class="btn primary small" data-goto-booking="${esc(b.id)}" data-date="${esc(b.date)}">Ir para agendamento</button></div></div>`).join("")||`<p class="muted">Nenhum agendamento.</p>`));$("#back-clients").onclick=loadClients}catch(e){shell("Histórico",`<p class="error">${esc(e.message)}</p>`)}}
+draw();$("#client-form").onsubmit=async e=>{e.preventDefault();try{let ph=String(val("c-phone")||c.phone||"").replace(/\D/g,""),name=String(val("c-name")||c.name||"").trim();if(name.length<2||ph.length<10)throw Error("Informe nome e telefone com DDD.");let bd=val("c-birth")||c.birth_date||null;await api("clients?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify({phone:ph,name,nickname:val("c-nickname")||c.nickname||"",birth_date:bd})});let prof={phone:ph,street:val("p-street")||profile.street||"",number:val("p-number")||profile.number||"",complement:val("p-complement")||profile.complement||"",neighborhood:val("p-neighborhood")||profile.neighborhood||"",city:val("p-city")||profile.city||"",state:val("p-state")||profile.state||"",postal_code:val("p-postal")||profile.postal_code||"",notes:val("p-notes")||profile.notes||"",photos:(val("p-photos")?val("p-photos").split("\n").map(s=>s.trim()).filter(Boolean):(profile.photos||[])),updated_at:new Date().toISOString()};await api("client_profiles?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify(prof)});if(clientBackTo){await showClientCard(clientBackTo)}else await loadClients();notice="Cliente salvo com sucesso.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};
+app.querySelectorAll("[data-formtab]").forEach(b=>b.onclick=()=>{formtab=b.dataset.formtab;draw()});$("#cancel-edit").onclick=backFromClient;const deleteButton=$("#delete-client");if(deleteButton)deleteButton.onclick=async()=>{if(!phone)return;if(!confirm(`Tem certeza que deseja excluir o cliente ${c.name||phone}? Os agendamentos antigos serão mantidos no histórico.`))return;deleteButton.disabled=true;deleteButton.textContent="Excluindo...";try{await api(`client_profiles?phone=eq.${encodeURIComponent(phone)}`,{method:"DELETE"});await api(`clients?phone=eq.${encodeURIComponent(phone)}`,{method:"DELETE"});await loadClients();notice="Cliente excluído com sucesso.";renderNotice("success")}catch(err){deleteButton.disabled=false;deleteButton.textContent="Excluir cliente";const n=$("#notice");if(n)n.innerHTML=`<div class="notice error">Não foi possível excluir o cliente: ${esc(err.message)}</div>`}}}
+async function showHistory(phone){try{let h=await api(`bookings?select=id,date,start_min,end_min,status,services,total,client_name,client_phone&client_phone=eq.${encodeURIComponent(phone)}&order=date.desc`);shell("Histórico de agendamentos",`<button class="btn" id="back-clients">← ${clientBackTo?"Cliente":"Clientes"}</button>`+(h.filter(notCancelled).map(b=>`<div class="card hist-item"><b>${esc(b.date.split("-").reverse().join("/"))} · ${hm(b.start_min)}–${hm(b.end_min)}</b><div>${esc((b.services||[]).map(s=>s.name+" ×"+s.qty).join(", "))}</div><div>${fm(b.total)} · ${esc(statusPortuguese(b.status))}</div><div class="hist-go"><button type="button" class="btn primary small" data-goto-booking="${esc(b.id)}" data-date="${esc(b.date)}">Ir para agendamento</button></div></div>`).join("")||`<p class="muted">Nenhum agendamento.</p>`));setSub(backFromClient,clientBackTo?"card":"clients");$("#back-clients").onclick=backFromClient}catch(e){shell("Histórico",`<p class="error">${esc(e.message)}</p>`)}}
 
+async function clientStats(phone){
+  const bks=await api(`bookings?select=id,date,start_min,end_min,status,services,total&client_phone=eq.${encodeURIComponent(phone)}&order=date.desc,start_min.desc`);
+  let cls=[];try{if(bks.length)cls=await api(`finance_booking_closures?select=booking_id,amount_paid,balance_due&booking_id=in.(${bks.map(x=>x.id).join(",")})`)}catch(e){}
+  const cmap={};cls.forEach(x=>cmap[String(x.booking_id)]=x);
+  const live=bks.filter(notCancelled);
+  const sc=b=>statusClass(b.status),ns=b=>["no_show","nao_compareceu","faltou"].includes(normalizedStatus(b.status));
+  const attended=live.filter(b=>["completed","finalized"].includes(sc(b))&&!ns(b));
+  const noshows=live.filter(ns);
+  const scheduled=live.filter(b=>["pending","confirmed"].includes(sc(b))&&!ns(b)).sort((a,b)=>a.date.localeCompare(b.date)||a.start_min-b.start_min);
+  const owing=[];let owed=0;
+  live.filter(b=>!ns(b)).forEach(b=>{const cl=cmap[String(b.id)];let v=0;if(cl)v=Number(cl.balance_due||0);else if(sc(b)==="completed")v=Number(b.total||0);if(v>0){owing.push({b,v});owed+=v}});
+  const spent=cls.reduce((a,x)=>a+Number(x.amount_paid||0),0);
+  const base=attended.length+noshows.length;
+  let badge;
+  if(base===0)badge={cls:"new",t:"🆕 Cliente novo",s:"Ainda sem histórico de atendimentos."};
+  else if(noshows.length===0)badge={cls:"good",t:"✅ Cliente confiável",s:`Compareceu a todos os ${attended.length} agendamento(s) concluídos.`};
+  else if(noshows.length===1&&noshows.length/base<=0.25)badge={cls:"warn",t:"⚠️ Atenção",s:`Faltou 1 vez em ${base} agendamento(s).`};
+  else badge={cls:"bad",t:"⛔ Cliente não confiável",s:`Faltou ${noshows.length} de ${base} agendamento(s).`};
+  return {bks,live,attended,noshows,scheduled,owing,owed,spent,badge,cancelledN:bks.length-live.length};
+}
+const badgePills=st=>`<span class="cb-pill ${st.badge.cls}">${st.badge.t}${st.noshows.length?` · ${st.noshows.length} falta(s)`:""}</span>${st.owed>0?`<span class="cb-pill owe">💰 Deve ${fm(st.owed)}</span>`:""}`;
+async function fillClientBadge(phone,target){
+  try{const t=document.querySelector(target);if(!t||!phone)return;const st=await clientStats(phone);const t2=document.querySelector(target);if(t2)t2.innerHTML=badgePills(st)}catch(e){}
+}
 async function showClientCard(phone){
   try{
-    let c=clients.find(x=>String(x.phone)===String(phone));
-    if(!c)c=(await api(`clients?select=*&phone=eq.${encodeURIComponent(phone)}`))[0]||{name:"Cliente",phone};
-    const bks=await api(`bookings?select=id,date,start_min,end_min,status,services,total&client_phone=eq.${encodeURIComponent(phone)}&order=date.desc,start_min.desc`);
-    let cls=[];try{if(bks.length)cls=await api(`finance_booking_closures?select=booking_id,amount_paid,balance_due&booking_id=in.(${bks.map(x=>x.id).join(",")})`)}catch(e){}
-    const cmap={};cls.forEach(x=>cmap[String(x.booking_id)]=x);
-    const today=new Date(),td=today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-"+String(today.getDate()).padStart(2,"0");
-    const live=bks.filter(notCancelled);
-    const sc=b=>statusClass(b.status),ns=b=>["no_show","nao_compareceu","faltou"].includes(normalizedStatus(b.status));
-    const attended=live.filter(b=>["completed","finalized"].includes(sc(b))&&!ns(b));
-    const noshows=live.filter(ns);
-    const upcoming=live.filter(b=>b.date>=td&&["pending","confirmed"].includes(sc(b))&&!ns(b)).sort((a,b)=>a.date.localeCompare(b.date));
-    const cancelledN=bks.length-live.length;
-    const owing=[];let owed=0;
-    live.filter(b=>!ns(b)).forEach(b=>{const cl=cmap[String(b.id)];let v=0;if(cl)v=Number(cl.balance_due||0);else if(sc(b)==="completed")v=Number(b.total||0);if(v>0){owing.push({b,v});owed+=v}});
-    const spent=cls.reduce((a,x)=>a+Number(x.amount_paid||0),0);
-    const base=attended.length+noshows.length;
-    let badge;
-    if(base===0)badge={cls:"new",t:"🆕 Cliente novo",s:"Ainda sem histórico de atendimentos."};
-    else if(noshows.length===0)badge={cls:"good",t:"✅ Cliente confiável",s:`Compareceu a todos os ${attended.length} agendamento(s) concluídos.`};
-    else if(noshows.length===1&&noshows.length/base<=0.25)badge={cls:"warn",t:"⚠️ Atenção",s:`Faltou 1 vez em ${base} agendamento(s).`};
-    else badge={cls:"bad",t:"⛔ Cliente não confiável",s:`Faltou ${noshows.length} de ${base} agendamento(s).`};
+    let c=(await api(`clients?select=*&phone=eq.${encodeURIComponent(phone)}`))[0]||clients.find(x=>String(x.phone)===String(phone))||{name:"Cliente",phone};
+    const st=await clientStats(phone);const {attended,noshows,scheduled,owing,owed,spent,badge,cancelledN}=st;
     const fmtB=b=>`${esc(b.date.split("-").reverse().join("/"))} · ${hm(b.start_min)} · ${esc((b.services||[]).map(s=>s.name).join(", ")||"—")}`;
     const ph=String(c.phone||"").replace(/\D/g,"");
     shell("Cliente",`<button class="btn" id="back-clients">← Clientes</button>
     <div class="cc-head"><div class="cc-name">${esc(c.name)}</div><div class="cc-sub">${esc(c.nickname?c.nickname+" · ":"")}${esc(c.phone||"")}${c.birth_date?" · 🎂 "+esc(birthBR(c.birth_date)):""}</div>
      <div class="cc-acts"><a class="lic" href="https://wa.me/${ph.length<=11?"55"+ph:ph}" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">${ICO.wa}</a><button type="button" class="lic" data-history="${esc(c.phone)}" aria-label="Agendamentos" title="Agendamentos">${ICO.cal}</button><button type="button" class="lic" data-edit-client="${esc(c.phone)}" aria-label="Editar" title="Editar">${ICO.edit}</button></div></div>
     <div class="cc-badge ${badge.cls}"><b>${badge.t}</b><span>${badge.s}</span></div>
-    ${owed>0?`<div class="cc-badge owe"><b>💰 Valor pendente: ${fm(owed)}</b><span>${owing.map(o=>fmtB(o.b)+" — "+fm(o.v)).join("<br>")}</span></div>`:""}
+    ${owed>0?`<div class="cc-badge owe"><b>💰 Valor a receber: ${fm(owed)}</b><span>${owing.map(o=>fmtB(o.b)+" — "+fm(o.v)).join("<br>")}</span></div>`:""}
     <div class="cc-stats"><div><b>${attended.length}</b><span>Atendimentos</span></div><div><b>${noshows.length}</b><span>Faltas</span></div><div><b>${fm(spent)}</b><span>Total pago</span></div></div>
+    <h3 class="cc-h">Agendados${scheduled.length?` <small>(${scheduled.length})</small>`:""}</h3><div class="cc-list">${scheduled.map(b=>`<div class="cc-row"><span>${fmtB(b)}</span><span class="cc-meta"><b>${fm(b.total)}</b> · ${esc(statusPortuguese(b.status))}</span></div>`).join("")||`<div class="muted">Nenhum agendamento marcado.</div>`}</div>
     ${noshows.length?`<h3 class="cc-h">Não compareceu</h3><div class="cc-list">${noshows.map(b=>`<div>${fmtB(b)}</div>`).join("")}</div>`:""}
-    ${upcoming.length?`<h3 class="cc-h">Próximos agendamentos</h3><div class="cc-list">${upcoming.slice(0,5).map(b=>`<div>${fmtB(b)} · ${esc(statusPortuguese(b.status))}</div>`).join("")}</div>`:""}
-    <h3 class="cc-h">Últimos atendimentos${cancelledN?` <small>(${cancelledN} cancelado(s) não contam)</small>`:""}</h3><div class="cc-list">${attended.slice(0,5).map(b=>`<div>${fmtB(b)} · ${fm(b.total)}</div>`).join("")||`<div class="muted">Nenhum atendimento concluído.</div>`}</div>`);
-    $("#back-clients").onclick=loadClients;
+    <h3 class="cc-h">Últimos atendimentos${cancelledN?` <small>(${cancelledN} cancelado(s) não contam)</small>`:""}</h3><div class="cc-list">${attended.slice(0,5).map(b=>`<div class="cc-row"><span>${fmtB(b)}</span><span class="cc-meta"><b>${fm(b.total)}</b></span></div>`).join("")||`<div class="muted">Nenhum atendimento concluído ainda.</div>`}</div>`);
+    $("#back-clients").onclick=loadClients;setSub(loadClients,"clients");window.__snaps.card=app.innerHTML;
   }catch(e){shell("Cliente",`<p class="error">${esc(e.message)}</p><button class="btn" id="back-clients">← Clientes</button>`);$("#back-clients").onclick=loadClients}
 }
 async function loadServices(){try{services=await api("services?select=*&order=sort");shell("Serviços",`<div class="row between"><span class="muted">${services.length} serviço(s)</span><button class="btn primary" id="new-service" aria-label="Adicionar serviço" title="Adicionar serviço">＋</button></div><div class="svc-list">`+services.map(s=>{const dm=Number(s.duration_min||0)||(s.is_cut?30:0);return `<div class="lrow ${s.active?"":"off"}"><div class="lav sq">${ICO.cut}</div><div class="lg"><b>${esc(s.name)}</b><div class="lsub">${fm(s.price)}${dm?" · "+dm+" min":""}${s.active?"":" · Inativo"}</div></div><button type="button" class="lic" data-edit-service="${s.id}" aria-label="Editar" title="Editar">${ICO.edit}</button></div>`}).join("")+`</div>`)}catch(e){shell("Serviços",`<p class="error">${esc(e.message)}</p>`)}}
@@ -916,7 +939,7 @@ async function showBookingDetail(id){
    <div><b>Horário:</b> ${hm(b.start_min)} às ${hm(b.end_min)}</div>
    <div><b>Serviços:</b> ${esc(services||"Não informado")}</div>
    <b>Valor: ${fm(b.total)}</b>
-   <div class="status-label status-${statusClass(b.status)}" ${(pendingBal[String(b.id)]>0&&statusClass(b.status)==="completed")?'style="color:#C2700A!important"':""}>${(pendingBal[String(b.id)]>0&&statusClass(b.status)==="completed")?"Valor pendente "+fm(pendingBal[String(b.id)]):statusPortuguese(b.status)}</div>
+   <div id="detail-badge" class="cb-row"></div><div class="status-label status-${statusClass(b.status)}" ${(pendingBal[String(b.id)]>0&&statusClass(b.status)==="completed")?'style="color:#C2700A!important"':""}>${(pendingBal[String(b.id)]>0&&statusClass(b.status)==="completed")?"Valor pendente "+fm(pendingBal[String(b.id)]):statusPortuguese(b.status)}</div>
   </div>`;
   const pendingActions=`<button class="sheet-action" id="detail-confirm"><span class="sheet-icon">✓</span><span>Confirmar agendamento</span></button>
    <button class="sheet-action cancel" id="detail-cancel-pending"><span class="sheet-icon">✕</span><span>Cancelar agendamento</span></button>`;
@@ -933,6 +956,7 @@ async function showBookingDetail(id){
   const scrollY=window.scrollY;
   app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="detail-sheet"><section class="action-sheet" role="dialog" aria-modal="true" aria-label="Detalhes do agendamento"><div class="sheet-grabber"></div><h2 class="section-title">${isPending?"Agendamento pendente":"Agendamento"}</h2>${details}${isPending?pendingActions:regularActions}<button class="btn sheet-close" id="detail-close">Fechar</button></section></div>`);
   const close=()=>{const el=$("#detail-sheet");if(el){el.remove();document.body.classList.remove("sheet-open");window.scrollTo(0,scrollY)}};
+  fillClientBadge(b.client_phone,"#detail-badge");
   $("#detail-close").onclick=close;
   $("#detail-sheet").addEventListener("click",e=>{if(e.target.id==="detail-sheet")close()});
   $("#detail-edit")?.addEventListener("click",()=>{close();openBooking(Number(b.start_min),"book",b)});
@@ -986,15 +1010,16 @@ async function navigate(p){page=p;setMenuOpen(false);$("#menu").querySelectorAll
 // mostrando a tela de baixo (instantâneo da tela anterior) enquanto arrasta.
 (function(){
  let sx=0,sy=0,tracking=false,moving=false,dxNow=0,under=null,tkey=null;
- const snaps={};
+ const snaps={};window.__snaps=snaps;
  const LOADERS={loadAgenda:"agenda",loadClients:"clients",loadSettings:"settings",loadServices:"services",loadProducts:"products",loadPackages:"packages",loadCombos:"combos",loadHours:"settings-hours",loadProfessionals:"settings-professionals",loadBirthdays:"birthdays"};
  Object.entries(LOADERS).forEach(([fn,k])=>{const orig=window[fn];if(typeof orig!=="function")return;window[fn]=async function(...a){const r=await orig.apply(this,a);try{if(!document.querySelector(".booking-screen,.client-picker-screen"))snaps[k]=app.innerHTML}catch(e){}return r}});
  const el=()=>document.querySelector("#app");
  const parentPage=()=>["settings-hours","settings-professionals","settings-messages","services","products","packages","combos"].includes(page)?"settings":"agenda";
  const subCancel=()=>document.querySelector("#cancel-service,#cancel-product,#cancel-edit,#cancel-package,#cancel-combo");
- const targetKey=()=>{if($("#menu").classList.contains("open"))return null;if(subCancel())return page;return page!=="agenda"?parentPage():null};
+ const targetKey=()=>{if($("#menu").classList.contains("open"))return null;if(window.__subBack){snaps.__sub=snaps[window.__subBack.key];if(snaps.__sub)return "__sub"}if(subCancel())return page;return page!=="agenda"?parentPage():null};
  const goBack=async()=>{
   if($("#menu").classList.contains("open")){setMenuOpen(false);return}
+  if(window.__subBack){await window.__subBack.go();return}
   const cb=subCancel();
   if(cb){cb.click();await new Promise(r=>setTimeout(r,60));return}
   if(page!=="agenda")await navigate(parentPage());
@@ -1092,9 +1117,9 @@ if(b.id==="booking-save"){await saveBookingForm();return}
 if(b.id==="booking-save-block"){readBookingInputs();const d=bookingDraft;if(!$("#booking-start").value){const err=$("#booking-error");err.textContent="Escolha o horário de início do agendamento.";err.classList.remove("hidden");$("#booking-start").focus();return}const st=$("#booking-start").value.split(":").map(Number),en=$("#booking-end").value.split(":").map(Number);const start=st[0]*60+st[1],end=en[0]*60+en[1];if(end<=start)throw Error("O fim do bloqueio deve ser depois do início.");const barber=d.barbers[0];if(!barber)throw Error("Cadastre um profissional ativo.");const payload={barber_id:barber.id,date:key(d.date),start_min:start,end_min:end,reason:d.reason||""};if(d.editingBlockId){await api(`blocked_slots?id=eq.${encodeURIComponent(d.editingBlockId)}`,{method:"PATCH",body:JSON.stringify(payload)})}else{await api("blocked_slots",{method:"POST",body:JSON.stringify(payload)})}bookingDraft=null;await loadAgenda();return}
 if(b.dataset.cancel){let id=b.dataset.cancel;if(confirmCancel!==id){confirmCancel=id;renderAgenda();return}await api(`bookings?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});confirmCancel=null;await loadAgenda();return}
 if(b.id==="new-client"){editClient();return}
-if(b.dataset.editClient){editClient(b.dataset.editClient);return}
+if(b.dataset.editClient){clientBackTo=b.closest(".cc-head")?b.dataset.editClient:null;editClient(b.dataset.editClient);return}
 if(b.dataset.clientCard){showClientCard(b.dataset.clientCard);return}
-if(b.dataset.history){showHistory(b.dataset.history);return}
+if(b.dataset.history){clientBackTo=b.closest(".cc-head")?b.dataset.history:null;showHistory(b.dataset.history);return}
 if(b.id==="new-combo"){editCombo();return}
 if(b.dataset.editCombo){editCombo(Number(b.dataset.editCombo));return}
 if(b.id==="new-package"){editPackage();return}
@@ -1253,7 +1278,8 @@ function refreshBookingTotals(rebuildCombo=false){
  if(rebuildCombo){const box=$("#adj-card");if(box){box.innerHTML=adjustmentsHtml(d);return}}
  const t=bookingTotals(d);const a=$("#adj-sub"),b=$("#adj-total");if(a)a.textContent=fm(t.sub);if(b)b.textContent=fm(t.total);
 }
-function renderBookingScreen(){
+function renderBookingScreen(){const __r=__renderBookingScreen();try{if(bookingDraft?.selectedPhone)fillClientBadge(bookingDraft.selectedPhone,"#booking-client-badge")}catch(e){}return __r}
+function __renderBookingScreen(){
  const d=bookingDraft;
  const selected=d.services;
  const total=selected.reduce((a,x)=>a+Number(x.price||0)*Number(x.qty||1),0);
@@ -1267,7 +1293,7 @@ function renderBookingScreen(){
  <h2 class="section-title">${d.mode==='book'?'Novo agendamento':'Bloquear horário'}</h2>
  ${d.mode==='book'?`
  <div class="card client-card-compact">
- <button class="btn client-select-btn" id="open-client-picker" type="button">${d.selectedPhone?`<span class="client-selected-name">${esc((d.clients.find(c=>c.phone===d.selectedPhone)||{}).name||'Selecionado')}</span>`:'<span class="client-plus-mini">＋</span><span>Selecionar cliente</span>'}</button>
+ <div id="booking-client-badge" class="cb-row"></div><button class="btn client-select-btn" id="open-client-picker" type="button">${d.selectedPhone?`<span class="client-selected-name">${esc((d.clients.find(c=>c.phone===d.selectedPhone)||{}).name||'Selecionado')}</span>`:'<span class="client-plus-mini">＋</span><span>Selecionar cliente</span>'}</button>
  <div id="booking-new-client-panel" class="${d.addingClient?'':'hidden'}"><div class="field"><label>Nome completo</label><input id="booking-new-name" placeholder="Nome completo" value="${esc(d.newName||'')}"></div><div class="field"><label>Telefone com DDD</label><input id="booking-new-phone" placeholder="Telefone com DDD" inputmode="tel" value="${esc(d.newPhone||'')}"></div></div>
  </div>
  <div class="booking-range-label">Início</div><div class="booking-date-time-line"><div class="field"><input id="booking-date" type="date" aria-label="Data de início" title="${["dom","seg","ter","qua","qui","sex","sáb"][d.date.getDay()]}, ${d.date.toLocaleDateString("pt-BR")}" value="${key(d.date)}"></div><div class="field"><input id="booking-start" type="time" aria-label="Horário de início" value="${startMin==null?'':hm(startMin)}" step="1800"></div></div>
