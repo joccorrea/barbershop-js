@@ -1947,11 +1947,11 @@ function closeStatusPicker(){document.querySelector("#status-picker-scrim")?.rem
 function askSendCancelWhatsApp(url){
   document.querySelector("#app-confirm-scrim")?.remove();
   const sc=document.createElement("div");sc.id="app-confirm-scrim";sc.className="app-confirm-scrim";
-  sc.innerHTML=`<section class="app-confirm" role="dialog" aria-modal="true"><p>Agendamento cancelado. Deseja enviar o aviso de cancelamento ao cliente pelo WhatsApp?</p><button type="button" data-confirm-ok>Sim, enviar</button><button type="button" data-confirm-cancel>Não</button></section>`;
+  sc.innerHTML=`<section class="app-confirm" role="dialog" aria-modal="true"><p>Agendamento cancelado. Deseja enviar o aviso de cancelamento ao cliente pelo WhatsApp?</p><div class="bb-row"><button type="button" class="bb-btn bb-back" data-bb="back" data-confirm-cancel aria-label="Não enviar" title="Não enviar">Não</button><button type="button" class="bb-btn bb-ok" data-bb="ok" data-confirm-ok aria-label="Sim, enviar" title="Sim, enviar">Sim</button></div></section>`;
   document.body.appendChild(sc);
   sc.addEventListener("click",e=>{
     if(e.target.closest("[data-confirm-ok]")){sc.remove();window.location.href=url;return}
-    if(e.target===sc||e.target.closest("[data-confirm-cancel]"))sc.remove();
+    if(e.target.closest("[data-confirm-cancel]"))sc.remove();
   });
 }
 const X_SVG='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
