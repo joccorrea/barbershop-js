@@ -1948,8 +1948,10 @@ function askSendCancelWhatsApp(url){
   document.querySelector("#app-confirm-scrim")?.remove();
   const sc=document.createElement("div");sc.id="app-confirm-scrim";sc.className="app-confirm-scrim";
   sc.innerHTML=`<section class="app-confirm" role="dialog" aria-modal="true"><p>Agendamento cancelado. Deseja enviar o aviso de cancelamento ao cliente pelo WhatsApp?</p><div class="bb-row"><button type="button" class="bb-btn bb-back" data-bb="back" data-confirm-cancel aria-label="Não enviar" title="Não enviar">Não</button><button type="button" class="bb-btn bb-ok" data-bb="ok" data-confirm-ok aria-label="Sim, enviar" title="Sim, enviar">Sim</button></div></section>`;
-  document.body.appendChild(sc);
+  document.body.appendChild(sc);sc.style.touchAction="none";
+  ["touchstart","touchmove","pointerdown","mousedown"].forEach(ev=>sc.addEventListener(ev,e=>{e.stopPropagation();if(ev==="touchmove")e.preventDefault()},{passive:false}));
   sc.addEventListener("click",e=>{
+    e.stopPropagation();
     if(e.target.closest("[data-confirm-ok]")){sc.remove();window.location.href=url;return}
     if(e.target.closest("[data-confirm-cancel]"))sc.remove();
   });
