@@ -691,7 +691,7 @@ function appointmentCardStatus(status){
  return "status-pending-card";
 }
 function serviceAddsDuration(service){
- const name=String(service?.name||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().trim();
+ const name=String(service?.name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
  return ["corte simples","degrade na zero","degrade navalhado","degrade na shaver","undercut feminino","corte feminino"].includes(name);
 }
 function selectedServicesDuration(services){
