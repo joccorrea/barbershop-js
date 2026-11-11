@@ -1960,7 +1960,7 @@ function pickBarberGlass(){
   const d=bookingDraft;if(!d||!d.barbers||d.barbers.length<2)return;
   document.querySelector("#app-confirm-scrim")?.remove();
   const scrim=document.createElement("div");scrim.id="app-confirm-scrim";scrim.className="app-confirm-scrim";
-  scrim.innerHTML=`<section class="app-confirm bar-pick" role="dialog" aria-modal="true"><p>Profissional</p>${d.barbers.map(x=>`<button type="button" class="bar-opt${Number(x.id)===Number(d.barberId)?" on":""}" data-bid="${x.id}"><span>${esc(x.name)}</span><i>${Number(x.id)===Number(d.barberId)?"✓":""}</i></button>`).join("")}</section>`;
+  scrim.innerHTML=`<section class="app-confirm bar-pick" role="dialog" aria-modal="true"><p>Profissional</p>${d.barbers.map(x=>`<button type="button" class="bar-opt${Number(x.id)===Number(d.barberId)?" on":""}" data-bid="${x.id}"><span>${esc(x.name)}</span></button>`).join("")}</section>`;
   document.body.appendChild(scrim);
   scrim.addEventListener("click",e=>{
     const o=e.target.closest("[data-bid]");
@@ -3014,7 +3014,7 @@ html{touch-action:manipulation}
 #save-period-slot{flex:0 0 auto!important;width:auto!important;border-radius:999px!important;background:linear-gradient(135deg,rgba(90,162,230,.95),rgba(35,120,212,.9))!important;border:1px solid rgba(255,255,255,.7)!important;color:#fff!important;box-shadow:0 4px 12px rgba(31,75,117,.25)!important}
 /* g25 */
 .bar-pick p{text-align:center;font-size:13px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#5b7a99;margin:0 0 12px}
-.bar-opt{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:50px;margin:0 0 9px;padding:0 16px;border-radius:16px;border:1px solid rgba(255,255,255,.95);background:rgba(255,255,255,.78);box-shadow:var(--box-shadow);font-size:17px;font-weight:700;color:#10304F}
+.bar-opt{display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;margin:0 0 9px;padding:0 16px;border-radius:16px;border:1px solid rgba(255,255,255,.95);background:rgba(255,255,255,.78);box-shadow:var(--box-shadow);font-size:17px;font-weight:700;color:#10304F}
 .bar-opt i{font-style:normal;color:#2378d4;font-weight:800}
 .bar-opt.on{border-color:#7fb4e8;background:rgba(214,234,252,.85)}
 .client-select-btn:disabled{opacity:1;color:inherit}
