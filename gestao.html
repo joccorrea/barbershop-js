@@ -506,7 +506,7 @@ const agIntersect=(shop,mine)=>{const out=[];(shop||[]).forEach(a=>(mine||[]).fo
 const barberRanges=(b,wd,shop)=>{if(!b||!b.schedule)return shop;const mine=normalizeSchedule(b.schedule)[wd];return agIntersect(shop,mine)};
 function applyAgendaBarber(){
  const list=agBarbers||[];
- if(agendaBarber!=="all"&&!list.some(b=>String(b.id)===String(agendaBarber)))agendaBarber=list.length>1?(window.__myBarberId&&list.some(b=>b.id===window.__myBarberId)?String(window.__myBarberId):String(list[0]?.id||"")):String(list[0]?.id||"");
+ if((agendaBarber==="all"&&list.length<2)||(agendaBarber!=="all"&&!list.some(b=>String(b.id)===String(agendaBarber))))agendaBarber=list.length>1?(window.__myBarberId&&list.some(b=>b.id===window.__myBarberId)?String(window.__myBarberId):String(list[0]?.id||"")):String(list[0]?.id||"");
  if(agendaBarber==="all"){bookings=allBookings;blocks=allBlocks;dayRanges=shopRanges;hours=shopHours;return}
  const b=list.find(x=>String(x.id)===String(agendaBarber));
  bookings=allBookings.filter(x=>String(x.barber_id)===String(agendaBarber));
