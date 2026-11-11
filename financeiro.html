@@ -278,7 +278,7 @@ const pmFind=k=>pmAll().find(m=>pmKey(m)===k);
 const payKind=k=>pmFind(k)?.kind||(['cash','card','pix','transfer','other'].includes(k)?k:'other');
 const pmv=k=>({payment_method:payKind(k),payment_method_name:pmFind(k)?.name||null});
 function methodName(m){const f=pmFind(m);if(f)return f.name;return({pix:'Pix',cash:'Dinheiro',card:'Cartão',transfer:'Transferência',other:'Outro',credit:'Crédito do cliente'})[m]||m}
-const mLabel=x=>x.payment_method_name||mLabel(x);
+const mLabel=x=>x.payment_method_name||methodName(x.payment_method);
 const pmLabels=rows=>[...new Set([...pmActive().map(m=>m.name),...rows.map(mLabel)])];
 function fillMethodSelects(){const o=pmActive().map(m=>`<option value="${pmKey(m)}">${esc(m.name)}</option>`).join('');$('method').innerHTML=o;$('pkgSaleMethod').innerHTML=o}
 function dateBR(d){if(!d)return '—';const p=String(d).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:d}
