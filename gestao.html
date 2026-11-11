@@ -421,6 +421,7 @@ async function auth(body,grant="password"){let r=await fetch(SB+"/auth/v1/token?
 async function api(path,opts={}){if(!session?.access_token)throw Error("Faça login novamente.");let headers={apikey:KEY,Authorization:"Bearer "+session.access_token,"Content-Type":"application/json",Prefer:"return=representation",...(opts.headers||{})};let r=await fetch(SB+"/rest/v1/"+path,{...opts,headers});if(r.status===401&&session.refresh_token){try{await auth({refresh_token:session.refresh_token},"refresh_token")}catch(e){session=null;saveSession();throw Error("Sessão expirada. Entre novamente.")}headers.Authorization="Bearer "+session.access_token;r=await fetch(SB+"/rest/v1/"+path,{...opts,headers})}let text=await r.text();if(!r.ok)throw Error(text||("Erro "+r.status));return text?JSON.parse(text):null}
 function setNotice(s="",kind=""){notice=s;renderNotice(kind)}
 function renderNotice(kind=""){let n=$("#notice");if(n)n.innerHTML=notice?`<div class="notice ${kind}">${esc(notice)}</div>`:""}
+function softIn(){app.classList.remove("app-in");void app.offsetWidth;app.classList.add("app-in");setTimeout(()=>app.classList.remove("app-in"),450)}
 function shell(title,content){window.__subBack=null;app.innerHTML=`<div class="management-pushbar"><button type="button" class="btn" id="push-enable">🔔 Ativar notificações</button></div><div class="section-title">${title}</div><div id="notice"></div>${content}`;renderNotice();refreshPushButton()}
 const PUSH_PUBLIC_KEY="BJdDRDbZ52N0ps678L_pgbVyqdr6TVEH1CgiDJ14UHS0VNGiA4RF4Myac7WzQ9l4OUC_Qd2ETEz5WrE705Z9gfQ";
 const PUSH_FUNCTION="https://esuvgaijkahzoctyyawe.supabase.co/functions/v1/booking-push";
@@ -744,13 +745,13 @@ async function showClientCard(phone){
      <div class="cc-acts"><a class="lic" href="https://wa.me/${ph.length<=11?"55"+ph:ph}" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">${ICO.wa}</a><button type="button" class="lic" data-history="${esc(c.phone)}" aria-label="Agendamentos" title="Agendamentos">${ICO.cal}</button><button type="button" class="lic" data-edit-client="${esc(c.phone)}" aria-label="Editar" title="Editar">${ICO.edit}</button></div></div>
     <div class="cc-badge ${badge.cls}"><b>${badge.t}</b><span>${badge.s}</span></div>
     ${owed>0?`<div class="cc-badge owe"><b>💰 Valor a receber: ${fm(owed)}</b><span>${owing.map(o=>fmtB(o.b)+" — "+fm(o.v)).join("<br>")}</span></div>`:""}
-    <div class="cc-credit"><div><small>Crédito disponível</small><b>${fm(creditSum)}</b></div><button type="button" class="btn small" id="cc-sell-credit">＋ Vender crédito</button></div>
+    <div class="cc-credit"><div><small>Crédito disponível</small><b>${fm(creditSum)}</b></div><div class="cc-btns"><button type="button" class="btn small" id="cc-sell-credit">＋ Crédito</button><button type="button" class="btn small" id="cc-sell-pkg">＋ Pacote</button></div></div>
     <div class="cc-stats"><div><b>${attended.length}</b><span>Atendimentos</span></div><div><b>${noshows.length}</b><span>Faltas</span></div><div><b>${fm(spent)}</b><span>Total pago</span></div></div>
     <h3 class="cc-h">Agendados${scheduled.length?` <small>(${scheduled.length})</small>`:""}</h3><div class="hlist">${histRows(scheduled,{group:false})||`<div class="muted">Nenhum agendamento marcado.</div>`}</div>
     ${noshows.length?`<h3 class="cc-h">Não compareceu</h3><div class="hlist">${histRows(noshows,{group:false})}</div>`:""}
     <h3 class="cc-h">Últimos atendimentos${cancelledN?` <small>(${cancelledN} cancelado(s) não contam)</small>`:""}</h3><div class="hlist">${histRows(attended.slice(0,5),{group:false})||`<div class="muted">Nenhum atendimento concluído ainda.</div>`}</div>`);
-    $("#back-clients").onclick=loadClients;setSub(loadClients,"clients");window.__snaps.card=app.innerHTML;
-    $("#cc-sell-credit").onclick=()=>sellCreditDialog(c,()=>showClientCard(phone));
+    $("#back-clients").onclick=loadClients;setSub(loadClients,"clients");window.__snaps.card=app.innerHTML;softIn();
+    $("#cc-sell-credit").onclick=()=>sellCreditDialog(c,()=>showClientCard(phone));$("#cc-sell-pkg").onclick=()=>sellPackageDialog(c,()=>showClientCard(phone));
   }catch(e){shell("Cliente",`<p class="error">${esc(e.message)}</p><button class="btn" id="back-clients">← Clientes</button>`);$("#back-clients").onclick=loadClients}
 }
 async function loadServices(){try{services=await api("services?select=*&order=sort");shell("Serviços",`<div class="row between"><span class="muted">${services.length} serviço(s)</span><button class="btn primary" id="new-service" aria-label="Adicionar serviço" title="Adicionar serviço">＋</button></div><div class="svc-list">`+services.map(s=>{const dm=Number(s.duration_min||0)||(s.is_cut?30:0);return `<div class="lrow ${s.active?"":"off"}"><div class="lav sq">${ICO.cut}</div><div class="lg"><b>${esc(s.name)}</b><div class="lsub">${fm(s.price)}${dm?" · "+dm+" min":""}${s.active?"":" · Inativo"}</div></div><button type="button" class="lic" data-edit-service="${s.id}" aria-label="Editar" title="Editar">${ICO.edit}</button></div>`}).join("")+`</div>`)}catch(e){shell("Serviços",`<p class="error">${esc(e.message)}</p>`)}}
@@ -1385,10 +1386,11 @@ async function showBookingDetail(id){
   else regularActions=editBtn+cancelBtn;
   document.body.classList.add("sheet-open");
   const scrollY=window.scrollY;
-  app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="detail-sheet"><section class="action-sheet" role="dialog" aria-modal="true" aria-label="Detalhes do agendamento"><div class="sheet-grabber"></div><h2 class="section-title">${isPending?"Agendamento pendente":"Agendamento"}</h2>${details}${isPending?pendingActions:regularActions}<button class="btn sheet-close" id="detail-close">Fechar</button></section></div>`);
+  app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="detail-sheet"><section class="action-sheet" role="dialog" aria-modal="true" aria-label="Detalhes do agendamento"><div class="sheet-grabber"></div><h2 class="section-title">${isPending?"Agendamento pendente":"Agendamento"}</h2>${details}${isPending?pendingActions:regularActions}${page!=="agenda"?`<button class="sheet-action" id="detail-goto-agenda"><span class="sheet-icon">${ICO.cal}</span><span>Ir para a agenda</span></button>`:""}<button class="btn sheet-close" id="detail-close">Fechar</button></section></div>`);
   const close=()=>{const el=$("#detail-sheet");if(el){el.remove();document.body.classList.remove("sheet-open");window.scrollTo(0,scrollY)}};
   fillClientBadge(b.client_phone,"#detail-badge",b.id,b.client_name);
   $("#detail-close").onclick=close;
+  if($("#detail-goto-agenda"))$("#detail-goto-agenda").onclick=()=>{close();gotoBooking(b.id,b.date)};
   $("#detail-sheet").addEventListener("click",e=>{if(e.target.id==="detail-sheet")close()});
   $("#detail-edit")?.addEventListener("click",()=>{close();openBooking(Number(b.start_min),"book",b)});
   const finishAction=async(status,message,confirmText)=>{
@@ -1454,9 +1456,23 @@ async function gotoBooking(id,date){
  await navigate("agenda");
  setTimeout(()=>{const el=document.querySelector(`[data-open-booking="${CSS.escape(String(id))}"]`);if(el){el.scrollIntoView({block:"center"});el.classList.add("flash-booking");setTimeout(()=>el.classList.remove("flash-booking"),2600)}},180);
 }
+
+const ICO2={eye:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',arrow:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'};
+let popOn=null;
+function closePop(){document.querySelector('.pop-scrim')?.remove();popOn?.classList.remove('pop-on');popOn=null;window.removeEventListener('scroll',closePop,true)}
+function popMenu(card,items){closePop();if(!items.length)return;popOn=card;card.classList.add('pop-on');
+ const sc=document.createElement('div');sc.className='pop-scrim';const m=document.createElement('div');m.className='pop';
+ m.innerHTML=items.map((it,i)=>`<button type="button" class="pop-i ${it.cls||''}" data-pi="${i}">${it.icon||''}<span>${it.label}</span></button>`).join('');
+ sc.appendChild(m);document.body.appendChild(sc);
+ const r=card.getBoundingClientRect(),mw=m.offsetWidth,mh=m.offsetHeight,vw=window.innerWidth,vh=window.innerHeight;
+ const left=Math.min(vw-mw-8,Math.max(8,r.left+r.width/2-mw/2)),top=Math.min(vh-mh-8,Math.max(8,r.top+r.height/2-mh/2));
+ m.style.left=left+'px';m.style.top=top+'px';
+ sc.addEventListener('click',e=>{const b=e.target.closest('[data-pi]');if(!b){closePop();return}const it=items[Number(b.dataset.pi)];closePop();setTimeout(()=>it.fn(),20)});
+ window.addEventListener('scroll',closePop,true);
+}
 document.addEventListener("click",e=>{
  const g=e.target.closest("[data-goto-booking]");
- if(g){gotoBooking(g.dataset.gotoBooking,g.dataset.date);return}
+ if(g){const id=g.dataset.gotoBooking;popMenu(g,[{label:"Ir para agendamento",icon:ICO2.eye,fn:()=>showBookingDetail(id)}]);return}
  const h=e.target.closest(".hist-item");
  if(h&&!e.target.closest("a,button"))h.classList.toggle("open");
 });
@@ -1529,7 +1545,7 @@ function setMenuOpen(open){$("#menu").classList.toggle("open",open);$("#menu-bac
 $("#hamb").onclick=()=>setMenuOpen(!$("#menu").classList.contains("open"));
 $("#brand-home").onclick=()=>{if(session)navigate("agenda")};
 $("#brand-home").onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&session){e.preventDefault();navigate("agenda")}};
-$("#finance-menu").onclick=()=>{setMenuOpen(false);location.href="financeiro.html";};
+$("#finance-menu").onclick=()=>{setMenuOpen(false);document.body.style.transition="opacity .16s ease";document.body.style.opacity="0";setTimeout(()=>{location.href="financeiro.html"},150)};
 $("#menu-backdrop").onclick=()=>setMenuOpen(false);
 $("#logout").onclick=()=>{window.__me=null;window.__myBarberId=null;session=null;saveSession();setMenuOpen(false);renderLoginOrPage()};
 $("#menu").addEventListener("click",e=>{let b=e.target.closest("[data-page]");if(b){setMenuOpen(false);navigate(b.dataset.page)}});
@@ -2115,6 +2131,46 @@ function noShowPaidDialog(b,cl,done){
   });
 }
 // Venda de crédito ao cliente
+async function sellPackageDialog(c,done){
+  document.querySelector(".nsm")?.remove();
+  await ensurePM();
+  let pk=[],items=[];
+  try{pk=await api("service_packages?select=*&active=eq.true&order=name.asc");if(pk.length)items=await api("service_package_items?select=*&package_id=in.("+pk.map(p=>p.id).join(",")+")")}catch(e){}
+  pk.forEach(p=>p.items=items.filter(i=>String(i.package_id)===String(p.id)));
+  let method=(payList().find(x=>x[3]==="pix")||payList()[0]||["pix"])[0],sel=null;
+  const m=document.createElement("div");m.className="nsm";
+  m.innerHTML=`<div class="nsm-card"><h3>Vender pacote</h3><p>${esc(c.name||"Cliente")} · o valor entra no caixa e os serviços ficam disponíveis para o cliente.</p>
+  ${pk.length?`<div class="pkg-list">${pk.map(p=>`<button type="button" class="pkg-opt" data-pk="${p.id}"><b>${esc(p.name)}</b><span>${p.items.map(i=>esc(i.service_name)+" ×"+i.quantity).join(", ")}</span><em>${fm(p.price)}</em></button>`).join("")}</div>`:`<div class="muted">Nenhum pacote cadastrado. Crie em Financeiro → Pacotes.</div>`}
+  <label class="pay-optrow"><span>Valor (R$)</span><div class="pay-money" style="width:130px"><i>R$</i><input id="sp-amt" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,00"></div></label>
+  <div class="pay-grid sc-grid">${payList().map(x=>`<button type="button" class="pay-tile ${x[0]===method?"on":""}" data-scm="${x[0]}"><span>${x[2]}</span>${x[1]}</button>`).join("")}</div>
+  <div id="sp-err" class="pay-diff"></div>
+  <button type="button" class="btn primary" id="sp-ok" style="width:100%;height:46px;margin-top:6px">Confirmar venda do pacote</button>
+  <button type="button" class="ns-x" data-ns="x">Voltar</button></div>`;
+  document.body.appendChild(m);
+  m.addEventListener("click",async e=>{
+    if(e.target===m||e.target.closest("[data-ns=x]")){m.remove();return}
+    const t=e.target.closest("[data-scm]");if(t){method=t.dataset.scm;m.querySelectorAll("[data-scm]").forEach(x=>x.classList.toggle("on",x===t));return}
+    const o=e.target.closest("[data-pk]");if(o){sel=pk.find(p=>String(p.id)===o.dataset.pk);m.querySelectorAll("[data-pk]").forEach(x=>x.classList.toggle("on",x===o));m.querySelector("#sp-amt").value=Number(sel.price).toFixed(2);return}
+    if(e.target.closest("#sp-ok")){
+      if(!sel){m.querySelector("#sp-err").textContent="Escolha o pacote.";return}
+      const paid=Math.round(Number(m.querySelector("#sp-amt").value||0)*100)/100;
+      if(paid<0){m.querySelector("#sp-err").textContent="Valor inválido.";return}
+      const btn=e.target.closest("#sp-ok");btn.disabled=true;btn.textContent="Salvando…";
+      try{
+        const now=new Date();let expires=null;
+        if(sel.validity_start_mode==="purchase"&&sel.has_expiration&&sel.expiration_value){const d=new Date(now);d.setDate(d.getDate()+Number(sel.expiration_value)*(sel.expiration_unit==="weeks"?7:1));expires=d.toISOString()}
+        const cp=(await api("client_packages",{method:"POST",body:JSON.stringify({client_phone:c.phone,client_name:c.name||"",package_id:sel.id,package_name:sel.name,purchased_price:paid,status:"active",purchased_at:now.toISOString(),expires_at:expires,validity_start_mode:sel.validity_start_mode,first_used_at:null,services_snapshot:sel.items.map(i=>({service_id:i.service_id,service_name:i.service_name,quantity:i.quantity})),created_by:uid()})}))[0];
+        for(const i of sel.items)await api("client_package_services",{method:"POST",body:JSON.stringify({client_package_id:cp.id,service_id:i.service_id,service_name:i.service_name,quantity_purchased:i.quantity,quantity_remaining:i.quantity})});
+        if(paid>0){
+          const mv={movement_date:todayLocal(),...payMv(method),status:"paid",created_by:uid()};
+          await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"income",description:"Venda pacote "+sel.name+" — "+(c.name||c.phone),category:"Venda de pacote",amount:paid})});
+          if(["cash","card"].includes(payKind(method)))await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"pro_labore",description:"Retirada automática venda pacote "+sel.name,category:"Retirada do proprietário",amount:paid})});
+        }
+        m.remove();await done?.();
+      }catch(err){m.querySelector("#sp-err").textContent="Não foi possível registrar: "+err.message;btn.disabled=false;btn.textContent="Confirmar venda do pacote"}
+    }
+  });
+}
 async function sellCreditDialog(c,done){
   document.querySelector(".nsm")?.remove();
   await ensurePM();
@@ -2665,4 +2721,46 @@ input.sw:checked{background:#2378d4}input.sw:checked::after{transform:translateX
 .dt-box,.booking-screen .client-card-compact{box-shadow:var(--box-shadow)!important}
 
 .ag-appt{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:pan-x pan-y}
+
+/* f8: transição suave, menu vidro */
+@view-transition{navigation:auto}
+html{background:#E6F1FC}
+@keyframes pg-in{from{opacity:0}to{opacity:1}}
+body{animation:pg-in .3s ease backwards}
+@keyframes menu-in{from{transform:translateX(-26px);opacity:0}to{transform:none;opacity:1}}
+@keyframes bd-in{from{opacity:0}to{opacity:1}}
+.menu-backdrop.open{background:rgba(16,48,79,.30)!important;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);animation:bd-in .22s ease}
+.menu{background:linear-gradient(170deg,rgba(247,252,255,.9),rgba(214,234,252,.86))!important;backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);border:0!important;border-right:1px solid rgba(255,255,255,.75)!important;border-radius:0 28px 28px 0;box-shadow:18px 0 50px rgba(31,100,180,.22)!important}
+.menu.open{animation:menu-in .26s cubic-bezier(.2,.9,.3,1)}
+.menu-brand{border-bottom:1px solid rgba(111,168,220,.28)!important}
+.menu button{background:rgba(255,255,255,.62)!important;border:1px solid rgba(255,255,255,.85)!important;border-radius:16px!important;padding:12px 14px!important;font-weight:700;font-size:15px;color:#10304F!important;box-shadow:0 3px 10px rgba(35,120,212,.10)!important}
+.menu button:hover,.menu button.primary,.menu button.current{background:rgba(255,255,255,.95)!important;border-color:#9CC6EE!important;color:#10304F!important}
+
+
+.pop-scrim{position:fixed;inset:0;z-index:7000;-webkit-tap-highlight-color:transparent}
+.pop{position:fixed;z-index:7001}
+.pop-i{position:relative;display:flex;align-items:center;width:auto;border:0!important;background:transparent!important;color:#10304F!important;box-shadow:none!important;cursor:pointer;font-family:inherit}
+.pop-i svg{flex:none;color:#397bd1}.pop-i.danger{color:#B3342B!important}.pop-i.danger svg{color:#B3342B}
+/* f8: balão bolha de vidro */
+.pop-scrim{background:rgba(16,48,79,.12)}
+.pop{display:flex;align-items:stretch;gap:2px;padding:7px;min-width:0;max-width:none;border-radius:32px;background:linear-gradient(135deg,rgba(255,255,255,.66),rgba(200,226,250,.46));backdrop-filter:blur(22px) saturate(1.9);-webkit-backdrop-filter:blur(22px) saturate(1.9);border:1px solid rgba(255,255,255,.8);box-shadow:0 20px 44px rgba(31,100,180,.30),0 2px 8px rgba(31,100,180,.14),inset 0 1px 0 rgba(255,255,255,.95),inset 0 -10px 20px rgba(111,168,220,.18);transform-origin:50% 50%;animation:pop-bub .34s cubic-bezier(.25,1.6,.45,1)}
+@keyframes pop-bub{0%{opacity:0;transform:scale(.5)}60%{opacity:1}100%{opacity:1;transform:scale(1)}}
+.pop:before{display:none}
+.pop:after{content:"";position:absolute;top:5px;left:22px;width:38%;height:11px;border-radius:50%;background:linear-gradient(rgba(255,255,255,.9),rgba(255,255,255,0));pointer-events:none}
+.pop-i{flex-direction:column;justify-content:center;gap:3px;min-width:70px;max-width:96px;height:auto;min-height:58px;padding:7px 8px;border-radius:25px;font-size:12px;line-height:1.1;font-weight:700;text-align:center}
+.pop-i svg{width:20px;height:20px}
+.pop-i:active{background:rgba(255,255,255,.7)!important}
+.pop-i+.pop-i{margin-top:0}
+.bk.pop-on{outline:2px solid rgba(79,148,216,.7)}
+@keyframes row-flash{0%,100%{box-shadow:0 0 0 0 rgba(79,148,216,0)}30%{box-shadow:0 0 0 6px rgba(79,148,216,.45)}}
+.bk.row-flash{animation:row-flash 1.1s ease 2}
+
+@keyframes app-in{from{opacity:.0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#app.app-in>*{animation:app-in .32s cubic-bezier(.2,.8,.3,1) backwards}
+.cc-btns{display:flex;gap:6px;flex:none}.cc-btns .btn{white-space:nowrap}
+.pkg-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.pkg-opt{display:grid!important;grid-template-columns:1fr auto;gap:0 8px;text-align:left;border:1.5px solid #C4DFF8!important;background:#F3F9FF!important;border-radius:14px!important;padding:9px 12px!important;color:#10304F!important}
+.pkg-opt b{grid-column:1;font-size:15px}.pkg-opt span{grid-column:1;font-size:12.5px;color:#5b7a99}.pkg-opt em{grid-column:2;grid-row:1/3;align-self:center;font-style:normal;font-weight:800}
+.pkg-opt.on{border-color:#397bd1!important;background:#DCEBFA!important}
+.hrow.pop-on{outline:2px solid rgba(79,148,216,.7)}
 </style>
