@@ -2,7 +2,7 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="robots" content="noindex"><meta name="theme-color" content="#A9D0F5">
 <title>Financeiro | Barber Shop JS</title>
 <style>
@@ -245,6 +245,7 @@ body{animation:pg-in .3s ease backwards}
 .stk-full .stk-grab{display:none}
 .stk-back{width:auto!important;height:38px;padding:0 14px;border-radius:999px;background:#fff!important;color:#10304F!important;border:1px solid #C4DFF8!important;font-size:14px;margin:0 0 10px;box-shadow:var(--box-shadow)}
 .stk-full h3{font-size:22px;margin:4px 0 14px}
+html{touch-action:manipulation}
 </style></head>
 <body>
 <div class="top"><button type="button" id="hamb" aria-label="Abrir menu">☰</button><img class="logo" alt="Logo"><div class="fbrand" id="fin-brand" role="button" tabindex="0">Barber Shop JS</div><button type="button" id="logoutF">Sair</button></div>
@@ -818,4 +819,5 @@ else{
 }
 $('month').value=params.get('month')||`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;$('date').value=fmtDate(now);session=getSession();if(!session){msg('Sessão não encontrada. Entre na gestão e abra o Financeiro pelo menu.',true)}else{try{const p=await api('finance_user_permissions?select=*&user_id=eq.'+encodeURIComponent(uid()||''));me=p?.[0]||null;canEdit=true;await load();const bookingId=params.get('booking');if(bookingId){const selected=bookings.find(x=>String(x.id)===bookingId);if(!selected){msg('Agendamento não encontrado no mês selecionado. Verifique a data e tente novamente.',true)}else if(closures.some(c=>String(c.booking_id)===bookingId)){msg('Este atendimento já possui fechamento financeiro. Confira o histórico antes de alterar algo.')}else{await openClosure(bookingId)}}}catch(e){msg(e.message,true)}}
 })();
-</script></body></html>
+</script><script>["gesturestart","gesturechange","gestureend"].forEach(function(t){document.addEventListener(t,function(e){e.preventDefault()},{passive:false})});document.addEventListener("touchmove",function(e){if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});</script>
+</body></html>
