@@ -738,6 +738,34 @@ function dtLabel(inp){const v=inp.value;if(!v)return inp.type==="date"?"Escolher
 function dtUpdate(inp){const t=inp.parentElement&&inp.parentElement.querySelector(".dt-text");if(t)t.textContent=dtLabel(inp)}
 function prettyDateTime(){document.querySelectorAll('.booking-screen input[type="date"],.booking-screen input[type="time"]').forEach(inp=>{if(inp.parentElement&&inp.parentElement.classList.contains("dt-box"))return;const w=document.createElement("div");w.className="dt-box dt-"+inp.type;w.innerHTML=`<span class="dt-ic">${DT_ICON[inp.type]}</span><span class="dt-text"></span>`;inp.parentNode.insertBefore(w,inp);w.appendChild(inp);const vd=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value");Object.defineProperty(inp,"value",{get(){return vd.get.call(this)},set(v){vd.set.call(this,v);dtUpdate(this)},configurable:true});dtUpdate(inp)})}
 ["input","change"].forEach(ev=>document.addEventListener(ev,e=>{const t=e.target;if(t&&t.matches&&t.matches(".dt-box input"))dtUpdate(t)},true));
+async function mergeClientDialog(c){
+  document.querySelector(".nsm")?.remove();
+  let all=[];try{all=(await api("clients?select=phone,name&order=name")).filter(x=>String(x.phone)!==String(c.phone))}catch(e){alert("Não foi possível carregar os clientes: "+e.message);return}
+  const m=document.createElement("div");m.className="nsm";document.body.appendChild(m);
+  const norm=t=>String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+  const stepPick=()=>{
+    m.innerHTML=`<div class="nsm-card"><h3>Mesclar cadastros</h3><p>Com qual cadastro <b>${esc(c.name)}</b> deve ser unido?</p><input id="mg-q" type="search" placeholder="Buscar por nome ou telefone…" autocomplete="off" style="width:100%;margin-bottom:8px"><div id="mg-list"></div><div class="bb-row"><button type="button" class="bb-btn bb-back" data-bb="back" id="mg-x" aria-label="Voltar" title="Voltar">Voltar</button></div></div>`;
+    const draw=()=>{const q=norm($("#mg-q").value),qd=q.replace(/\D/g,"");const l=all.filter(x=>!q||norm(x.name).includes(q)||(qd&&String(x.phone).replace(/\D/g,"").includes(qd))).slice(0,40);$("#mg-list").innerHTML=l.map(x=>`<button type="button" data-mg="${esc(x.phone)}" class="mg-it"><b>${esc(x.name)}</b><span>${esc(fmtPhoneBR(x.phone))}</span></button>`).join("")||'<p class="muted">Nenhum cliente encontrado.</p>'};
+    draw();$("#mg-q").oninput=draw;$("#mg-x").onclick=()=>m.remove();
+    $("#mg-list").onclick=e=>{const b=e.target.closest("[data-mg]");if(!b)return;const o=all.find(x=>String(x.phone)===b.dataset.mg);if(o)stepKeep(o)};
+  };
+  const stepKeep=o=>{
+    m.innerHTML=`<div class="nsm-card"><h3>Qual cadastro deve ficar?</h3><p>O outro será unido a ele e removido. Agendamentos, pacotes e créditos passam para o cadastro que ficar.</p>
+    <button type="button" class="mg-it" data-keep="a"><b>${esc(c.name)}</b><span>${esc(fmtPhoneBR(c.phone))}</span></button>
+    <button type="button" class="mg-it" data-keep="b"><b>${esc(o.name)}</b><span>${esc(fmtPhoneBR(o.phone))}</span></button>
+    <div class="bb-row"><button type="button" class="bb-btn bb-back" data-bb="back" id="mg-b" aria-label="Voltar" title="Voltar">Voltar</button></div></div>`;
+    $("#mg-b").onclick=stepPick;
+    m.querySelectorAll("[data-keep]").forEach(bt=>bt.onclick=()=>{
+      const keep=bt.dataset.keep==="a"?c:o,rem=bt.dataset.keep==="a"?o:c;
+      m.remove();
+      showAppConfirm(`Unir <b>${esc(rem.name)}</b> em <b>${esc(keep.name)}</b>?<br><small style="font-weight:500;color:#5b7a99;font-size:14px">${esc(fmtPhoneBR(rem.phone))} será removido e guardado nas observações. Não dá para desfazer.</small>`,async()=>{
+        try{await api("rpc/merge_clients",{method:"POST",body:JSON.stringify({p_keep:keep.phone,p_remove:rem.phone})});await showClientCard(keep.phone)}catch(err){alert("Não foi possível mesclar: "+err.message)}
+      });
+    });
+  };
+  m.addEventListener("click",e=>{if(e.target===m)m.remove()});
+  stepPick();
+}
 async function showClientCard(phone){
   try{
     let c=(await api(`clients?select=*&phone=eq.${encodeURIComponent(phone)}`))[0]||clients.find(x=>String(x.phone)===String(phone))||{name:"Cliente",phone};
@@ -747,7 +775,7 @@ async function showClientCard(phone){
     const ph=String(c.phone||"").replace(/\D/g,"");
     shell("Cliente",`<button class="btn" id="back-clients">← Clientes</button>
     <div class="cc-head"><div class="cc-name">${esc(c.name)}</div><div class="cc-sub">${esc(c.nickname?c.nickname+" · ":"")}${esc(c.phone||"")}${c.birth_date?" · 🎂 "+esc(birthBR(c.birth_date)):""}</div>
-     <div class="cc-acts"><a class="lic" href="https://wa.me/${ph.length<=11?"55"+ph:ph}" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">${ICO.wa}</a><button type="button" class="lic" data-history="${esc(c.phone)}" aria-label="Agendamentos" title="Agendamentos">${ICO.cal}</button><button type="button" class="lic" data-edit-client="${esc(c.phone)}" aria-label="Editar" title="Editar">${ICO.edit}</button></div></div>
+     <div class="cc-acts"><a class="lic" href="https://wa.me/${ph.length<=11?"55"+ph:ph}" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">${ICO.wa}</a><button type="button" class="lic" data-history="${esc(c.phone)}" aria-label="Agendamentos" title="Agendamentos">${ICO.cal}</button><button type="button" class="lic" data-edit-client="${esc(c.phone)}" aria-label="Editar" title="Editar">${ICO.edit}</button><button type="button" class="lic" id="cc-merge" aria-label="Mesclar com outro cadastro" title="Mesclar com outro cadastro"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v5a4 4 0 0 0 4 4h4a4 4 0 0 1 4 4v5M18 3v5a4 4 0 0 1-4 4"/><path d="M15 18l3 3 3-3"/></svg></button></div></div>
     <div class="cc-badge ${badge.cls}"><b>${badge.t}</b><span>${badge.s}</span></div>
     ${owed>0?`<div class="cc-badge owe"><b>💰 Valor a receber: ${fm(owed)}</b><span>${owing.map(o=>fmtB(o.b)+" — "+fm(o.v)).join("<br>")}</span></div>`:""}
     <div class="cc-credit"><div><small>Crédito disponível</small><b>${fm(creditSum)}</b></div><div class="cc-btns"><button type="button" class="btn small" id="cc-sell-credit">＋ Crédito</button><button type="button" class="btn small" id="cc-sell-pkg">＋ Pacote</button></div></div>
@@ -756,7 +784,7 @@ async function showClientCard(phone){
     ${noshows.length?`<h3 class="cc-h">Não compareceu</h3><div class="hlist">${histRows(noshows,{group:false})}</div>`:""}
     <h3 class="cc-h">Últimos atendimentos${cancelledN?` <small>(${cancelledN} cancelado(s) não contam)</small>`:""}</h3><div class="hlist">${histRows(attended.slice(0,5),{group:false})||`<div class="muted">Nenhum atendimento concluído ainda.</div>`}</div>`);
     if(clientFromAgenda){$("#back-clients").remove();const tt=app.querySelector(".section-title");tt.style.cssText="display:flex;align-items:center;justify-content:space-between";tt.insertAdjacentHTML("beforeend",'<button type="button" class="cc-x" id="cc-x" aria-label="Fechar">✕</button>');$("#cc-x").onclick=()=>navigate("agenda");setSub(()=>navigate("agenda"),"agenda")}else{$("#back-clients").onclick=loadClients;setSub(loadClients,"clients")}window.__snaps.card=app.innerHTML;softIn();
-    $("#cc-sell-credit").onclick=()=>sellCreditDialog(c,()=>showClientCard(phone));$("#cc-sell-pkg").onclick=()=>sellPackageDialog(c,()=>showClientCard(phone));
+    $("#cc-merge").onclick=()=>mergeClientDialog(c);$("#cc-sell-credit").onclick=()=>sellCreditDialog(c,()=>showClientCard(phone));$("#cc-sell-pkg").onclick=()=>sellPackageDialog(c,()=>showClientCard(phone));
   }catch(e){shell("Cliente",`<p class="error">${esc(e.message)}</p><button class="btn" id="back-clients">← Clientes</button>`);$("#back-clients").onclick=loadClients}
 }
 async function loadServices(){try{services=await api("services?select=*&order=sort");shell("Serviços",`<div class="row between"><span class="muted">${services.length} serviço(s)</span><button class="btn primary" id="new-service" aria-label="Adicionar serviço" title="Adicionar serviço">＋</button></div><div class="svc-list">`+services.map(s=>{const dm=Number(s.duration_min||0)||(s.is_cut?30:0);return `<div class="lrow ${s.active?"":"off"}" data-svc="${s.id}"><div class="lav sq">${ICO.cut}</div><div class="lg"><b>${esc(s.name)}</b><div class="lsub">${fm(s.price)}${dm?" · "+dm+" min":""}${s.active?"":" · Inativo"}</div></div></div>`}).join("")+`</div>`);
@@ -1600,7 +1628,7 @@ if(b.id==="mode-book"||b.id==="mode-block"){readBookingInputs();bookingDraft.mod
 if(b.id==="booking-barber-btn"){readBookingInputs();pickBarberGlass();return}
 if(b.id==="open-client-picker"){readBookingInputs();if(bookingDraft&&bookingDraft.selectedPhone){clientOptionsSheet(bookingDraft.selectedPhone);return}renderClientPicker();return}
 if(b.id==="booking-add-client"){readBookingInputs();bookingDraft.addingClient=true;bookingDraft.selectedPhone=null;renderBookingScreen();return}
-if(b.dataset.pickClient){readBookingInputs();bookingDraft.selectedPhone=b.dataset.pickClient;bookingDraft.newName="";bookingDraft.newPhone="";bookingDraft.addingClient=false;bookingDraft.query="";renderBookingScreen();offerPrevServices(b.dataset.pickClient);return}
+if(b.dataset.pickClient){readBookingInputs();const __prevSel=bookingDraft.selectedPhone;bookingDraft.selectedPhone=b.dataset.pickClient;if(__prevSel&&String(__prevSel)!==String(b.dataset.pickClient)){bookingDraft.services=[];bookingDraft.endManuallyChanged=false;if(Number.isFinite(Number(bookingDraft.start)))bookingDraft.end=Number(bookingDraft.start)+30}bookingDraft.newName="";bookingDraft.newPhone="";bookingDraft.addingClient=false;bookingDraft.query="";renderBookingScreen();offerPrevServices(b.dataset.pickClient);return}
 if(b.id==="client-picker-back"){renderBookingScreen();return}
 if(b.id==="client-picker-add-new"){readBookingInputs();renderBookingClientRegistration();return}
 if(b.id==="client-picker-contacts"){await pickPhoneContact();return}
@@ -2977,6 +3005,8 @@ html{touch-action:manipulation}
 .allday-row{display:flex;align-items:center;gap:10px;margin:0 0 6px}
 
 .owe-row[data-oid]{cursor:pointer}.pop-scrim{z-index:7000!important}
+.mg-it{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid #C4DFF8;background:#F3F9FF;border-radius:14px;padding:11px 13px;margin-bottom:8px;color:#10304F}.mg-it span{font-size:13px;color:#5b7a99}
+#mg-list{max-height:40vh;overflow:auto}
 /* g27 */
 .professional-actions .pill{font-weight:700}
 /* g26 */
