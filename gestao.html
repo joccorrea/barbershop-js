@@ -1009,6 +1009,7 @@ if(b.id==="month-next"){month=new Date(month.getFullYear(),month.getMonth()+1,1)
 app.addEventListener("change",e=>{
  if(e.target.matches("[data-service]")&&bookingDraft){
   const id=e.target.dataset.service;
+  e.target.closest(".service-choice")?.classList.toggle("on",e.target.checked);
   const svc=bookingDraft.catalog.find(x=>String(x.id)===String(id));
   const card=e.target.closest(".service-choice");
   if(e.target.checked&&svc){
@@ -1169,7 +1170,7 @@ function renderBookingScreen(){
  </div>
  <div class="booking-range-label">Início</div><div class="booking-date-time-line"><div class="field"><input id="booking-date" type="date" aria-label="Data de início" title="${["dom","seg","ter","qua","qui","sex","sáb"][d.date.getDay()]}, ${d.date.toLocaleDateString("pt-BR")}" value="${key(d.date)}"></div><div class="field"><input id="booking-start" type="time" aria-label="Horário de início" value="${startMin==null?'':hm(startMin)}" step="1800"></div></div>
  <div class="section-title">Serviços</div>
- <div>${(d.catalog||[]).map(x=>{const chosen=selected.find(z=>String(z.id)===String(x.id));const price=chosen?Number(chosen.price):Number(x.price||0);return `<label class="service-choice"><input type="checkbox" data-service="${x.id}" ${chosen?'checked':''}><span class="grow"><b>${esc(x.name)}</b><span class="muted">${(()=>{const dm=Number(x.duration_min||0);return dm>0?dm+" min":(x.is_cut||serviceAddsDuration(x)?"30 min":"")})()}</span></span><span class="svc-price">${fm(price)}</span></label>`}).join('')}</div>
+ <div>${(d.catalog||[]).map(x=>{const chosen=selected.find(z=>String(z.id)===String(x.id));const price=chosen?Number(chosen.price):Number(x.price||0);return `<label class="service-choice${chosen?' on':''}"><input type="checkbox" data-service="${x.id}" ${chosen?'checked':''}><span class="grow"><b>${esc(x.name)}</b><span class="muted">${(()=>{const dm=Number(x.duration_min||0);return dm>0?dm+" min":(x.is_cut||serviceAddsDuration(x)?"30 min":"")})()}</span></span><span class="svc-price">${fm(price)}</span></label>`}).join('')}</div>
  <div class="booking-range-label">Fim</div><div class="field-line">${dateInput('booking-end-date','',d.endDate||new Date(d.date.getFullYear(),d.date.getMonth(),d.date.getDate()+Math.floor(endMin/1440)))}${timeInput('booking-end','',endMin==null?null:endMin%1440)}</div>
  <div class="section-title">Desconto ou acréscimo</div>
  <div class="card adj-card" id="adj-card">${adjustmentsHtml(d)}</div>
@@ -1705,4 +1706,23 @@ html{-webkit-text-size-adjust:100%}
 .period-day-times{color:#4A6B8C;text-align:right}
 .slot-setting{gap:8px!important}
 #app h3{font-size:15px;margin:10px 2px 6px}
+
+/* serviços do agendamento – opção 1: círculo de seleção + preço em destaque */
+label.service-choice{background:#fff!important;border:1px solid #C4DFF8!important;border-radius:14px!important;box-shadow:none!important;cursor:pointer}
+label.service-choice.on{background:#EAF4FF!important;border-color:#4F94D8!important}
+label.service-choice input[type=checkbox]{-webkit-appearance:none;appearance:none;width:24px!important;height:24px!important;border-radius:50%!important;border:2px solid #A9C6E4!important;background:#fff!important;padding:0!important;margin:0!important;flex:none;position:relative}
+label.service-choice input[type=checkbox]:checked{background:#4F94D8!important;border-color:#4F94D8!important}
+label.service-choice input[type=checkbox]:checked::after{content:"";position:absolute;left:6px;top:2px;width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+label.service-choice .grow b{font-size:15px;color:#10304F}
+label.service-choice .grow .muted{font-size:12px;color:#4A6B8C}
+.svc-price{background:#EEF6FF;border-radius:999px;padding:5px 11px;font-size:13px!important}
+label.service-choice.on .svc-price{background:#fff}
+
+.booking-screen label.service-choice{gap:12px!important;padding:8px 14px!important;margin:0 0 6px!important;border:1px solid #C4DFF8!important;box-shadow:none!important}
+.booking-screen label.service-choice:has(input:checked),.booking-screen label.service-choice.on{background:#EAF4FF!important;border:1px solid #4F94D8!important;box-shadow:none!important;color:#10304F!important}
+.booking-screen label.service-choice input[type=checkbox]{position:relative!important;opacity:1!important;width:24px!important;height:24px!important;pointer-events:auto!important}
+
+#app label.service-choice input[type="checkbox"]{border:2px solid #A9C6E4!important;border-radius:50%!important;background:#fff!important;box-shadow:none!important;-webkit-appearance:none!important;appearance:none!important;width:24px!important;height:24px!important;min-height:0!important;padding:0!important;position:relative!important;opacity:1!important}
+#app label.service-choice input[type="checkbox"]:checked{background:#4F94D8!important;border-color:#4F94D8!important}
+#app label.service-choice input[type="checkbox"]:checked::after{content:"";position:absolute;left:6px;top:2px;width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
 </style>
