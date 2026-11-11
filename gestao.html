@@ -442,10 +442,10 @@ shell(phone?"Editar cliente":"Novo cliente",`<div class="subnav"><button class="
 let formtab="cadastro";const draw=()=>{const body=$("#client-form-body");if(formtab==="cadastro")body.innerHTML=`<div class="grid">${field("Nome completo","c-name",c.name)}${field("Telefone/WhatsApp","c-phone",c.phone,"tel",phone?"readonly":"")}${field("Apelido","c-nickname",c.nickname||"")}${field("Data de nascimento","c-birth",c.birth_date||"","date")}</div>`;
 if(formtab==="endereco")body.innerHTML=`<div class="grid">${field("Rua","p-street",profile.street)}${field("Número","p-number",profile.number)}${field("Complemento","p-complement",profile.complement)}${field("Bairro","p-neighborhood",profile.neighborhood)}${field("Cidade","p-city",profile.city)}${field("Estado","p-state",profile.state)}${field("CEP","p-postal",profile.postal_code)}</div>${area("Observações","p-notes",profile.notes)}`;
 if(formtab==="fotos")body.innerHTML=`${area("URLs das fotos (uma por linha)","p-photos",(profile.photos||[]).join("\n"))}<p class="muted">Use links públicos de imagens. As URLs serão guardadas no cadastro.</p>`;
-if(formtab==="historico")body.innerHTML=history.length?history.map(b=>`<div class="card"><b>${esc(b.date)} · ${hm(b.start_min)}</b><div class="muted">${esc((b.services||[]).map(s=>s.name).join(", "))} · ${fm(b.total)}</div><span class="pill">${esc(b.status)}</span></div>`).join(""):`<p class="muted">Nenhum agendamento encontrado.</p>`};
+if(formtab==="historico")body.innerHTML=history.filter(notCancelled).length?history.filter(notCancelled).map(b=>`<div class="card"><b>${esc(b.date)} · ${hm(b.start_min)}</b><div class="muted">${esc((b.services||[]).map(s=>s.name).join(", "))} · ${fm(b.total)}</div><span class="pill">${esc(statusPortuguese(b.status))}</span></div>`).join(""):`<p class="muted">Nenhum agendamento encontrado.</p>`};
 draw();$("#client-form").onsubmit=async e=>{e.preventDefault();try{let ph=String(val("c-phone")||c.phone||"").replace(/\D/g,""),name=String(val("c-name")||c.name||"").trim();if(name.length<2||ph.length<10)throw Error("Informe nome e telefone com DDD.");let bd=val("c-birth")||c.birth_date||null;await api("clients?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify({phone:ph,name,nickname:val("c-nickname")||c.nickname||"",birth_date:bd})});let prof={phone:ph,street:val("p-street")||profile.street||"",number:val("p-number")||profile.number||"",complement:val("p-complement")||profile.complement||"",neighborhood:val("p-neighborhood")||profile.neighborhood||"",city:val("p-city")||profile.city||"",state:val("p-state")||profile.state||"",postal_code:val("p-postal")||profile.postal_code||"",notes:val("p-notes")||profile.notes||"",photos:(val("p-photos")?val("p-photos").split("\n").map(s=>s.trim()).filter(Boolean):(profile.photos||[])),updated_at:new Date().toISOString()};await api("client_profiles?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify(prof)});await loadClients();notice="Cliente salvo com sucesso.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};
 app.querySelectorAll("[data-formtab]").forEach(b=>b.onclick=()=>{formtab=b.dataset.formtab;draw()});$("#cancel-edit").onclick=loadClients;const deleteButton=$("#delete-client");if(deleteButton)deleteButton.onclick=async()=>{if(!phone)return;if(!confirm(`Tem certeza que deseja excluir o cliente ${c.name||phone}? Os agendamentos antigos serão mantidos no histórico.`))return;deleteButton.disabled=true;deleteButton.textContent="Excluindo...";try{await api(`client_profiles?phone=eq.${encodeURIComponent(phone)}`,{method:"DELETE"});await api(`clients?phone=eq.${encodeURIComponent(phone)}`,{method:"DELETE"});await loadClients();notice="Cliente excluído com sucesso.";renderNotice("success")}catch(err){deleteButton.disabled=false;deleteButton.textContent="Excluir cliente";const n=$("#notice");if(n)n.innerHTML=`<div class="notice error">Não foi possível excluir o cliente: ${esc(err.message)}</div>`}}}
-async function showHistory(phone){try{let h=await api(`bookings?select=id,date,start_min,end_min,status,services,total,client_name,client_phone&client_phone=eq.${encodeURIComponent(phone)}&order=date.desc`);shell("Histórico de agendamentos",`<button class="btn" id="back-clients">← Clientes</button>`+(h.map(b=>`<div class="card"><b>${esc(b.date)} · ${hm(b.start_min)}–${hm(b.end_min)}</b><div>${esc((b.services||[]).map(s=>s.name+" ×"+s.qty).join(", "))}</div><div>${fm(b.total)} · ${esc(b.status)}</div></div>`).join("")||`<p class="muted">Nenhum agendamento.</p>`));$("#back-clients").onclick=loadClients}catch(e){shell("Histórico",`<p class="error">${esc(e.message)}</p>`)}}
+async function showHistory(phone){try{let h=await api(`bookings?select=id,date,start_min,end_min,status,services,total,client_name,client_phone&client_phone=eq.${encodeURIComponent(phone)}&order=date.desc`);shell("Histórico de agendamentos",`<button class="btn" id="back-clients">← Clientes</button>`+(h.filter(notCancelled).map(b=>`<div class="card"><b>${esc(b.date)} · ${hm(b.start_min)}–${hm(b.end_min)}</b><div>${esc((b.services||[]).map(s=>s.name+" ×"+s.qty).join(", "))}</div><div>${fm(b.total)} · ${esc(statusPortuguese(b.status))}</div></div>`).join("")||`<p class="muted">Nenhum agendamento.</p>`));$("#back-clients").onclick=loadClients}catch(e){shell("Histórico",`<p class="error">${esc(e.message)}</p>`)}}
 async function loadServices(){try{services=await api("services?select=*&order=sort");shell("Serviços",`<div class="row between"><span class="muted">${services.length} serviço(s)</span><button class="btn primary" id="new-service">＋ Adicionar serviço</button></div>`+services.map(s=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(s.name)}</b><div class="muted">${esc(s.description||"")}</div><div>${fm(s.price)} · ${Number(s.duration_min||0)|| (s.is_cut?30:0)} min ${s.active?"":"· Inativo"}</div></div><button class="btn small" data-edit-service="${s.id}">Editar</button></div></div>`).join(""))}catch(e){shell("Serviços",`<p class="error">${esc(e.message)}</p>`)}}
 async function editService(id=null){editServiceId=id;let s=services.find(x=>x.id===id)||{name:"",description:"",price:0,is_cut:false,sort:services.length+1,active:true,duration_min:0,pricing_type:"fixed",cost:0,barber_id:barbers[0]?.id||"",visible_to_customers:true,bookable_by_customers:true,show_price_to_customers:true,anamnesis:""};try{barbers=await api("barbers?select=id,name&active=eq.true")}catch(e){}shell(id?"Editar serviço":"Novo serviço",`<form id="service-form"><div class="grid">${field("Nome do serviço","s-name",s.name)}${field("Preço (R$)","s-price",s.price,"number",'step="0.01" min="0"')}${field("Duração (minutos; 0 = padrão)","s-duration",s.duration_min||0,"number",'step="5" min="0"')}${field("Custo (R$)","s-cost",s.cost||0,"number",'step="0.01" min="0"')}${field("Ordem de exibição","s-sort",s.sort||1,"number",'min="0"')}</div>${area("Descrição","s-description",s.description||"")}<div class="field"><label>Tipo de preço</label><select id="s-pricing"><option value="fixed">Preço fixo</option><option value="variable">Preço variável</option></select></div><div class="field"><label>Profissional responsável</label><select id="s-barber"><option value="">Qualquer profissional</option>${optionList(barbers,"id","name")}</select></div>${area("Anamnese / observações necessárias","s-anamnesis",s.anamnesis||"")}<label><input style="width:auto" type="checkbox" id="s-cut"> É corte (30 minutos por unidade)</label><br><label><input style="width:auto" type="checkbox" id="s-active"> Serviço ativo</label><br><label><input style="width:auto" type="checkbox" id="s-visible"> Visível aos clientes</label><br><label><input style="width:auto" type="checkbox" id="s-bookable"> Clientes podem agendar</label><br><label><input style="width:auto" type="checkbox" id="s-showprice"> Mostrar preço aos clientes</label><div class="form-actions"><button class="btn primary">Salvar serviço</button><button type="button" class="btn" id="cancel-service">Voltar</button></div></form>`);
 $("#s-pricing").value=s.pricing_type||"fixed";$("#s-barber").value=s.barber_id||"";$("#s-cut").checked=!!s.is_cut;$("#s-active").checked=!!s.active;$("#s-visible").checked=s.visible_to_customers!==false;$("#s-bookable").checked=s.bookable_by_customers!==false;$("#s-showprice").checked=s.show_price_to_customers!==false;
@@ -483,14 +483,53 @@ async function editPackage(id=null){
  }catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};
  $("#cancel-package").onclick=loadPackages;
 }
+
+let combos=[],editComboId=null;
+async function loadCombos(){
+ try{
+  const [cs,items,svs]=await Promise.all([api("service_combos?select=*&order=name"),api("service_combo_items?select=*&order=id"),api("services?select=id,name,is_cut,active&order=sort")]);
+  services=svs;
+  combos=cs.map(c=>({...c,items:items.filter(i=>String(i.combo_id)===String(c.id))}));
+  const groupText=c=>{const g={};c.items.forEach(i=>{(g[i.group_no]=g[i.group_no]||[]).push(i.service_id)});return Object.keys(g).sort((a,b)=>a-b).map(k=>{const ids=g[k];const cutIds=svs.filter(x=>x.is_cut).map(x=>x.id);const all=cutIds.length>1&&cutIds.every(i=>ids.includes(i))&&ids.every(i=>cutIds.includes(i));return all?"todos os cortes":ids.map(i=>(svs.find(x=>x.id===i)||{}).name||"?").join(" / ")}).join(" + ")};
+  shell("Combos",`<div class="row between"><span class="muted">${combos.length} combo(s)</span><button class="btn primary" id="new-combo">＋ Adicionar combo</button></div><div class="notice">O desconto é aplicado automaticamente quando o cliente (ou você) escolhe os serviços do combo juntos.</div>`+(combos.map(c=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(c.name)}</b><div class="muted">${esc(groupText(c))}</div><div>− ${fm(c.discount)}${c.active?"":" · Inativo"}</div></div><button class="btn small" data-edit-combo="${c.id}">Editar</button></div></div>`).join("")||`<p class="muted">Nenhum combo cadastrado ainda.</p>`));
+ }catch(e){shell("Combos",`<p class="error">${esc(e.message)}</p>`)}
+}
+async function editCombo(id=null){
+ editComboId=id;
+ const c=combos.find(x=>String(x.id)===String(id))||{name:"",discount:5,active:true,items:[]};
+ try{services=await api("services?select=id,name,is_cut,active&order=sort")}catch(e){}
+ const ng=Math.max(2,...c.items.map(i=>i.group_no),2);
+ const inG=(sid,g)=>c.items.some(i=>i.service_id===sid&&i.group_no===g);
+ const groupsHtml=Array.from({length:3},(_,k)=>k+1).map(g=>`<div class="card"><div class="row between"><b>Grupo ${g}${g===3?" (opcional)":""}</b>${services.some(s=>s.is_cut)?`<button type="button" class="btn small" data-combo-cuts="${g}">Todos os cortes</button>`:""}</div><div class="muted" style="margin-bottom:6px">${g===1?"Pelo menos um destes serviços":"Mais pelo menos um destes"}</div>${(services||[]).filter(s=>s.active||inG(s.id,g)).map(s=>`<label class="pk-line" style="grid-template-columns:24px minmax(0,1fr)"><input type="checkbox" data-cb-group="${g}" data-cb-service="${s.id}" data-cb-cut="${s.is_cut?1:0}" ${inG(s.id,g)?"checked":""}><span class="grow">${esc(s.name)}</span></label>`).join("")}</div>`).join("");
+ shell(id?"Editar combo":"Novo combo",`<form id="combo-form"><div class="grid">${field("Nome do combo","cb-name",c.name)}${field("Desconto (R$)","cb-discount",c.discount,"number",'step="0.50" min="0"')}</div><div class="notice">Exemplo: Grupo 1 = todos os cortes, Grupo 2 = Sobrancelha. O desconto vale quando o atendimento tem um serviço de cada grupo.</div><div class="combo-groups">${groupsHtml}</div><label class="pk-opt"><input type="checkbox" id="cb-active" ${c.active?"checked":""}> Combo ativo</label><div class="form-actions"><button class="btn primary" type="submit">Salvar combo</button>${id?`<button class="btn" type="button" id="delete-combo">Excluir</button>`:""}<button class="btn" type="button" id="cancel-combo">Voltar</button></div></form>`);
+ app.querySelectorAll("[data-combo-cuts]").forEach(b=>b.onclick=()=>{const g=b.dataset.comboCuts;const boxes=[...app.querySelectorAll(`[data-cb-group="${g}"][data-cb-cut="1"]`)];const all=boxes.every(x=>x.checked);boxes.forEach(x=>x.checked=!all)});
+ $("#combo-form").onsubmit=async e=>{e.preventDefault();try{
+  const data={name:val("cb-name").trim(),discount:Math.max(0,num("cb-discount")),active:checked("cb-active")};
+  if(!data.name)throw Error("Informe o nome do combo.");
+  const items=[...app.querySelectorAll("[data-cb-service]")].filter(x=>x.checked).map(x=>({group_no:Number(x.dataset.cbGroup),service_id:Number(x.dataset.cbService)}));
+  const used=[...new Set(items.map(i=>i.group_no))].sort();
+  if(used.length<2)throw Error("Escolha serviços em pelo menos 2 grupos (o combo só vale quando os serviços são feitos juntos).");
+  // renumera grupos usados (1,2,3) para ficarem sequenciais
+  const map=Object.fromEntries(used.map((g,i)=>[g,i+1]));items.forEach(i=>i.group_no=map[i.group_no]);
+  let cid=id;
+  if(id)await api(`service_combos?id=eq.${id}`,{method:"PATCH",body:JSON.stringify(data)});
+  else{const r=await api("service_combos",{method:"POST",body:JSON.stringify(data)});cid=r[0].id}
+  await api(`service_combo_items?combo_id=eq.${cid}`,{method:"DELETE"});
+  await api("service_combo_items",{method:"POST",body:JSON.stringify(items.map(i=>({...i,combo_id:cid})))});
+  await loadCombos();notice="Combo salvo.";renderNotice("success");
+ }catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};
+ $("#delete-combo")?.addEventListener("click",async()=>{if(!confirm("Excluir este combo?"))return;try{await api(`service_combos?id=eq.${id}`,{method:"DELETE"});await loadCombos()}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}});
+ $("#cancel-combo").onclick=loadCombos;
+}
 async function loadSettings(){
- shell("Configurações",`<div class="notice">Escolha o que deseja configurar.</div><div class="settings-menu-grid"><button type="button" class="card settings-menu-button" id="open-hours"><span class="settings-menu-icon">◷</span><b>Horários</b><span class="muted">Funcionamento</span></button><button type="button" class="card settings-menu-button" id="open-professionals"><span class="settings-menu-icon">♧</span><b>Profissionais</b><span class="muted">Equipe cadastrada</span></button><button type="button" class="card settings-menu-button" id="open-messages"><span class="settings-menu-icon">✉︎</span><b>Mensagens</b><span class="muted">Confirmação e cancelamento</span></button><button type="button" class="card settings-menu-button" id="open-services"><span class="settings-menu-icon">✂︎</span><b>Serviços</b><span class="muted">Valores e tempos</span></button><button type="button" class="card settings-menu-button" id="open-products"><span class="settings-menu-icon">▣</span><b>Produtos</b><span class="muted">Estoque e preços</span></button><button type="button" class="card settings-menu-button" id="open-packages"><span class="settings-menu-icon">❖</span><b>Pacotes</b><span class="muted">Combos oferecidos</span></button></div>`);
+ shell("Configurações",`<div class="notice">Escolha o que deseja configurar.</div><div class="settings-menu-grid"><button type="button" class="card settings-menu-button" id="open-hours"><span class="settings-menu-icon">◷</span><b>Horários</b><span class="muted">Funcionamento</span></button><button type="button" class="card settings-menu-button" id="open-professionals"><span class="settings-menu-icon">♧</span><b>Profissionais</b><span class="muted">Equipe cadastrada</span></button><button type="button" class="card settings-menu-button" id="open-messages"><span class="settings-menu-icon">✉︎</span><b>Mensagens</b><span class="muted">Confirmação e cancelamento</span></button><button type="button" class="card settings-menu-button" id="open-services"><span class="settings-menu-icon">✂︎</span><b>Serviços</b><span class="muted">Valores e tempos</span></button><button type="button" class="card settings-menu-button" id="open-products"><span class="settings-menu-icon">▣</span><b>Produtos</b><span class="muted">Estoque e preços</span></button><button type="button" class="card settings-menu-button" id="open-packages"><span class="settings-menu-icon">❖</span><b>Pacotes</b><span class="muted">Pacotes de serviços</span></button><button type="button" class="card settings-menu-button" id="open-combos"><span class="settings-menu-icon">✦</span><b>Combos</b><span class="muted">Descontos por conjunto</span></button></div>`);
  $("#open-hours").onclick=()=>navigate("settings-hours");
  $("#open-professionals").onclick=()=>navigate("settings-professionals");
  $("#open-messages").onclick=()=>navigate("settings-messages");
  $("#open-services").onclick=()=>navigate("services");
  $("#open-products").onclick=()=>navigate("products");
  $("#open-packages").onclick=()=>navigate("packages");
+ $("#open-combos").onclick=()=>navigate("combos");
 }
 const DEFAULT_BOOKING_MESSAGES={
  confirmed:"Olá, {nome}! Seu agendamento na Barber Shop JS está confirmado para {dia}, às {hora}. Desde já, agradeço a preferência! Caso precise cancelar ou alterar seu horário, peço que me avise com pelo menos 2 horas de antecedência. Será um prazer atendê-lo!",
@@ -726,6 +765,7 @@ function serviceDurationMinutes(service){
 }
 
 function normalizedStatus(status){return String(status||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim().replace(/[ -]+/g,"_")}
+function notCancelled(b){return !/cancel/.test(normalizedStatus(b&&b.status))}
 function statusPortuguese(status){const s=normalizedStatus(status);return ({cancelled:"Cancelado",canceled:"Cancelado",cancelado:"Cancelado",cancelada:"Cancelado",confirmed:"Confirmado",confirmado:"Confirmado",confirmada:"Confirmado",completed:"Realizado",done:"Realizado",realizado:"Realizado",realizada:"Realizado",concluido:"Realizado",concluida:"Realizado",finalizado:"Finalizado",finalizada:"Finalizado",finalized:"Finalizado",finalised:"Finalizado",atendido:"Realizado",atendida:"Realizado",pending:"Pendente",pendente:"Pendente",no_show:"Não compareceu"})[s]||"Pendente"}
 function statusClass(status){const s=normalizedStatus(status);if(["cancelled","canceled","cancelado","cancelada"].includes(s))return "cancelled";if(["finalizado","finalizada","finalized","finalised"].includes(s))return "finalized";if(["completed","done","realizado","realizada","concluido","concluida","atendido","atendida"].includes(s))return "completed";if(["confirmed","confirmado","confirmada"].includes(s))return "confirmed";return "pending"}
 function appointmentCardStatus(status){
@@ -812,15 +852,15 @@ async function showBookingDetail(id){
 }
 async function showBlockSheet(block){const id=block.id;document.body.classList.add("sheet-open");const scrollY=window.scrollY;app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="block-sheet"><section class="action-sheet" role="dialog" aria-modal="true" aria-label="Detalhes do bloqueio"><div class="sheet-grabber"></div><h2 class="section-title">Bloqueio de horário</h2><div class="sheet-detail"><b>${esc(block.date||key(day))}</b><div>${hm(block.start_min)}–${hm(block.end_min)}</div><div class="muted">Período bloqueado: ${hm(block.start_min)} até ${hm(block.end_min)}</div><div>${esc(block.reason||"Sem motivo informado")}</div></div><button class="sheet-action" id="block-edit"><span class="sheet-icon">✎</span><span>Editar bloqueio</span></button><button class="sheet-action cancel" id="block-cancel"><span class="sheet-icon">✕</span><span>Cancelar bloqueio</span></button><button class="btn sheet-close" id="block-close">Fechar</button></section></div>`);const close=()=>{const el=$("#block-sheet");if(el){el.remove();document.body.classList.remove("sheet-open");window.scrollTo(0,scrollY)}};$("#block-close").onclick=close;$("#block-sheet").addEventListener("click",e=>{if(e.target.id==="block-sheet")close()});$("#block-edit").onclick=()=>{close();openBooking(Number(block.start_min),"block",{date:block.date,start_min:block.start_min,end_min:block.end_min,reason:block.reason,blockId:block.id})};$("#block-cancel").onclick=async()=>{if(!confirm("Deseja realmente remover este bloqueio?"))return;await api(`blocked_slots?id=eq.${encodeURIComponent(id)}`,{method:"DELETE"});close();await loadAgenda()};bindSheetDrag($("#block-sheet"),close)}
 
-async function navigate(p){page=p;setMenuOpen(false);$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p||(["settings-hours","settings-professionals","settings-messages","services","products","packages"].includes(p)&&b.dataset.page==="settings")));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="packages")await loadPackages();else if(p==="settings-hours")await loadHours();else if(p==="settings-professionals")await loadProfessionals();else if(p==="settings-messages")loadMessageSettings();else if(p==="birthdays")await loadBirthdays()}
+async function navigate(p){page=p;setMenuOpen(false);$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p||(["settings-hours","settings-professionals","settings-messages","services","products","packages","combos"].includes(p)&&b.dataset.page==="settings")));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="packages")await loadPackages();else if(p==="combos")await loadCombos();else if(p==="settings-hours")await loadHours();else if(p==="settings-professionals")await loadProfessionals();else if(p==="settings-messages")loadMessageSettings();else if(p==="birthdays")await loadBirthdays()}
 // Gesto lateral: arrastar da borda esquerda para a direita volta à tela anterior (com animação suave).
 (function(){
  let sx=0,sy=0,tracking=false,moving=false,dxNow=0;
  const el=()=>document.querySelector("#app");
- const parentPage=()=>["settings-hours","settings-professionals","settings-messages","services","products","packages"].includes(page)?"settings":"agenda";
+ const parentPage=()=>["settings-hours","settings-professionals","settings-messages","services","products","packages","combos"].includes(page)?"settings":"agenda";
  const goBack=async()=>{
   if($("#menu").classList.contains("open")){setMenuOpen(false);return}
-  const cb=document.querySelector("#cancel-service,#cancel-product,#cancel-edit,#cancel-package");
+  const cb=document.querySelector("#cancel-service,#cancel-product,#cancel-edit,#cancel-package,#cancel-combo");
   if(cb){cb.click();return}
   if(page!=="agenda")await navigate(parentPage());
  };
@@ -906,6 +946,8 @@ if(b.dataset.cancel){let id=b.dataset.cancel;if(confirmCancel!==id){confirmCance
 if(b.id==="new-client"){editClient();return}
 if(b.dataset.editClient){editClient(b.dataset.editClient);return}
 if(b.dataset.history){showHistory(b.dataset.history);return}
+if(b.id==="new-combo"){editCombo();return}
+if(b.dataset.editCombo){editCombo(Number(b.dataset.editCombo));return}
 if(b.id==="new-package"){editPackage();return}
 if(b.dataset.editPackage){editPackage(Number(b.dataset.editPackage));return}
 if(b.id==="new-service"){editService();return}
@@ -937,18 +979,18 @@ app.addEventListener("change",e=>{
     const endDateEl=$("#booking-end-date");
     if(endDateEl)endDateEl.value=key(new Date(bookingDraft.date.getFullYear(),bookingDraft.date.getMonth(),bookingDraft.date.getDate()+Math.floor(bookingDraft.end/1440)));
   }
-  const total=bookingDraft.services.reduce((sum,x)=>sum+Number(x.price||0)*Number(x.qty||1),0);
-  const totalRow=$(".booking-screen .row.between");
-  if(totalRow){const cells=totalRow.querySelectorAll("b");if(cells[1])cells[1].textContent=fm(total)}
+  readBookingInputs();refreshBookingTotals(true);
  }
+ if(e.target.id==="adj-combo-on"&&bookingDraft){bookingDraft.comboOff=!e.target.checked;refreshBookingTotals()}
  if((e.target.id==="booking-date"||e.target.id==="booking-end-date")&&bookingDraft){readBookingInputs();renderBookingScreen()}
 });
 app.addEventListener("input",e=>{
  if(e.target.matches("[data-service-price]")&&bookingDraft){
   const id=e.target.dataset.servicePrice;const value=Number(e.target.value);
   const chosen=bookingDraft.services.find(x=>String(x.id)===String(id));
-  if(chosen&&Number.isFinite(value)&&value>=0){chosen.price=value;const total=bookingDraft.services.reduce((a,x)=>a+Number(x.price||0)*Number(x.qty||1),0);const totalRow=$(".booking-screen .row.between");if(totalRow){const cells=totalRow.querySelectorAll("b");if(cells[1])cells[1].textContent=fm(total)}}
+  if(chosen&&Number.isFinite(value)&&value>=0){chosen.price=value;refreshBookingTotals()}
  }
+ if((e.target.id==="adj-discount"||e.target.id==="adj-surcharge")&&bookingDraft){readBookingInputs();refreshBookingTotals()}
  if(e.target.id==="booking-start"&&bookingDraft){const [h,m]=e.target.value.split(":").map(Number);bookingDraft.start=h*60+m;if(!bookingDraft.endManuallyChanged){const dur=selectedServicesDuration(bookingDraft.services);bookingDraft.end=bookingDraft.start+dur;const endEl=$("#booking-end");if(endEl)endEl.value=hm(bookingDraft.end%1440)}}
  if(e.target.id==="booking-end"&&bookingDraft){bookingDraft.endManuallyChanged=true;readBookingInputs()}
  if(e.target.id==="booking-client-search"&&bookingDraft){bookingDraft.query=e.target.value;const box=$("#booking-client-options");const q=normalizeSearch(bookingDraft.query);const filtered=bookingDraft.clients.filter(c=>normalizeSearch(c.name).includes(q)||(c.phone||"").includes(bookingDraft.query));box.innerHTML=filtered.map(c=>`<button class="btn client-select-btn" data-pick-client="${esc(c.phone)}">${esc(c.name)} · ${esc(c.phone)}</button>`).join(" ")||'<span class="muted">Nenhum cliente encontrado.</span>'}
@@ -1010,7 +1052,7 @@ async function renderBookingClientRegistration(){
     <div class="field"><label>CEP</label><input id="reg-postal" inputmode="numeric" value="${esc(state.postal_code)}"></div>
     <div class="field"><label>Observações</label><textarea id="reg-notes">${esc(state.notes)}</textarea></div>
     <button class="btn primary" type="submit" style="width:100%">Salvar cliente</button><p id="reg-error" class="error"></p>
-   </form>`:`<div id="booking-client-history">${history.map(b=>`<button class="card appointment-card" data-open-booking="${esc(b.id)}" style="width:100%;text-align:left"><b>${esc(b.date)} · ${hm(b.start_min)}–${hm(b.end_min)}</b><div>${esc((b.services||[]).map(x=>x.name).join(", "))}</div><div>${fm(b.total)}</div><div class="status-label status-${statusClass(b.status)}">${statusPortuguese(b.status)}</div></button>`).join("")||'<p class="muted">Nenhum agendamento anterior para este cliente.</p>'}</div>`}
+   </form>`:`<div id="booking-client-history">${history.filter(notCancelled).map(b=>`<button class="card appointment-card" data-open-booking="${esc(b.id)}" style="width:100%;text-align:left"><b>${esc(b.date)} · ${hm(b.start_min)}–${hm(b.end_min)}</b><div>${esc((b.services||[]).map(x=>x.name).join(", "))}</div><div>${fm(b.total)}</div><div class="status-label status-${statusClass(b.status)}">${statusPortuguese(b.status)}</div></button>`).join("")||'<p class="muted">Nenhum agendamento anterior para este cliente.</p>'}</div>`}
   </section>`;
   const saveState=()=>{
    for(const [k,id] of Object.entries({name:"reg-name",nickname:"reg-nickname",birth_date:"reg-birth",phone:"reg-phone",street:"reg-street",number:"reg-number",complement:"reg-complement",neighborhood:"reg-neighborhood",city:"reg-city",state:"reg-state",postal_code:"reg-postal",notes:"reg-notes"})){const el=$("#"+id);if(el)state[k]=el.value}
@@ -1032,6 +1074,34 @@ async function renderBookingClientRegistration(){
  draw();
 }
 
+function bookingSubtotal(d){return d.services.reduce((a,x)=>a+Number(x.price||0)*Number(x.qty||1),0)}
+function bookingCombo(d){
+ const ids=d.services.map(x=>Number(x.id));let best=null;
+ (d.combos||[]).filter(c=>c.active).forEach(c=>{
+  const groups={};c.items.forEach(i=>{(groups[i.group_no]=groups[i.group_no]||[]).push(Number(i.service_id))});
+  const gs=Object.values(groups);
+  if(gs.length&&gs.every(g=>g.some(id=>ids.includes(id)))){if(!best||Number(c.discount)>Number(best.discount))best=c}
+ });
+ return best;
+}
+function bookingTotals(d){
+ const sub=bookingSubtotal(d),combo=bookingCombo(d);
+ const comboVal=combo&&!d.comboOff?Math.min(sub,Number(combo.discount||0)):0;
+ const disc=Math.max(0,Number(d.discount||0)),sur=Math.max(0,Number(d.surcharge||0));
+ return {sub,combo,comboVal,disc,sur,total:Math.max(0,sub-comboVal-disc+sur)};
+}
+function adjustmentsHtml(d){
+ const t=bookingTotals(d);
+ return `<div class="row between"><span>Subtotal dos serviços</span><b id="adj-sub">${fm(t.sub)}</b></div>
+ <div id="adj-combo-box">${t.combo?`<label class="adj-combo"><input type="checkbox" id="adj-combo-on" ${d.comboOff?"":"checked"}><span class="grow">Combo: <b>${esc(t.combo.name)}</b> (− ${fm(t.combo.discount)})</span></label>`:""}</div>
+ <div class="adj-grid"><div class="field"><label for="adj-discount">Desconto (R$)</label><input id="adj-discount" type="number" min="0" step="0.50" inputmode="decimal" placeholder="0,00" value="${Number(d.discount||0)>0?Number(d.discount):""}"></div><div class="field"><label for="adj-surcharge">Acréscimo (R$)</label><input id="adj-surcharge" type="number" min="0" step="0.50" inputmode="decimal" placeholder="0,00" value="${Number(d.surcharge||0)>0?Number(d.surcharge):""}"></div></div>
+ <div class="row between adj-total"><b>Valor total</b><b id="adj-total">${fm(t.total)}</b></div>`;
+}
+function refreshBookingTotals(rebuildCombo=false){
+ if(!bookingDraft)return;const d=bookingDraft;
+ if(rebuildCombo){const box=$("#adj-card");if(box){box.innerHTML=adjustmentsHtml(d);return}}
+ const t=bookingTotals(d);const a=$("#adj-sub"),b=$("#adj-total");if(a)a.textContent=fm(t.sub);if(b)b.textContent=fm(t.total);
+}
 function renderBookingScreen(){
  const d=bookingDraft;
  const selected=d.services;
@@ -1053,7 +1123,8 @@ function renderBookingScreen(){
  <div class="section-title">Serviços</div>
  <div>${(d.catalog||[]).map(x=>{const chosen=selected.find(z=>String(z.id)===String(x.id));const price=chosen?Number(chosen.price):Number(x.price||0);return `<label class="service-choice"><input type="checkbox" data-service="${x.id}" ${chosen?'checked':''}><span class="grow"><b>${esc(x.name)}</b><span class="muted">${(()=>{const dm=Number(x.duration_min||0);return dm>0?dm+" min":(x.is_cut||serviceAddsDuration(x)?"30 min":"")})()}</span></span><input class="service-price-edit" type="number" min="0" step="0.50" inputmode="decimal" data-service-price="${x.id}" aria-label="Valor de ${esc(x.name)}" value="${price.toFixed(2)}"></label>`}).join('')}</div>
  <div class="booking-range-label">Fim</div><div class="field-line">${dateInput('booking-end-date','',d.endDate||new Date(d.date.getFullYear(),d.date.getMonth(),d.date.getDate()+Math.floor(endMin/1440)))}${timeInput('booking-end','',endMin==null?null:endMin%1440)}</div>
- <div class="card row between"><b>Valor total</b><b>${fm(total)}</b></div>
+ <div class="section-title">Desconto ou acréscimo</div>
+ <div class="card adj-card" id="adj-card">${adjustmentsHtml(d)}</div>
  
  `:`
  <div class="booking-range-label">Início</div><div class="field-line">${dateInput('booking-date','',d.date)}${timeInput('booking-start','',startMin)}</div>
@@ -1067,8 +1138,8 @@ let swipeBackSnapshot="",swipeBackScrollY=0;
 async function openBooking(start,mode='book',existing=null){
  try{
   if(!$(".booking-screen")){swipeBackSnapshot=app.innerHTML;swipeBackScrollY=window.scrollY}
-  const [cs,ss,bs]=await Promise.all([api("clients?select=phone,name&order=name"),api("services?select=id,name,price,is_cut,duration_min,active&active=eq.true&order=sort"),api("barbers?select=id,name,active&active=eq.true&order=id")]);
-  const ddate=existing?.date?new Date(existing.date+"T12:00:00"):new Date(day.getFullYear(),day.getMonth(),day.getDate());const savedServices=existing?.services||[];bookingDraft={mode,start:existing?.start_min!=null?Number(existing.start_min):(start==null?null:Number(start)),date:ddate,clients:cs,catalog:ss,barbers:bs,services:savedServices.map(x=>({...x,id:x.id??ss.find(y=>y.name===x.name)?.id})),query:'',newName:'',newPhone:'',selectedPhone:existing?.client_phone||null,addingClient:false,end:existing?.end_min!=null?Number(existing.end_min):(start==null?null:Number(start)+30),endDate:ddate,editingId:existing?.id||null,editingBlockId:existing?.blockId||null,reason:existing?.reason||'',existingStatus:existing?.status||"confirmed",endManuallyChanged:false};
+  const [cs,ss,bs,cbs,cbi]=await Promise.all([api("clients?select=phone,name&order=name"),api("services?select=id,name,price,is_cut,duration_min,active&active=eq.true&order=sort"),api("barbers?select=id,name,active&active=eq.true&order=id"),api("service_combos?select=*&active=eq.true").catch(()=>[]),api("service_combo_items?select=*").catch(()=>[])]);const combosList=cbs.map(c=>({...c,items:cbi.filter(i=>String(i.combo_id)===String(c.id))}));
+  const ddate=existing?.date?new Date(existing.date+"T12:00:00"):new Date(day.getFullYear(),day.getMonth(),day.getDate());const savedServices=existing?.services||[];bookingDraft={mode,start:existing?.start_min!=null?Number(existing.start_min):(start==null?null:Number(start)),date:ddate,clients:cs,catalog:ss,barbers:bs,services:savedServices.map(x=>({...x,id:x.id??ss.find(y=>y.name===x.name)?.id})),query:'',newName:'',newPhone:'',selectedPhone:existing?.client_phone||null,addingClient:false,end:existing?.end_min!=null?Number(existing.end_min):(start==null?null:Number(start)+30),endDate:ddate,editingId:existing?.id||null,editingBlockId:existing?.blockId||null,reason:existing?.reason||'',existingStatus:existing?.status||"confirmed",endManuallyChanged:false,combos:combosList,discount:Number(existing?.discount||0),surcharge:Number(existing?.surcharge||0),comboOff:!!existing&&Number(existing?.combo_discount||0)===0&&savedServices.length>0&&!!(()=>{try{return bookingCombo({services:savedServices.map(x=>({id:x.id??ss.find(y=>y.name===x.name)?.id})),combos:combosList})}catch(e){return null}})()};
   renderBookingScreen();
  }catch(e){alert("Não foi possível abrir o formulário: "+e.message)}
 }
@@ -1086,6 +1157,8 @@ function readBookingInputs(){
  if($("#booking-new-name"))bookingDraft.newName=$("#booking-new-name").value;
  if($("#booking-new-phone"))bookingDraft.newPhone=$("#booking-new-phone").value;
  bookingDraft.reason=$("#booking-reason")?.value||'';
+ if($("#adj-discount"))bookingDraft.discount=Math.max(0,Number($("#adj-discount").value)||0);
+ if($("#adj-surcharge"))bookingDraft.surcharge=Math.max(0,Number($("#adj-surcharge").value)||0);
 }
 async function saveBookingForm(){
  readBookingInputs();const d=bookingDraft;const err=$("#booking-error");
@@ -1133,8 +1206,8 @@ async function saveBookingForm(){
     await api("clients?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify(newClientData)});
   }
   const barber=d.barbers[0];if(!barber)throw Error("Cadastre um profissional ativo.");
-  const total=d.services.reduce((a,x)=>a+Number(x.price||0)*Number(x.qty||1),0);
-  const payload={barber_id:barber.id,date:key(d.date),start_min:d.start,end_min:end,client_name:client.name,client_phone:client.phone,services:d.services.map(x=>({id:x.id,name:x.name,qty:Number(x.qty||1),price:Number(x.price||0)})),total,status:d.existingStatus||"confirmed"};if(d.editingId)await api(`bookings?id=eq.${encodeURIComponent(d.editingId)}`,{method:"PATCH",body:JSON.stringify(payload)});else await api("bookings",{method:"POST",body:JSON.stringify(payload)});
+  const tt=bookingTotals(d);const total=tt.total;
+  const payload={discount:tt.disc,surcharge:tt.sur,combo_discount:tt.comboVal,barber_id:barber.id,date:key(d.date),start_min:d.start,end_min:end,client_name:client.name,client_phone:client.phone,services:d.services.map(x=>({id:x.id,name:x.name,qty:Number(x.qty||1),price:Number(x.price||0)})),total,status:d.existingStatus||"confirmed"};if(d.editingId)await api(`bookings?id=eq.${encodeURIComponent(d.editingId)}`,{method:"PATCH",body:JSON.stringify(payload)});else await api("bookings",{method:"POST",body:JSON.stringify(payload)});
   bookingDraft=null;day=d.date;await loadAgenda();
   }catch(e){let message=e.message||"Não foi possível salvar o agendamento.";if(message.includes("23P01")||message.includes("bookings_barber_id_date_int4range_excl")||message.includes("exclusion constraint"))message="O banco estava bloqueando horários sobrepostos. A restrição foi removida; atualize a página e tente novamente. Se persistir, confira se a versão publicada usa o projeto Supabase correto.";if(err){err.textContent=message;err.classList.remove('hidden')}else alert(message)}
 }
@@ -1505,8 +1578,20 @@ input:focus,select:focus,textarea:focus{outline:2px solid #4F94D866!important;bo
 .settings-menu-button .muted{font-size:12px!important}
 .settings-menu-icon{font-size:22px!important;color:#4F94D8!important}
 /* pacotes */
-.pk-line{display:flex;align-items:center;gap:10px;padding:8px 12px!important;margin:6px 0!important}
-.pk-line input[type="checkbox"],.pk-opt input[type="checkbox"]{width:auto}
-.pk-line input[type="number"]{width:72px}
+.pk-line{display:grid!important;grid-template-columns:24px minmax(0,1fr) auto 70px;align-items:center;gap:10px;padding:8px 12px!important;margin:6px 0!important}
+.pk-line input[type="checkbox"],.pk-opt input[type="checkbox"]{width:20px!important;height:20px!important;min-width:20px;padding:0!important;margin:0;flex:none}
+.pk-line .grow{min-width:0;overflow-wrap:anywhere}
+.pk-line .muted{font-size:12px;white-space:nowrap}
+.pk-line input[type="number"]{width:70px!important;min-width:0;padding:6px 8px!important;text-align:center}
+.pk-opt{display:flex;align-items:center;gap:10px;margin:10px 0}
+.adj-card{padding:12px!important}
+.adj-card .row{margin:4px 0}
+.adj-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin:8px 0}
+.adj-grid .field{margin:0}
+.adj-grid input{width:100%;min-width:0}
+.adj-combo{display:flex;align-items:center;gap:10px;margin:8px 0;padding:8px 10px;border-radius:10px;background:#E8F3FE;color:#1F4B75}
+.adj-combo input{width:20px!important;height:20px!important;padding:0!important;margin:0;flex:none}
+.adj-total{border-top:1px solid #C4DFF8;margin-top:8px!important;padding-top:8px;font-size:17px}
+.combo-groups .card{margin:6px 0}
 .pk-opt{display:block;margin:10px 0}
 </style>
