@@ -2268,10 +2268,10 @@ if(session){const pendingReview=new URLSearchParams(location.search).get("bookin
  }
  function update(){
   const info=findGrid();if(!info)return;const {el,times}=info,now=new Date(),m=now.getHours()*60+now.getMinutes();
-  const a=[...new Set(times)].map(node=>{const q=(node.textContent||'').trim().match(/^(\d{1,2}):(\d{2})$/);return q?{node,minutes:+q[1]*60 + +q[2],rect:node.getBoundingClientRect()}:null}).filter(Boolean).sort((x,y)=>x.minutes-y.minutes);
-  if(a.length<2)return;let lo=null,hi=null;for(let i=0;i<a.length-1;i++){if(m>=a[i].minutes&&m<=a[i+1].minutes){lo=a[i];hi=a[i+1];break;}}
+  const a=[...new Set(times)].map(node=>{const q=(node.textContent||'').trim().match(/^(\d{1,2}):(\d{2})$/);return q?{node,minutes:+q[1]*60 + +q[2],rect:(node.closest('.agenda-time-cell')||node).getBoundingClientRect()}:null}).filter(Boolean).sort((x,y)=>x.minutes-y.minutes);
+  if(a.length<1)return;let lo=null,hi=null;const stp=(typeof slotStep==='number'&&slotStep>0)?slotStep:30;for(let i=0;i<a.length;i++){const nx=a[i+1],end=nx?Math.min(nx.minutes,a[i].minutes+stp):a[i].minutes+stp;if(m>=a[i].minutes&&m<end){lo=a[i];hi={minutes:end};break;}}
   let line=document.getElementById(ID);if(!lo||!hi){if(line)line.style.display='none';return;}
-  const r=el.getBoundingClientRect(),f=(m-lo.minutes)/(hi.minutes-lo.minutes||30),loY=lo.rect.top,hiY=hi.rect.top,y=loY+(hiY-loY)*f;
+  const r=el.getBoundingClientRect(),f=(m-lo.minutes)/((hi.minutes-lo.minutes)||30),y=lo.rect.top+lo.rect.height*Math.min(1,Math.max(0,f));
   if(!line){line=document.createElement('div');line.id=ID;el.appendChild(line);}
   if(getComputedStyle(el).position==='static')el.style.position='relative';
   line.style.top=(y-r.top+el.scrollTop)+'px';line.style.display='block';
