@@ -317,6 +317,26 @@ main{padding-bottom:110px!important}
 .hv{display:flex;flex-direction:column;align-items:flex-end;gap:3px;font-weight:800;font-size:14px;color:#1F4B75}
 .hst{font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 8px;border:1px solid}
 .hst.conf{background:#DCEBFA;border-color:#5B9BD5;color:#1d5a99}.hst.fin{background:#D9F1E2;border-color:#4DAA75;color:#14683a}.hst.fal{background:#FFE5E5;border-color:#E58A8A;color:#8f1d1d}.hst.at{background:#EADCF8;border-color:#9A6BD1;color:#4B2480}.hst.pen{background:#FFF3CF;border-color:#E3B341;color:#7a5a00}
+.pay-tile{position:relative}.pay-tile small{font-size:12px;color:#5b7a99;font-weight:600;margin-top:-2px}
+.pay-amts{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.pay-amt{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid #C4DFF8;border-radius:14px;padding:8px 10px 8px 14px;font-weight:700;color:#1F4B75}
+.pay-money{display:flex;align-items:center;gap:6px;background:#F3F9FF;border:1px solid #C4DFF8;border-radius:12px;padding:0 10px;height:42px;width:150px}.pay-money i{font-style:normal;color:#5b7a99;font-weight:700}
+.pay-money input{border:0!important;background:transparent!important;height:100%!important;width:100%;min-width:0;font-size:18px!important;font-weight:800;color:#10304F;text-align:right;padding:0!important;outline:none}
+.pay-money input{box-shadow:none!important;border-radius:0!important}.pay-hint{font-size:13px;color:#5b7a99;margin:8px 2px}
+.pay-opts{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.pay-optrow{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid #C4DFF8;border-radius:14px;padding:8px 12px;min-height:50px;font-weight:700;color:#1F4B75;font-size:14.5px}
+.pay-optrow small{display:block;font-weight:500;color:#5b7a99;font-size:12px}
+.pay-optrow input[type=checkbox]{width:24px;height:24px;accent-color:#4F94D8}
+.pay-optrow input[type=date]{-webkit-appearance:none;appearance:none;height:38px;border:1px solid #C4DFF8;border-radius:10px;background:#F3F9FF;padding:0 10px;font-size:16px;color:#10304F;display:flex;align-items:center;min-width:0}
+.sc-grid{margin:10px 0}
+.nsm{position:fixed;inset:0;z-index:6500;background:rgba(10,30,50,.5);display:flex;align-items:center;justify-content:center;padding:18px}
+.nsm-card{background:#fff;border-radius:20px;padding:16px;width:100%;max-width:400px;max-height:90vh;overflow:auto}.nsm-card h3{margin:0 0 4px;font-size:18px;color:#10304F}.nsm-card p{margin:0 0 12px;color:#5b7a99;font-size:14px}
+.nsm-card button[data-ns]:not(.ns-x){display:block;width:100%;text-align:left;border:1px solid #C4DFF8;background:#F3F9FF;border-radius:14px;padding:11px 13px;margin-bottom:8px;color:#10304F}.nsm-card button[data-ns] b{display:block;font-size:15px}.nsm-card button[data-ns] span{font-size:12.5px;color:#5b7a99}
+.ns-x{width:100%;border:0;background:none;color:#2f6fb0;font-weight:700;font-size:15px;padding:10px}
+.cc-credit{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#EAF8F4;border:1px solid #9AD6C8;border-radius:14px;padding:10px 13px;margin-bottom:8px;color:#0F5F54}.cc-credit small{display:block;font-size:12px}.cc-credit b{font-size:18px}
+.agenda-appointment.status-prepaid-card{background:#D8F3EE!important;border:2px solid #3BAE9C!important;color:#0F5F54!important}.agenda-appointment.status-prepaid-card .agenda-sub{font-weight:700}
+input[type=date]{display:flex;align-items:center}input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;min-height:1.4em;display:flex;align-items:center}
+#client-form input[type=date]{height:44px;line-height:normal;display:flex!important;align-items:center;padding:0 12px!important}
 .slot.lunch{cursor:pointer}.slot-h{font-size:15px!important;margin:10px 2px 6px!important}
 .slot-card{padding:10px 12px!important;border-radius:14px!important}
 .slot-compact{display:flex!important;flex-wrap:wrap!important;justify-content:space-between;align-items:center!important;gap:8px!important}
@@ -489,7 +509,7 @@ function renderAgenda(){
     const start=Number(b.start_min),end=Number(b.end_min);
     const lane=laneOf.get(String(b.id))||0,cols=colsOf.get(String(b.id))||1;
     const durationSlots=Math.max(1,gridTimes.filter(t=>t>=start&&t<end).length);
-    right.push(`<button class="card appointment-card agenda-appointment ${(pendingBal[String(b.id)]>0&&statusClass(b.status)==="completed")?"status-partial-card":appointmentCardStatus(b.status)} ${cols>1?"agenda-narrow":""}" data-open-booking="${esc(b.id)}" style="grid-column:2;grid-row:${row} / span ${durationSlots};width:calc(${(100/cols).toFixed(4)}% - ${cols>1?3:0}px);margin-left:${(lane*100/cols).toFixed(4)}%;z-index:10"><div class="agenda-appt-main"><b class="agenda-client">${esc(b.client_name)}</b><span class="agenda-sub">${(pendingBal[String(b.id)]>0&&statusClass(b.status)==="completed")?"Valor pendente "+fm(pendingBal[String(b.id)]):["no_show","nao_compareceu","faltou"].includes(normalizedStatus(b.status))?"Não compareceu":({pending:"Pendente",confirmed:"Confirmado",completed:"Atendido · falta pagar",finalized:"Pago"})[statusClass(b.status)]||statusPortuguese(b.status)}</span></div><span class="agenda-chevron">›</span></button>`);
+    right.push(`<button class="card appointment-card agenda-appointment ${(pendingBal[String(b.id)]>0&&!["finalized","no_show"].includes(statusClass(b.status))&&!["no_show","nao_compareceu","faltou"].includes(normalizedStatus(b.status)))?"status-partial-card":(paidAmt[String(b.id)]>0&&["pending","confirmed"].includes(statusClass(b.status)))?"status-prepaid-card":appointmentCardStatus(b.status)} ${cols>1?"agenda-narrow":""}" data-open-booking="${esc(b.id)}" style="grid-column:2;grid-row:${row} / span ${durationSlots};width:calc(${(100/cols).toFixed(4)}% - ${cols>1?3:0}px);margin-left:${(lane*100/cols).toFixed(4)}%;z-index:10"><div class="agenda-appt-main"><b class="agenda-client">${esc(b.client_name)}</b><span class="agenda-sub">${(pendingBal[String(b.id)]>0&&!["finalized"].includes(statusClass(b.status))&&!["no_show","nao_compareceu","faltou"].includes(normalizedStatus(b.status)))?"Valor pendente "+fm(pendingBal[String(b.id)]):(paidAmt[String(b.id)]>0&&["pending","confirmed"].includes(statusClass(b.status)))?"Pago · falta atender":["no_show","nao_compareceu","faltou"].includes(normalizedStatus(b.status))?"Não compareceu":({pending:"Pendente",confirmed:"Confirmado",completed:"Atendido · falta pagar",finalized:"Pago"})[statusClass(b.status)]||statusPortuguese(b.status)}</span></div><span class="agenda-chevron">›</span></button>`);
    });
   }else if(occupying){
   }else if(block){
@@ -503,7 +523,7 @@ function renderAgenda(){
   }
  }
  const out=`<div class="agenda-grid" style="--agenda-step:${step/30}">${times.join("")}${right.join("")}</div><button class="agenda-fab" id="agenda-new-booking" aria-label="Novo agendamento" title="Novo agendamento">＋</button>`;
- const recv=bookings.filter(x=>statusClass(x.status)==="completed").reduce((sum,x)=>sum+(pendingBal[String(x.id)]>0?pendingBal[String(x.id)]:Number(x.total||0)),0);
+ const recv=bookings.reduce((sum,x)=>{const k=String(x.id),sc=statusClass(x.status);if(["no_show","nao_compareceu","faltou"].includes(normalizedStatus(x.status))||sc==="finalized")return sum;if(pendingBal[k]>0)return sum+pendingBal[k];return sum+(sc==="completed"?Number(x.total||0):0)},0);
  const paidSum=bookings.reduce((sum,x)=>sum+Number(paidAmt[String(x.id)]||0),0);
  const sumTxt=`<div>${n} agendamento(s) · ${fm(bookings.reduce((sum,x)=>sum+Number(x.total||0),0))}</div>${(recv>0||paidSum>0)?`<div class="agenda-meta2">${recv>0?`<b class="agenda-toreceive">A receber: ${fm(recv)}</b>`:""}${paidSum>0?`<b class="agenda-paid">Pago: ${fm(paidSum)}</b>`:""}</div>`:""}`;
  shell("Agenda",navFor("")+`<div class="agenda-meta">${sumTxt}</div><div class="agenda-legend"><span><i style="background:#FFF3CF;border:2px solid #E3B341"></i>Pendente</span><span><i style="background:#DCEBFA;border:2px solid #5B9BD5"></i>Confirmado</span><span><i style="background:#EADCF8;border:2px solid #9A6BD1"></i>Falta pagar</span><span><i style="background:#D9F1E2;border:2px solid #4DAA75"></i>Pago</span></div>`+out+`<div class="muted">Toque em um horário para agendar ou bloquear.</div>`);
@@ -580,6 +600,7 @@ async function showClientCard(phone){
   try{
     let c=(await api(`clients?select=*&phone=eq.${encodeURIComponent(phone)}`))[0]||clients.find(x=>String(x.phone)===String(phone))||{name:"Cliente",phone};
     const st=await clientStats(phone);const {attended,noshows,scheduled,owing,owed,spent,badge,cancelledN}=st;
+    let creditSum=0;try{creditSum=(await api(`client_credits?select=remaining_amount&client_phone=eq.${encodeURIComponent(phone)}&status=eq.available&remaining_amount=gt.0`)).reduce((a,x)=>a+Number(x.remaining_amount||0),0)}catch(e){}
     const fmtB=b=>`${esc(b.date.split("-").reverse().join("/"))} · ${hm(b.start_min)} · ${esc((b.services||[]).map(s=>s.name).join(", ")||"—")}`;
     const ph=String(c.phone||"").replace(/\D/g,"");
     shell("Cliente",`<button class="btn" id="back-clients">← Clientes</button>
@@ -587,11 +608,13 @@ async function showClientCard(phone){
      <div class="cc-acts"><a class="lic" href="https://wa.me/${ph.length<=11?"55"+ph:ph}" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">${ICO.wa}</a><button type="button" class="lic" data-history="${esc(c.phone)}" aria-label="Agendamentos" title="Agendamentos">${ICO.cal}</button><button type="button" class="lic" data-edit-client="${esc(c.phone)}" aria-label="Editar" title="Editar">${ICO.edit}</button></div></div>
     <div class="cc-badge ${badge.cls}"><b>${badge.t}</b><span>${badge.s}</span></div>
     ${owed>0?`<div class="cc-badge owe"><b>💰 Valor a receber: ${fm(owed)}</b><span>${owing.map(o=>fmtB(o.b)+" — "+fm(o.v)).join("<br>")}</span></div>`:""}
+    <div class="cc-credit"><div><small>Crédito disponível</small><b>${fm(creditSum)}</b></div><button type="button" class="btn small" id="cc-sell-credit">＋ Vender crédito</button></div>
     <div class="cc-stats"><div><b>${attended.length}</b><span>Atendimentos</span></div><div><b>${noshows.length}</b><span>Faltas</span></div><div><b>${fm(spent)}</b><span>Total pago</span></div></div>
     <h3 class="cc-h">Agendados${scheduled.length?` <small>(${scheduled.length})</small>`:""}</h3><div class="hlist">${histRows(scheduled,{group:false})||`<div class="muted">Nenhum agendamento marcado.</div>`}</div>
     ${noshows.length?`<h3 class="cc-h">Não compareceu</h3><div class="hlist">${histRows(noshows,{group:false})}</div>`:""}
     <h3 class="cc-h">Últimos atendimentos${cancelledN?` <small>(${cancelledN} cancelado(s) não contam)</small>`:""}</h3><div class="hlist">${histRows(attended.slice(0,5),{group:false})||`<div class="muted">Nenhum atendimento concluído ainda.</div>`}</div>`);
     $("#back-clients").onclick=loadClients;setSub(loadClients,"clients");window.__snaps.card=app.innerHTML;
+    $("#cc-sell-credit").onclick=()=>sellCreditDialog(c,()=>showClientCard(phone));
   }catch(e){shell("Cliente",`<p class="error">${esc(e.message)}</p><button class="btn" id="back-clients">← Clientes</button>`);$("#back-clients").onclick=loadClients}
 }
 async function loadServices(){try{services=await api("services?select=*&order=sort");shell("Serviços",`<div class="row between"><span class="muted">${services.length} serviço(s)</span><button class="btn primary" id="new-service" aria-label="Adicionar serviço" title="Adicionar serviço">＋</button></div><div class="svc-list">`+services.map(s=>{const dm=Number(s.duration_min||0)||(s.is_cut?30:0);return `<div class="lrow ${s.active?"":"off"}"><div class="lav sq">${ICO.cut}</div><div class="lg"><b>${esc(s.name)}</b><div class="lsub">${fm(s.price)}${dm?" · "+dm+" min":""}${s.active?"":" · Inativo"}</div></div><button type="button" class="lic" data-edit-service="${s.id}" aria-label="Editar" title="Editar">${ICO.edit}</button></div>`}).join("")+`</div>`)}catch(e){shell("Serviços",`<p class="error">${esc(e.message)}</p>`)}}
@@ -951,6 +974,9 @@ async function showBookingDetail(id){
   if(!b)throw Error("Agendamento não encontrado.");
   const phone=whatsappBrazilNumber(b.client_phone);
   const isPending=normalizedStatus(b.status)==="pending";
+  let cl=null;try{cl=(await api(`finance_booking_closures?select=*&booking_id=eq.${encodeURIComponent(b.id)}`))[0]||null}catch(e){}
+  const paidAmt0=Number(cl?.amount_paid||0),paidFull=!!cl&&paidAmt0>0&&Number(cl.balance_due||0)===0;
+  const payLabel=paidFull?"Ver / alterar pagamento":(cl&&paidAmt0>0)?"Receber o restante":"Pagar / finalizar";
   const dateLabel=formatBookingDateBR(b.date);
   const services=(b.services||[]).map(x=>x.name+(x.qty>1?" ×"+x.qty:"")).join(", ");
   const details=`<div class="sheet-detail">
@@ -969,8 +995,8 @@ async function showBookingDetail(id){
   const waBtn=`<a class="sheet-action" target="_blank" rel="noopener" href="https://wa.me/${phone}?text=${encodeURIComponent("Olá "+(b.client_name||"")+", seu agendamento na Barber Shop JS para "+dateLabel+" às "+hm(b.start_min)+" está confirmado.")}"><span class="sheet-icon whatsapp-icon" aria-hidden="true">●</span><span>Enviar confirmação</span></a>`;
   const cancelBtn=`<div class="sheet-divider"></div><button class="sheet-action cancel" id="detail-cancel"><span class="sheet-icon">✕</span><span>Cancelar agendamento</span></button>`;
   let regularActions;
-  if(st==="confirmed")regularActions=editBtn+waBtn+`<button class="sheet-action" id="detail-attended"><span class="sheet-icon">✂</span><span>Atendido</span></button><button class="sheet-action pay" id="detail-pay-c"><span class="sheet-icon">$</span><span>Pagar / finalizar</span></button><button class="sheet-action" id="detail-noshow"><span class="sheet-icon">⊘</span><span>Não compareceu / faltou</span></button>`+cancelBtn;
-  else if(st==="completed")regularActions=editBtn+`<button class="sheet-action pay" id="detail-pay"><span class="sheet-icon">$</span><span>Pagar / finalizar</span></button>`+cancelBtn;
+  if(st==="confirmed")regularActions=editBtn+waBtn+`<button class="sheet-action" id="detail-attended"><span class="sheet-icon">✂</span><span>Atendido</span></button><button class="sheet-action pay" id="detail-pay-c"><span class="sheet-icon">$</span><span>${payLabel}</span></button><button class="sheet-action" id="detail-noshow"><span class="sheet-icon">⊘</span><span>Não compareceu / faltou</span></button>`+cancelBtn;
+  else if(st==="completed")regularActions=editBtn+`<button class="sheet-action pay" id="detail-pay"><span class="sheet-icon">$</span><span>${payLabel}</span></button>`+cancelBtn;
   else if(st==="finalized")regularActions=editBtn+`<button class="sheet-action pay" id="detail-pay-f"><span class="sheet-icon">$</span><span>Ver / alterar pagamento</span></button>`;
   else regularActions=editBtn+cancelBtn;
   document.body.classList.add("sheet-open");
@@ -984,6 +1010,7 @@ async function showBookingDetail(id){
   const finishAction=async(status,message,confirmText)=>{
    if(confirmText&&!confirm(confirmText))return;
    try{
+    if(status==="cancelled"&&paidAmt0>0){if(!confirm("Esse atendimento já tem "+fm(paidAmt0)+" pago. Cancelar o agendamento também cancela esse pagamento (devolução). Continuar?"))return;await undoPayment(b.id,{phone:b.client_phone,name:b.client_name})}
     await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status})});
     const templates=getBookingMessages();
     const waMessage=applyBookingMessage(status==="confirmed"?templates.confirmed:templates.cancelled,b);
@@ -1003,8 +1030,8 @@ async function showBookingDetail(id){
   }else{
    $("#detail-cancel")&&($("#detail-cancel").onclick=()=>finishAction("cancelled","Informamos que seu agendamento foi CANCELADO.","Deseja realmente cancelar este agendamento?"));
    const quick=async(status,q)=>{if(q&&!confirm(q))return;try{await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status})});close();await loadAgenda()}catch(err){alert("Não foi possível atualizar: "+err.message)}};
-   $("#detail-attended")&&($("#detail-attended").onclick=()=>quick("completed"));
-   $("#detail-noshow")&&($("#detail-noshow").onclick=()=>quick("no_show","Marcar que o cliente não compareceu?"));
+   $("#detail-attended")&&($("#detail-attended").onclick=()=>quick(paidFull?"finalized":"completed"));
+   $("#detail-noshow")&&($("#detail-noshow").onclick=()=>{if(paidAmt0>0){close();noShowPaidDialog(b,cl,loadAgenda)}else quick("no_show","Marcar que o cliente não compareceu?")});
    $("#detail-pay")&&($("#detail-pay").onclick=()=>{close();openPaymentScreen(b)});
    $("#detail-pay-c")&&($("#detail-pay-c").onclick=()=>{close();openPaymentScreen(b)});
    $("#detail-pay-f")&&($("#detail-pay-f").onclick=()=>{close();openPaymentScreen(b)});
@@ -1436,25 +1463,42 @@ function showAppConfirm(message,onOk){
 function uid(){try{return session?.user?.id||JSON.parse(atob(session.access_token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).sub||null}catch{return null}}
 const PAY_METHODS=[["cash","Dinheiro","💵"],["card","Cartão","💳"],["pix","Pix","⚡"],["other","Outro","•••"]];
 const payName=m=>(PAY_METHODS.find(x=>x[0]===m)||[0,m])[1];
+const todayLocal=()=>{const t=new Date();return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0")};
 async function openPaymentScreen(b,opts={}){
   document.querySelector(".pay-screen")?.remove();
   const total=Math.round(Number(b.total||0)*100)/100;
   let ex=null;try{ex=(await api(`finance_booking_closures?select=*&booking_id=eq.${encodeURIComponent(b.id)}`))[0]||null}catch(e){}
   let catalog=[];try{catalog=await api("finance_products?select=*&active=eq.true&order=name")}catch(e){}
+  let credits=[];try{if(b.client_phone)credits=await api(`client_credits?select=*&client_phone=eq.${encodeURIComponent(b.client_phone)}&status=eq.available&remaining_amount=gt.0&order=created_at`)}catch(e){}
+  const creditAvail=Math.round(credits.reduce((a,c)=>a+Number(c.remaining_amount||0),0)*100)/100;
+  const methods=[...PAY_METHODS,...(creditAvail>0?[["credit","Crédito","🎁"]]:[])];
   const already=ex?Math.round(Number(ex.amount_paid||0)*100)/100:0;
   const baseRemaining=ex?Math.round(Number(ex.balance_due||0)*100)/100:total;
-  let prods=(opts.prods||[]).map(x=>({...x}));let parts=[],split=false,pickerOpen=false;
+  const stNow=normalizedStatus(b.status);
+  const needsDoneToggle=!["completed","finalized"].includes(statusClass(b.status))&&!["no_show"].includes(stNow);
+  let serviceDone=!needsDoneToggle||String(b.date)<=todayLocal();
+  let payDate=todayLocal();
+  let prods=(opts.prods||[]).map(x=>({...x}));let parts=[],pickerOpen=false;
   const el=document.createElement("div");el.className="pay-screen";
   document.body.appendChild(el);document.body.classList.add("sheet-open");
   const close=()=>{el.remove();document.body.classList.remove("sheet-open")};
   const paid=()=>Math.round(parts.reduce((a,p)=>a+Number(p.amount||0),0)*100)/100;
   const pTotal=()=>Math.round(prods.reduce((a,p)=>a+p.quantity*p.unit_price,0)*100)/100;
   const remaining=()=>Math.round((baseRemaining+pTotal())*100)/100;
-  const draw=()=>{
+  const has=m=>parts.find(p=>p.method===m);
+  const statusInfo=()=>{
     const rem=remaining(),diff=Math.round((rem-paid())*100)/100,pt=pTotal();
-    const bad=diff<0||(paid()<=0&&pt<=0);
-    const settled=rem<=0;
-    const grand=Math.round(((ex?Number(ex.grand_total):total)+pt)*100)/100;
+    const creditUsed=parts.filter(p=>p.method==="credit").reduce((a,p)=>a+Number(p.amount||0),0);
+    const bad=diff<0||(paid()<=0&&pt<=0)||creditUsed>creditAvail+0.001||parts.some(p=>!(Number(p.amount)>0));
+    const msg=!parts.length?"":creditUsed>creditAvail+0.001?`Crédito disponível: ${fm(creditAvail)}`:diff===0?"Valor conferido ✓":diff>0?`Valor pendente: ${fm(diff)} — ficará a receber`:`Valor maior que o total (${fm(-diff)} a mais)`;
+    const cls=diff===0&&parts.length?"ok":diff<0||creditUsed>creditAvail+0.001?"":"warn";
+    const label=paid()<=0&&pt>0?"Salvar produtos (valor pendente)":diff>0&&!bad?"Confirmar pagamento parcial":"Confirmar pagamento";
+    return {bad,msg,cls,label};
+  };
+  const refresh=()=>{const i=statusInfo();const d=el.querySelector("#pay-diff"),ok=el.querySelector("#pay-ok");if(d){d.textContent=i.msg;d.className="pay-diff "+i.cls}if(ok){ok.disabled=i.bad;ok.textContent=i.label}};
+  const draw=(focusMethod)=>{
+    const rem=remaining(),pt=pTotal(),settled=rem<=0;
+    const info=statusInfo();
     el.innerHTML=`<header class="pay-head"><button type="button" class="pay-back" id="pay-back" aria-label="Voltar">‹</button><b>Pagamento</b></header>
     <div class="pay-body"><div class="pay-card"><div class="pay-client">${esc(b.client_name||"Cliente")}</div><div class="pay-sub">${esc(formatBookingDateBR(b.date))} · ${hm(b.start_min)}</div>
     <div class="pay-total pay-mini"><span>Serviços</span><b>${fm(ex?Number(ex.grand_total)-Number(ex.product_total||0):total)}</b></div>
@@ -1465,38 +1509,38 @@ async function openPaymentScreen(b,opts={}){
     <h3 class="pay-h">Produtos</h3>
     ${prods.length?`<div class="pay-prods">${prods.map((p,i)=>`<div class="pay-prod"><div class="pp-n"><b>${esc(p.name)}</b><span>${fm(p.unit_price)} cada</span></div><div class="pp-q"><button type="button" data-pq="-1" data-i="${i}">−</button><b>${p.quantity}</b><button type="button" data-pq="1" data-i="${i}">+</button></div><div class="pp-t">${fm(p.quantity*p.unit_price)}</div><button type="button" class="pay-x" data-prd="${i}" aria-label="Remover">✕</button></div>`).join("")}</div>`:""}
     <button type="button" class="pay-link" id="pay-addprod">＋ Adicionar produto</button>
-    ${settled?`<div class="pay-diff ok" style="margin-top:6px">${pt>0?"":"Atendimento totalmente pago ✓"}</div>`:`<h3 class="pay-h">Como foi pago?</h3>
-    ${split?`<div class="pay-rows">${parts.map((p,i)=>`<div class="pay-row"><select data-pm="${i}">${PAY_METHODS.map(m=>`<option value="${m[0]}" ${m[0]===p.method?"selected":""}>${m[1]}</option>`).join("")}</select><input data-pa="${i}" type="number" inputmode="decimal" step="0.01" min="0" value="${p.amount}"><button type="button" class="pay-x" data-prm="${i}" aria-label="Remover">✕</button></div>`).join("")}</div>
-    <button type="button" class="pay-link" id="pay-add">＋ Adicionar forma</button>`
-    :`<div class="pay-grid">${PAY_METHODS.map(m=>`<button type="button" class="pay-tile ${parts.length===1&&parts[0].method===m[0]?"on":""}" data-pick="${m[0]}"><span>${m[2]}</span>${m[1]}</button>`).join("")}</div>
-    <button type="button" class="pay-link" id="pay-split">Dividir em mais de uma forma</button>`}
-    ${parts.length?`<div class="pay-diff ${diff===0?"ok":diff<0?"":"warn"}">${diff===0?"Valor conferido ✓ — atendimento será finalizado":diff>0?"Valor pendente: "+fm(diff)+" — o atendimento não será finalizado":"Valor maior que o total ("+fm(-diff)+" a mais)"}</div>`:""}`}
-    </div>${settled&&pt<=0?"":`<footer class="pay-foot"><button type="button" class="btn primary pay-confirm" id="pay-ok" ${bad?"disabled":""}>${paid()<=0&&pt>0?"Salvar produtos (valor pendente)":diff>0&&!bad?"Confirmar pagamento parcial":"Confirmar pagamento"}</button></footer>`}
+    ${settled&&pt<=0?`<div class="pay-diff ok" style="margin-top:6px">Atendimento totalmente pago ✓</div>`:`<h3 class="pay-h">Como foi pago?</h3>
+    <div class="pay-grid">${methods.map(m=>`<button type="button" class="pay-tile ${has(m[0])?"on":""}" data-pick="${m[0]}"><span>${m[2]}</span>${m[1]}${m[0]==="credit"?`<small>${fm(creditAvail)}</small>`:""}</button>`).join("")}</div>
+    ${parts.length?`<div class="pay-amts">${parts.map((p,i)=>{const mm=methods.find(x=>x[0]===p.method);return `<label class="pay-amt"><span>${mm[2]} ${mm[1]}</span><div class="pay-money"><i>R$</i><input data-pa="${i}" type="number" inputmode="decimal" step="0.01" min="0" value="${p.amount}"></div></label>`}).join("")}</div>`:`<p class="pay-hint">Toque na forma de pagamento. Para dividir, toque em mais de uma e informe o valor de cada.</p>`}
+    <div id="pay-diff" class="pay-diff ${info.cls}">${info.msg}</div>
+    <div class="pay-opts"><label class="pay-optrow"><span>Data do pagamento</span><input type="date" id="pay-date" value="${payDate}"></label>
+    ${needsDoneToggle?`<label class="pay-optrow"><span>Serviço já realizado?<small>${serviceDone?"O agendamento ficará concluído":"Fica marcado como pago, falta atender"}</small></span><input type="checkbox" id="pay-done" ${serviceDone?"checked":""}></label>`:""}</div>`}
+    </div>${settled&&pt<=0?"":`<footer class="pay-foot"><button type="button" class="btn primary pay-confirm" id="pay-ok" ${info.bad?"disabled":""}>${info.label}</button></footer>`}
     ${pickerOpen?`<div class="pay-picker" id="pay-picker"><div class="pay-picker-card"><div class="pay-picker-h"><b>Escolha o produto</b><button type="button" id="pp-close" class="pay-x">✕</button></div>${catalog.length?catalog.map(p=>`<button type="button" class="pp-item" data-pp="${p.id}" ${Number(p.stock_quantity)<=0?"disabled":""}><span><b>${esc(p.name)}</b><small>Estoque: ${p.stock_quantity}</small></span><b>${fm(p.sale_price)}</b></button>`).join(""):`<p class="muted" style="padding:12px">Nenhum produto ativo cadastrado. Cadastre em Configurações › Produtos.</p>`}</div></div>`:""}`;
     const q=x=>el.querySelector(x),qa=x=>el.querySelectorAll(x);
     q("#pay-back").onclick=close;
-    qa("[data-pick]").forEach(x=>x.onclick=()=>{parts=[{method:x.dataset.pick,amount:remaining()}];draw()});
-    q("#pay-split")?.addEventListener("click",()=>{split=true;if(!parts.length)parts=[{method:"cash",amount:remaining()}];draw()});
-    q("#pay-add")?.addEventListener("click",()=>{parts.push({method:"pix",amount:Math.max(0,Math.round((remaining()-paid())*100)/100)});draw()});
-    qa("[data-pm]").forEach(x=>x.onchange=()=>{parts[+x.dataset.pm].method=x.value});
-    qa("[data-pa]").forEach(x=>x.onchange=()=>{parts[+x.dataset.pa].amount=Math.round(Number(x.value||0)*100)/100;draw()});
-    qa("[data-prm]").forEach(x=>x.onclick=()=>{parts.splice(+x.dataset.prm,1);if(!parts.length)split=false;draw()});
-    const resync=()=>{if(parts.length===1&&!split)parts[0].amount=remaining()};
+    qa("[data-pick]").forEach(x=>x.onclick=()=>{const m=x.dataset.pick;const i=parts.findIndex(p=>p.method===m);if(i>=0){parts.splice(i,1)}else{let amt=parts.length?Math.max(0,Math.round((remaining()-paid())*100)/100):remaining();if(m==="credit")amt=Math.min(amt,creditAvail);parts.push({method:m,amount:amt})}draw(m)});
+    if(focusMethod&&parts.length>1){const ix=parts.findIndex(p=>p.method===focusMethod);const inp=q(`[data-pa="${ix}"]`);if(inp){inp.focus();inp.select()}}
+    qa("[data-pa]").forEach(x=>x.oninput=()=>{parts[+x.dataset.pa].amount=Math.round(Number(x.value||0)*100)/100;refresh()});
+    q("#pay-date")?.addEventListener("change",x=>{payDate=x.target.value||todayLocal()});
+    q("#pay-done")?.addEventListener("change",x=>{serviceDone=x.target.checked;const sm=x.target.parentElement.querySelector("small");if(sm)sm.textContent=serviceDone?"O agendamento ficará concluído":"Fica marcado como pago, falta atender"});
+    const resync=()=>{if(parts.length===1&&parts[0].method!=="credit")parts[0].amount=remaining()};
     qa("[data-pq]").forEach(x=>x.onclick=()=>{const p=prods[+x.dataset.i],cat=catalog.find(c=>c.id===p.product_id),nq=p.quantity+Number(x.dataset.pq);if(nq<1)return;if(cat&&nq>Number(cat.stock_quantity)){alert("Estoque insuficiente: restam "+cat.stock_quantity+" unidade(s).");return}p.quantity=nq;resync();draw()});
     qa("[data-prd]").forEach(x=>x.onclick=()=>{prods.splice(+x.dataset.prd,1);resync();draw()});
     q("#pay-addprod").onclick=()=>{pickerOpen=true;draw()};
     q("#pp-close")?.addEventListener("click",()=>{pickerOpen=false;draw()});
     q("#pay-picker")?.addEventListener("click",ev=>{if(ev.target.id==="pay-picker"){pickerOpen=false;draw()}});
     qa("[data-pp]").forEach(x=>x.onclick=()=>{const c=catalog.find(z=>String(z.id)===x.dataset.pp);const f=prods.find(p=>p.product_id===c.id);if(f){if(f.quantity+1>Number(c.stock_quantity)){alert("Estoque insuficiente.");return}f.quantity++}else prods.push({product_id:c.id,name:c.name,quantity:1,unit_price:Number(c.sale_price),unit_cost:Number(c.cost_price||0)});pickerOpen=false;resync();draw()});
-    q("#pay-alter")?.addEventListener("click",()=>showAppConfirm("Isso desfaz o pagamento já registrado para você lançar novamente (o estoque dos produtos volta). Continuar?",async()=>{try{const old=await undoPayment(b.id);await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"completed"})});close();await loadAgenda();openPaymentScreen({...b,status:"completed"},{prods:(old?.product_items||[])})}catch(err){alert("Não foi possível alterar: "+err.message)}}));
-    q("#pay-cancel")?.addEventListener("click",()=>showAppConfirm("Tem certeza que deseja cancelar o pagamento já registrado?",async()=>{try{await undoPayment(b.id);await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"completed"})});close();await loadAgenda()}catch(err){alert("Não foi possível cancelar o pagamento: "+err.message)}}));
+    q("#pay-alter")?.addEventListener("click",()=>showAppConfirm("Isso desfaz o pagamento já registrado para você lançar novamente (o estoque dos produtos volta). Continuar?",async()=>{try{const old=await undoPayment(b.id);await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:needsDoneToggle?b.status:"completed"})});close();await loadAgenda();openPaymentScreen({...b,status:needsDoneToggle?b.status:"completed"},{prods:(old?.product_items||[])})}catch(err){alert("Não foi possível alterar: "+err.message)}}));
+    q("#pay-cancel")?.addEventListener("click",()=>showAppConfirm("Tem certeza que deseja cancelar o pagamento já registrado?",async()=>{try{await undoPayment(b.id);if(!needsDoneToggle)await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"completed"})});close();await loadAgenda()}catch(err){alert("Não foi possível cancelar o pagamento: "+err.message)}}));
     q("#pay-ok")?.addEventListener("click",save);
   };
   const save=async()=>{
     const btn=el.querySelector("#pay-ok");btn.disabled=true;btn.textContent="Salvando…";
     try{
       for(const p of prods){const c=catalog.find(z=>z.id===p.product_id);if(!c||p.quantity>Number(c.stock_quantity))throw Error("Estoque insuficiente para "+p.name+".")}
-      const today=new Date(),ds=today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-"+String(today.getDate()).padStart(2,"0");
+      if(parts.some(p=>p.method==="credit")&&!b.client_phone)throw Error("O agendamento precisa ter telefone para usar crédito.");
+      const ds=payDate||todayLocal();
       const p0=paid(),pt=pTotal(),newBal=Math.round((remaining()-p0)*100)/100;
       const cfg=(await api("finance_settings?select=card_fee_percent&limit=1").catch(()=>[]))[0];
       const fee=Number(cfg?.card_fee_percent||0);
@@ -1504,34 +1548,44 @@ async function openPaymentScreen(b,opts={}){
       const pending=(amount)=>api("finance_movements",{method:"POST",body:JSON.stringify({kind:"income",movement_date:ds,description:`Saldo a receber — ${b.client_name} (${formatBookingDateBR(b.date)})`,category:"Contas a receber",amount,payment_method:"other",status:"pending",booking_id:b.id,created_by:uid()})});
       if(!ex){
         const disc=Number(b.discount||0)+Number(b.combo_discount||0),sur=Number(b.surcharge||0);
-        const closure=(await api("finance_booking_closures",{method:"POST",body:JSON.stringify({booking_id:b.id,service_total:Math.round((total+disc-sur)*100)/100,product_total:pt,discount:disc,surcharge:sur,grand_total:Math.round((total+pt)*100)/100,amount_paid:p0,balance_due:newBal,product_items:prods,payment_parts:parts,no_show_fee:0,notes:"",closed_by:uid()})}))[0];
+        const closure=(await api("finance_booking_closures",{method:"POST",body:JSON.stringify({booking_id:b.id,service_total:Math.round((total+disc-sur)*100)/100,product_total:pt,discount:disc,surcharge:sur,grand_total:Math.round((total+pt)*100)/100,amount_paid:p0,balance_due:newBal,product_items:prods,payment_parts:parts.map(p=>({...p,date:ds})),no_show_fee:0,notes:"",closed_by:uid()})}))[0];
         closureId=closure?.id;
         if(newBal>0)await pending(newBal);
       }else{
-        await api(`finance_booking_closures?id=eq.${ex.id}`,{method:"PATCH",body:JSON.stringify({product_total:Math.round((Number(ex.product_total||0)+pt)*100)/100,grand_total:Math.round((Number(ex.grand_total)+pt)*100)/100,product_items:[...(Array.isArray(ex.product_items)?ex.product_items:[]),...prods],amount_paid:Math.round((already+p0)*100)/100,balance_due:newBal,payment_parts:[...(Array.isArray(ex.payment_parts)?ex.payment_parts:[]),...parts]})});
+        await api(`finance_booking_closures?id=eq.${ex.id}`,{method:"PATCH",body:JSON.stringify({product_total:Math.round((Number(ex.product_total||0)+pt)*100)/100,grand_total:Math.round((Number(ex.grand_total)+pt)*100)/100,product_items:[...(Array.isArray(ex.product_items)?ex.product_items:[]),...prods],amount_paid:Math.round((already+p0)*100)/100,balance_due:newBal,payment_parts:[...(Array.isArray(ex.payment_parts)?ex.payment_parts:[]),...parts.map(p=>({...p,date:ds}))]})});
         const pend=(await api(`finance_movements?select=id&booking_id=eq.${encodeURIComponent(b.id)}&category=eq.Contas a receber&status=eq.pending`).catch(()=>[]))[0];
         if(pend)await api(`finance_movements?id=eq.${pend.id}`,{method:"PATCH",body:JSON.stringify(newBal>0?{amount:newBal}:{status:"cancelled"})});
         else if(newBal>0)await pending(newBal);
       }
       for(const p of parts){
+        if(p.method==="credit"){
+          let need=p.amount;
+          for(const cr of credits){if(need<=0)break;const av=Number(cr.remaining_amount||0),use=Math.min(av,need);if(use<=0)continue;const left=Math.round((av-use)*100)/100;await api(`client_credits?id=eq.${cr.id}`,{method:"PATCH",body:JSON.stringify({remaining_amount:left,status:left>0?"available":"used"})});need=Math.round((need-use)*100)/100}
+          continue;
+        }
         const mv={movement_date:ds,payment_method:p.method,status:"paid",booking_id:b.id,created_by:uid()};
         await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"income",description:`Atendimento ${b.client_name} (${payName(p.method)})`,category:"Atendimento",amount:p.amount})});
         if(p.method==="cash"||p.method==="card")await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"pro_labore",description:`Retirada automática sobre atendimento ${b.client_name} (${payName(p.method)})`,category:"Retirada do proprietário",amount:p.amount})});
         if(p.method==="card"&&fee>0)await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"expense",description:`Taxa cartão atendimento ${b.client_name}`,category:"Taxas de cartão",amount:Math.round(p.amount*fee)/100})});
       }
       for(const p of prods){const c=catalog.find(z=>z.id===p.product_id);await api(`finance_products?id=eq.${p.product_id}`,{method:"PATCH",body:JSON.stringify({stock_quantity:Number(c.stock_quantity)-p.quantity,updated_at:new Date().toISOString()})});await api("finance_stock_movements",{method:"POST",body:JSON.stringify({product_id:p.product_id,movement_type:"sale",quantity:p.quantity,unit_cost:p.unit_cost||0,description:`Venda no atendimento ${b.client_name}`,movement_date:ds,created_by:uid()})})}
-      api("finance_audit_log",{method:"POST",body:JSON.stringify({table_name:"finance_booking_closures",record_id:String(closureId??""),action:ex?"updated":"created",new_data:{booking_id:b.id,amount_paid:p0,balance_due:newBal,products:prods.length},changed_by:uid()})}).catch(()=>null);
-      await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:newBal>0?"completed":"finalized"})});
+      api("finance_audit_log",{method:"POST",body:JSON.stringify({table_name:"finance_booking_closures",record_id:String(closureId??""),action:ex?"updated":"created",new_data:{booking_id:b.id,amount_paid:p0,balance_due:newBal,products:prods.length,payment_date:ds},changed_by:uid()})}).catch(()=>null);
+      let st;
+      if(!needsDoneToggle)st=newBal>0?"completed":"finalized";
+      else if(serviceDone)st=newBal>0?"completed":"finalized";
+      else st=b.status;
+      if(st!==b.status)await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:st})});
       close();await loadAgenda();
     }catch(err){alert("Não foi possível registrar o pagamento: "+err.message);btn.disabled=false;btn.textContent="Confirmar pagamento"}
   };
   draw();
 }
-async function undoPayment(id){
+async function undoPayment(id,o={}){
   const cl=await api(`finance_booking_closures?select=*&booking_id=eq.${encodeURIComponent(id)}`);
   const cats=encodeURIComponent('("Atendimento","Retirada do proprietário","Taxas de cartão","Contas a receber","Caixinha")');
-  await api(`finance_movements?booking_id=eq.${encodeURIComponent(id)}&status=in.(paid,pending)&category=in.${cats}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});
-  const ds=new Date().toISOString().slice(0,10);
+  if(o.keepPaid)await api(`finance_movements?booking_id=eq.${encodeURIComponent(id)}&status=eq.pending&category=eq.Contas a receber`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});
+  else await api(`finance_movements?booking_id=eq.${encodeURIComponent(id)}&status=in.(paid,pending)&category=in.${cats}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});
+  const ds=todayLocal();
   for(const c of cl){
     for(const it of (Array.isArray(c.product_items)?c.product_items:[])){
       const cur=(await api(`finance_products?select=id,stock_quantity&id=eq.${it.product_id}`).catch(()=>[]))[0];
@@ -1539,10 +1593,75 @@ async function undoPayment(id){
       await api(`finance_products?id=eq.${it.product_id}`,{method:"PATCH",body:JSON.stringify({stock_quantity:Number(cur.stock_quantity)+Number(it.quantity),updated_at:new Date().toISOString()})});
       await api("finance_stock_movements",{method:"POST",body:JSON.stringify({product_id:it.product_id,movement_type:"adjustment",quantity:Number(it.quantity),unit_cost:it.unit_cost||0,description:"Estorno — pagamento cancelado",movement_date:ds,created_by:uid()})});
     }
+    // devolve crédito de cliente usado neste pagamento
+    for(const p of (Array.isArray(c.payment_parts)?c.payment_parts:[]).filter(x=>x.method==="credit"&&!o.keepPaid)){
+      await api("client_credits",{method:"POST",body:JSON.stringify({client_phone:o.phone||"",client_name:o.name||"",booking_id:id,amount:Number(p.amount),remaining_amount:Number(p.amount),status:"available",description:"Estorno de crédito — pagamento cancelado",created_by:uid()})}).catch(()=>null);
+    }
     await api(`finance_booking_closures?id=eq.${c.id}`,{method:"DELETE"});
     api("finance_audit_log",{method:"POST",body:JSON.stringify({table_name:"finance_booking_closures",record_id:String(c.id),action:"payment_cancelled",new_data:{booking_id:id},changed_by:uid()})}).catch(()=>null);
   }
   return cl[0]||null;
+}
+// Cliente faltou mas já tinha pago: decidir o que fazer com o valor
+function noShowPaidDialog(b,cl,done){
+  document.querySelector(".nsm")?.remove();
+  const amt=Number(cl.amount_paid||0);
+  const m=document.createElement("div");m.className="nsm";
+  m.innerHTML=`<div class="nsm-card"><h3>Cliente já pagou ${fm(amt)}</h3><p>${esc(b.client_name||"Cliente")} não compareceu. O que fazer com o valor?</p>
+  <button type="button" data-ns="credit"><b>Guardar como crédito</b><span>O valor fica disponível para o próximo agendamento</span></button>
+  <button type="button" data-ns="fee"><b>Cobrar como taxa de falta</b><span>O valor continua como receita no caixa</span></button>
+  <button type="button" data-ns="refund"><b>Devolver ao cliente</b><span>Cancela o pagamento e remove do caixa</span></button>
+  <button type="button" class="ns-x" data-ns="x">Voltar</button></div>`;
+  document.body.appendChild(m);
+  m.addEventListener("click",async e=>{
+    if(e.target===m){m.remove();return}
+    const k=e.target.closest("[data-ns]")?.dataset.ns;if(!k)return;
+    if(k==="x"){m.remove();return}
+    try{
+      if(k==="credit"){
+        if(!b.client_phone)throw Error("O agendamento não tem telefone do cliente.");
+        await undoPayment(b.id,{keepPaid:true});
+        await api("client_credits",{method:"POST",body:JSON.stringify({client_phone:b.client_phone,client_name:b.client_name||"",booking_id:b.id,amount:amt,remaining_amount:amt,status:"available",description:`Crédito — não compareceu em ${formatBookingDateBR(b.date)}`,created_by:uid()})});
+      }else if(k==="fee"){
+        await api(`finance_booking_closures?id=eq.${cl.id}`,{method:"PATCH",body:JSON.stringify({no_show_fee:amt,balance_due:0})});
+        await api(`finance_movements?booking_id=eq.${encodeURIComponent(b.id)}&status=eq.pending&category=eq.Contas a receber`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});
+      }else{
+        await undoPayment(b.id,{phone:b.client_phone,name:b.client_name});
+      }
+      await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"no_show"})});
+      m.remove();await done?.();
+    }catch(err){alert("Não foi possível concluir: "+err.message)}
+  });
+}
+// Venda de crédito ao cliente
+function sellCreditDialog(c,done){
+  document.querySelector(".nsm")?.remove();
+  let method="pix";
+  const m=document.createElement("div");m.className="nsm";
+  m.innerHTML=`<div class="nsm-card"><h3>Vender crédito</h3><p>${esc(c.name||"Cliente")} · o valor entra no caixa e fica disponível para abater em agendamentos.</p>
+  <label class="pay-optrow"><span>Valor (R$)</span><div class="pay-money" style="width:130px"><i>R$</i><input id="sc-amt" type="number" inputmode="decimal" step="0.01" min="0" placeholder="100,00"></div></label>
+  <div class="pay-grid sc-grid">${PAY_METHODS.map(x=>`<button type="button" class="pay-tile ${x[0]===method?"on":""}" data-scm="${x[0]}"><span>${x[2]}</span>${x[1]}</button>`).join("")}</div>
+  <label class="pay-optrow"><span>Data do pagamento</span><input type="date" id="sc-date" value="${todayLocal()}"></label>
+  <div id="sc-err" class="pay-diff"></div>
+  <button type="button" class="btn primary" id="sc-ok" style="width:100%;height:46px;margin-top:6px">Confirmar venda de crédito</button>
+  <button type="button" class="ns-x" data-ns="x">Voltar</button></div>`;
+  document.body.appendChild(m);
+  m.addEventListener("click",async e=>{
+    if(e.target===m||e.target.closest("[data-ns=x]")){m.remove();return}
+    const t=e.target.closest("[data-scm]");if(t){method=t.dataset.scm;m.querySelectorAll("[data-scm]").forEach(x=>x.classList.toggle("on",x===t));return}
+    if(e.target.closest("#sc-ok")){
+      const amount=Math.round(Number(m.querySelector("#sc-amt").value||0)*100)/100,ds=m.querySelector("#sc-date").value||todayLocal();
+      if(!(amount>0)){m.querySelector("#sc-err").textContent="Informe o valor do crédito.";return}
+      const btn=e.target.closest("#sc-ok");btn.disabled=true;btn.textContent="Salvando…";
+      try{
+        await api("client_credits",{method:"POST",body:JSON.stringify({client_phone:c.phone,client_name:c.name||"",amount,remaining_amount:amount,status:"available",description:"Venda de crédito",created_by:uid()})});
+        const mv={movement_date:ds,payment_method:method,status:"paid",created_by:uid()};
+        await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"income",description:`Venda de crédito — ${c.name||c.phone} (${payName(method)})`,category:"Venda de crédito",amount})});
+        if(method==="cash"||method==="card")await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"pro_labore",description:`Retirada automática venda de crédito — ${c.name||c.phone}`,category:"Retirada do proprietário",amount})});
+        m.remove();await done?.();
+      }catch(err){m.querySelector("#sc-err").textContent="Não foi possível registrar: "+err.message;btn.disabled=false;btn.textContent="Confirmar venda de crédito"}
+    }
+  });
 }
 async function saveAppointmentStatus(id,status){
   const dbStatusMap={pending:"pending",confirmed:"confirmed",completed:"completed",finalized:"finalized",no_show:"no_show",cancelled:"cancelled"};
@@ -1568,11 +1687,23 @@ function openStatusPicker(id){
     const b=e.target.closest("[data-set-status]");if(!b)return;
     const target=b.dataset.setStatus;
     if(target!=="finalized"){
-      let paidBefore=0;try{paidBefore=Number((await api(`finance_booking_closures?select=amount_paid&booking_id=eq.${encodeURIComponent(id)}`))[0]?.amount_paid||0)}catch(err){}
+      let cl=null;try{cl=(await api(`finance_booking_closures?select=*&booking_id=eq.${encodeURIComponent(id)}`))[0]||null}catch(err){}
+      const paidBefore=Number(cl?.amount_paid||0);
+      const cur=(await api(`bookings?select=*&id=eq.${encodeURIComponent(id)}`).catch(()=>[]))[0]||{};
+      const curCls=statusClass(cur.status);
+      const serviceDoneNow=["completed","finalized"].includes(curCls);
       if(paidBefore>0){
-        closeStatusPicker();
-        showAppConfirm("Esse atendimento já foi pago. Tem certeza que deseja cancelar o pagamento?",async()=>{try{await undoPayment(id);await saveAppointmentStatus(id,target)}catch(err){alert("Não foi possível cancelar o pagamento: "+(err.message||err))}});
-        return;
+        if(target==="no_show"){closeStatusPicker();noShowPaidDialog(cur,cl,loadAgenda);return}
+        if(target==="completed"&&!serviceDoneNow){
+          try{await saveAppointmentStatus(id,Number(cl.balance_due||0)===0?"finalized":"completed")}catch(err){alert("Não foi possível atualizar o status: "+(err.message||err))}
+          return;
+        }
+        if((target==="confirmed"||target==="pending")&&!serviceDoneNow){try{await saveAppointmentStatus(id,target)}catch(err){alert("Não foi possível atualizar o status: "+(err.message||err))}return}
+        if(!(target==="completed"&&curCls==="completed")){
+          closeStatusPicker();
+          showAppConfirm("Esse atendimento já foi pago. Tem certeza que deseja cancelar o pagamento?",async()=>{try{await undoPayment(id,{phone:cur.client_phone,name:cur.client_name});await saveAppointmentStatus(id,target)}catch(err){alert("Não foi possível cancelar o pagamento: "+(err.message||err))}});
+          return;
+        }
       }
     }
     if(b.dataset.setStatus==="cancelled"){
