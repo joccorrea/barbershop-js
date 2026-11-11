@@ -1595,7 +1595,7 @@ if(b.id==="booking-back"){bookingDraft=null;await loadAgenda();return}
 if(b.id==="mode-book"||b.id==="mode-block"){readBookingInputs();bookingDraft.mode=b.id==="mode-book"?"book":"block";renderBookingScreen();return}
 if(b.id==="open-client-picker"){readBookingInputs();if(bookingDraft&&bookingDraft.selectedPhone){clientOptionsSheet(bookingDraft.selectedPhone);return}renderClientPicker();return}
 if(b.id==="booking-add-client"){readBookingInputs();bookingDraft.addingClient=true;bookingDraft.selectedPhone=null;renderBookingScreen();return}
-if(b.dataset.pickClient){readBookingInputs();bookingDraft.selectedPhone=b.dataset.pickClient;bookingDraft.newName="";bookingDraft.newPhone="";bookingDraft.addingClient=false;bookingDraft.query="";renderBookingScreen();return}
+if(b.dataset.pickClient){readBookingInputs();bookingDraft.selectedPhone=b.dataset.pickClient;bookingDraft.newName="";bookingDraft.newPhone="";bookingDraft.addingClient=false;bookingDraft.query="";renderBookingScreen();offerPrevServices(b.dataset.pickClient);return}
 if(b.id==="client-picker-back"){renderBookingScreen();return}
 if(b.id==="client-picker-add-new"){readBookingInputs();renderBookingClientRegistration();return}
 if(b.id==="client-picker-contacts"){await pickPhoneContact();return}
@@ -1775,11 +1775,12 @@ function __renderBookingScreen(){
  const timeInput=(id,label,value)=>`<div class="field">${label?`<label>${label}</label>`:''}<input id="${id}" type="time" value="${value==null?'':hm(value)}" step="1800"></div>`;
  const dateInput=(id,label,value)=>`<div class="field">${label?`<label>${label}</label>`:''}<input id="${id}" type="date" value="${key(value)}"></div>`;
  app.innerHTML=`<section class="booking-screen">
- <div class="booking-head"><button class="btn form-back" id="booking-back" aria-label="Voltar à agenda" title="Voltar à agenda">←</button></div>
+ <div class="booking-head" style="display:none"><button class="btn form-back" id="booking-back" aria-label="Voltar à agenda" title="Voltar à agenda">←</button></div>
  <h2 class="section-title">${d.mode==='book'?'Novo agendamento':'Bloquear horário'}</h2>
- ${(d.barbers&&d.barbers.length>1&&!(d.mode==='block'&&d.blockAll))?`<div class="field"><label>Profissional</label><select id="booking-barber">${d.barbers.map(b=>`<option value="${b.id}" ${Number(b.id)===Number(d.barberId)?'selected':''}>${esc(b.name)}</option>`).join('')}</select></div>`:''}
+ ${(d.barbers&&d.barbers.length&&!(d.mode==='block'&&d.blockAll))?`<div class="card client-card-compact pro-card"><div class="fcap">Profissional</div>${d.barbers.length>1?`<select id="booking-barber" class="pro-sel">${d.barbers.map(b=>`<option value="${b.id}" ${Number(b.id)===Number(d.barberId)?'selected':''}>${esc(b.name)}</option>`).join('')}</select>`:`<div class="pro-name">${esc(d.barbers[0].name)}</div>`}</div>`:''}
  ${d.mode==='book'?`
  <div class="card client-card-compact">
+ <div class="fcap">Cliente</div>
  <button class="btn client-select-btn" id="open-client-picker" type="button">${d.selectedPhone?`<span class="client-selected-wrap"><span class="client-selected-name">${esc((d.clients.find(c=>c.phone===d.selectedPhone)||{}).name||'Selecionado')}</span><span class="client-selected-phone">${esc(fmtPhoneBR(d.selectedPhone))}</span></span>`:'<span class="client-plus-mini">＋</span><span>Selecionar cliente</span>'}</button>
  <div id="booking-new-client-panel" class="${d.addingClient?'':'hidden'}"><div class="field"><label>Nome completo</label><input id="booking-new-name" placeholder="Nome completo" value="${esc(d.newName||'')}"></div><div class="field"><label>Telefone com DDD</label><input id="booking-new-phone" placeholder="Telefone com DDD" inputmode="tel" value="${esc(d.newPhone||'')}"></div></div>
  </div>
@@ -1790,6 +1791,8 @@ function __renderBookingScreen(){
  <div class="booking-range-label">Fim</div><div class="field-line">${dateInput('booking-end-date','',d.endDate||new Date(d.date.getFullYear(),d.date.getMonth(),d.date.getDate()+Math.floor(endMin/1440)))}${timeInput('booking-end','',endMin==null?null:endMin%1440)}</div>
  <div class="section-title">Desconto ou acréscimo</div>
  <div class="card adj-card" id="adj-card">${adjustmentsHtml(d)}</div>
+ <div class="section-title">Observações</div>
+ <textarea id="booking-notes" rows="3" placeholder="Observações do agendamento (opcional)" style="width:100%">${esc(d.notes||"")}</textarea>
  
  `:`
  <label class="chk-item allday-row"><input type="checkbox" id="booking-allday"><span>Dia todo</span></label>
@@ -1802,11 +1805,22 @@ function __renderBookingScreen(){
  </section><div class="booking-savebar"><button class="btn primary" id="${d.mode==='book'?'booking-save':'booking-save-block'}" aria-label="Gravar" title="Gravar"><svg class="floppy-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h13l4 4v14H3V3h1zm2 2v5h10V5H6zm0 9v5h12v-5H6zm8-8h2v3h-2V6z"/></svg></button></div>`;
 }
 let swipeBackSnapshot="",swipeBackScrollY=0;
+async function offerPrevServices(phone){
+ const d=bookingDraft;if(!d||d.mode!=="book"||d.editingId||(d.services||[]).length)return;
+ let last=null;try{last=(await api(`bookings?select=services,date&client_phone=eq.${encodeURIComponent(phone)}&status=in.(pending,confirmed,completed,finalized)&order=date.desc,start_min.desc&limit=1`))[0]}catch(e){}
+ const sv=(last&&Array.isArray(last.services)?last.services:[]).filter(x=>x&&x.name);if(!sv.length)return;
+ showAppConfirm(`Usar os serviços do último agendamento?<br><small style="font-weight:500;color:#5b7a99;font-size:14px">${esc(sv.map(x=>x.name+(Number(x.qty)>1?" ×"+x.qty:"")).join(", "))}</small>`,()=>{
+  readBookingInputs();const dd=bookingDraft;if(!dd)return;
+  dd.services=sv.map(x=>{const c=(dd.catalog||[]).find(y=>String(y.id)===String(x.id))||(dd.catalog||[]).find(y=>y.name===x.name);return c?{...c,qty:Number(x.qty||1),price:Number(c.price||0)}:null}).filter(Boolean);
+  dd.endManuallyChanged=false;const dur=selectedServicesDuration(dd.services);if(Number.isFinite(Number(dd.start)))dd.end=Number(dd.start)+dur;
+  renderBookingScreen();
+ });
+}
 async function openBooking(start,mode='book',existing=null){
  try{
   if(!$(".booking-screen")){swipeBackSnapshot=app.innerHTML;swipeBackScrollY=window.scrollY}
   const [cs,ss,bs,cbs,cbi]=await Promise.all([api("clients?select=phone,name&order=name"),api("services?select=id,name,price,is_cut,duration_min,active&active=eq.true&order=sort"),api("rpc/agenda_barbers",{method:"POST",body:"{}"}),api("service_combos?select=*&active=eq.true").catch(()=>[]),api("service_combo_items?select=*").catch(()=>[])]);const combosList=cbs.map(c=>({...c,items:cbi.filter(i=>String(i.combo_id)===String(c.id))}));
-  const ddate=existing?.date?new Date(existing.date+"T12:00:00"):new Date(day.getFullYear(),day.getMonth(),day.getDate());const savedServices=existing?.services||[];const __nb=window.__newBarber;window.__newBarber=null;bookingDraft={barberId:(existing?.barber_id!=null?Number(existing.barber_id):(__nb!=null?Number(__nb):(agendaBarber&&agendaBarber!=="all"?Number(agendaBarber):(bs[0]?.id||null)))),blockAll:existing?(existing.blockId?existing.barber_id==null:false):agendaBarber==="all",mode,start:existing?.start_min!=null?Number(existing.start_min):(start==null?null:Number(start)),date:ddate,clients:cs,catalog:ss,barbers:bs,services:savedServices.map(x=>({...x,id:x.id??ss.find(y=>y.name===x.name)?.id})),query:'',newName:'',newPhone:'',selectedPhone:existing?.client_phone||null,addingClient:false,end:existing?.end_min!=null?Number(existing.end_min):(start==null?null:Number(start)+30),endDate:ddate,editingId:existing?.id||null,editingBlockId:existing?.blockId||null,reason:existing?.reason||'',existingStatus:existing?.status||"confirmed",endManuallyChanged:false,combos:combosList,discount:Number(existing?.discount||0),surcharge:Number(existing?.surcharge||0),comboOff:!!existing&&Number(existing?.combo_discount||0)===0&&savedServices.length>0&&!!(()=>{try{return bookingCombo({services:savedServices.map(x=>({id:x.id??ss.find(y=>y.name===x.name)?.id})),combos:combosList})}catch(e){return null}})()};
+  const ddate=existing?.date?new Date(existing.date+"T12:00:00"):new Date(day.getFullYear(),day.getMonth(),day.getDate());const savedServices=existing?.services||[];const __nb=window.__newBarber;window.__newBarber=null;bookingDraft={barberId:(existing?.barber_id!=null?Number(existing.barber_id):(__nb!=null?Number(__nb):(agendaBarber&&agendaBarber!=="all"?Number(agendaBarber):(bs[0]?.id||null)))),blockAll:existing?(existing.blockId?existing.barber_id==null:false):agendaBarber==="all",mode,start:existing?.start_min!=null?Number(existing.start_min):(start==null?null:Number(start)),date:ddate,clients:cs,catalog:ss,barbers:bs,services:savedServices.map(x=>({...x,id:x.id??ss.find(y=>y.name===x.name)?.id})),query:'',newName:'',newPhone:'',selectedPhone:existing?.client_phone||null,addingClient:false,end:existing?.end_min!=null?Number(existing.end_min):(start==null?null:Number(start)+30),endDate:ddate,editingId:existing?.id||null,editingBlockId:existing?.blockId||null,reason:existing?.reason||'',notes:existing?.notes||'',existingStatus:existing?.status||"confirmed",endManuallyChanged:false,combos:combosList,discount:Number(existing?.discount||0),surcharge:Number(existing?.surcharge||0),comboOff:!!existing&&Number(existing?.combo_discount||0)===0&&savedServices.length>0&&!!(()=>{try{return bookingCombo({services:savedServices.map(x=>({id:x.id??ss.find(y=>y.name===x.name)?.id})),combos:combosList})}catch(e){return null}})()};
   renderBookingScreen();
  }catch(e){alert("Não foi possível abrir o formulário: "+e.message)}
 }
@@ -1824,6 +1838,7 @@ function readBookingInputs(){
  if($("#booking-new-name"))bookingDraft.newName=$("#booking-new-name").value;
  if($("#booking-new-phone"))bookingDraft.newPhone=$("#booking-new-phone").value;
  bookingDraft.reason=$("#booking-reason")?.value||'';
+ if($("#booking-notes"))bookingDraft.notes=$("#booking-notes").value;
  if($("#booking-barber"))bookingDraft.barberId=Number($("#booking-barber").value);
  if($("#adj-discount"))bookingDraft.discount=Math.max(0,Number($("#adj-discount").value)||0);
  if($("#adj-surcharge"))bookingDraft.surcharge=Math.max(0,Number($("#adj-surcharge").value)||0);
@@ -1888,7 +1903,7 @@ async function saveBookingForm(){
   }
   const barber=d.barbers.find(x=>Number(x.id)===Number(d.barberId))||d.barbers[0];if(!barber)throw Error("Cadastre um profissional ativo.");
   const tt=bookingTotals(d);const total=tt.total;
-  const payload={discount:tt.disc,surcharge:tt.sur,combo_discount:tt.comboVal,barber_id:barber.id,date:key(d.date),start_min:d.start,end_min:end,client_name:client.name,client_phone:client.phone,services:d.services.map(x=>({id:x.id,name:x.name,qty:Number(x.qty||1),price:Number(x.price||0)})),total,status:d.existingStatus||"confirmed"};if(d.editingId){await api(`bookings?id=eq.${encodeURIComponent(d.editingId)}`,{method:"PATCH",body:JSON.stringify(payload)});await syncClosureAfterEdit(d.editingId,payload)}else await api("bookings",{method:"POST",body:JSON.stringify(payload)});
+  const payload={discount:tt.disc,surcharge:tt.sur,combo_discount:tt.comboVal,barber_id:barber.id,date:key(d.date),start_min:d.start,end_min:end,client_name:client.name,client_phone:client.phone,services:d.services.map(x=>({id:x.id,name:x.name,qty:Number(x.qty||1),price:Number(x.price||0)})),total,notes:(d.notes||"").trim()||null,status:d.existingStatus||"confirmed"};if(d.editingId){await api(`bookings?id=eq.${encodeURIComponent(d.editingId)}`,{method:"PATCH",body:JSON.stringify(payload)});await syncClosureAfterEdit(d.editingId,payload)}else await api("bookings",{method:"POST",body:JSON.stringify(payload)});
   bookingDraft=null;day=d.date;await loadAgenda();
   }catch(e){let message=e.message||"Não foi possível salvar o agendamento.";if(message.includes("23P01")||message.includes("bookings_barber_id_date_int4range_excl")||message.includes("exclusion constraint"))message="O banco estava bloqueando horários sobrepostos. A restrição foi removida; atualize a página e tente novamente. Se persistir, confira se a versão publicada usa o projeto Supabase correto.";if(err){err.textContent=message;err.classList.remove('hidden')}else alert(message)}
 }
@@ -2192,10 +2207,12 @@ async function sellPackageDialog(c,done){
   let pk=[],items=[];
   try{pk=await api("service_packages?select=*&active=eq.true&order=name.asc");if(pk.length)items=await api("service_package_items?select=*&package_id=in.("+pk.map(p=>p.id).join(",")+")")}catch(e){}
   pk.forEach(p=>p.items=items.filter(i=>String(i.package_id)===String(p.id)));
-  let sel=null;
+  let sel=null,qn=1;
   const m=document.createElement("div");m.className="nsm";
   m.innerHTML=`<div class="nsm-card"><h3>Vender pacote</h3><p>${esc(c.name||"Cliente")} · o valor entra no caixa e os serviços ficam disponíveis para o cliente.</p>
   ${pk.length?`<div class="pkg-list">${pk.map(p=>`<button type="button" class="pkg-opt" data-pk="${p.id}"><b>${esc(p.name)}</b><span>${p.items.map(i=>esc(i.service_name)+" ×"+i.quantity).join(", ")}</span><em>${fm(p.price)}</em></button>`).join("")}</div>`:`<div class="muted">Nenhum pacote cadastrado. Crie em Financeiro → Pacotes.</div>`}
+  <label class="pay-optrow"><span>Quantidade de pacotes</span><div class="qty-st"><button type="button" data-q="-1">−</button><b id="sp-q">1</b><button type="button" data-q="1">+</button></div></label>
+  <label class="pay-optrow" id="sp-seqrow" style="display:none"><span>Ativar em sequência<small>Cada pacote só começa quando o anterior vence</small></span><input type="checkbox" id="sp-seq"></label>
   <label class="pay-optrow"><span>Valor (R$)</span><div class="pay-money" style="width:130px"><i>R$</i><input id="sp-amt" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,00"></div></label>
   <h3 class="pay-h" style="margin:10px 0 0;font-size:15px">Como foi pago?</h3><div id="sp-split"></div>
   <div id="sp-err" class="pay-diff"></div>
@@ -2205,20 +2222,26 @@ async function sellPackageDialog(c,done){
   const sp=mountSplit(m.querySelector("#sp-split"),()=>Number(m.querySelector("#sp-amt").value||0),i=>{okb.disabled=!(sel&&i.ok)});
   sp.draw();
   m.querySelector("#sp-amt").addEventListener("input",()=>sp.refresh());
+  const setAmt=()=>{m.querySelector("#sp-q").textContent=qn;if(sel)m.querySelector("#sp-amt").value=(Number(sel.price)*qn).toFixed(2);m.querySelector("#sp-seqrow").style.display=(qn>1&&sel&&sel.has_expiration)?"flex":"none";sp.refresh()};
   m.addEventListener("click",async e=>{
     if(e.target===m||e.target.closest("[data-ns=x]")){m.remove();return}
-    const o=e.target.closest("[data-pk]");if(o){sel=pk.find(p=>String(p.id)===o.dataset.pk);m.querySelectorAll("[data-pk]").forEach(x=>x.classList.toggle("on",x===o));m.querySelector("#sp-amt").value=Number(sel.price).toFixed(2);sp.refresh();return}
+    const qb=e.target.closest("[data-q]");if(qb){qn=Math.max(1,Math.min(12,qn+Number(qb.dataset.q)));setAmt();return}
+    const o=e.target.closest("[data-pk]");if(o){sel=pk.find(p=>String(p.id)===o.dataset.pk);m.querySelectorAll("[data-pk]").forEach(x=>x.classList.toggle("on",x===o));setAmt();return}
     if(e.target.closest("#sp-ok")){
       if(!sel){m.querySelector("#sp-err").textContent="Escolha o pacote.";return}
       const paid=Math.round(Number(m.querySelector("#sp-amt").value||0)*100)/100;
       if(paid<0){m.querySelector("#sp-err").textContent="Valor inválido.";return}
       okb.disabled=true;okb.textContent="Salvando…";
       try{
-        const now=new Date();let expires=null;
-        if(sel.validity_start_mode==="purchase"&&sel.has_expiration&&sel.expiration_value){const d=new Date(now);d.setDate(d.getDate()+Number(sel.expiration_value)*(sel.expiration_unit==="weeks"?7:1));expires=d.toISOString()}
-        const cp=(await api("client_packages",{method:"POST",body:JSON.stringify({client_phone:c.phone,client_name:c.name||"",package_id:sel.id,package_name:sel.name,purchased_price:paid,status:"active",purchased_at:now.toISOString(),expires_at:expires,validity_start_mode:sel.validity_start_mode,first_used_at:null,services_snapshot:sel.items.map(i=>({service_id:i.service_id,service_name:i.service_name,quantity:i.quantity})),created_by:uid()})}))[0];
-        for(const i of sel.items)await api("client_package_services",{method:"POST",body:JSON.stringify({client_package_id:cp.id,service_id:i.service_id,service_name:i.service_name,quantity_purchased:i.quantity,quantity_remaining:i.quantity})});
-        if(paid>0)await saveSaleParts(sp.parts(),"Venda pacote "+sel.name+" — "+(c.name||c.phone),"Venda de pacote");
+        const now=new Date(),seq=qn>1&&m.querySelector("#sp-seq")?.checked&&sel.has_expiration,per=Math.round(paid/qn*100)/100;let cursor=new Date(now);
+        const pkExp=base=>{if(!(sel.has_expiration&&sel.expiration_value))return null;const d=new Date(base);d.setDate(d.getDate()+Number(sel.expiration_value)*(sel.expiration_unit==="weeks"?7:1));return d.toISOString()};
+        for(let n=0;n<qn;n++){
+          const startAt=seq&&n>0?new Date(cursor):null,expires=(sel.validity_start_mode==="purchase"||seq)?pkExp(startAt||now):null;
+          const cp=(await api("client_packages",{method:"POST",body:JSON.stringify({client_phone:c.phone,client_name:c.name||"",package_id:sel.id,package_name:sel.name,purchased_price:per,status:"active",purchased_at:now.toISOString(),starts_at:startAt?startAt.toISOString():null,expires_at:expires,validity_start_mode:sel.validity_start_mode,first_used_at:null,services_snapshot:sel.items.map(i=>({service_id:i.service_id,service_name:i.service_name,quantity:i.quantity})),created_by:uid()})}))[0];
+          for(const i of sel.items)await api("client_package_services",{method:"POST",body:JSON.stringify({client_package_id:cp.id,service_id:i.service_id,service_name:i.service_name,quantity_purchased:i.quantity,quantity_remaining:i.quantity})});
+          if(seq&&expires)cursor=new Date(expires);
+        }
+        if(paid>0)await saveSaleParts(sp.parts(),"Venda pacote "+sel.name+(qn>1?" ×"+qn:"")+" — "+(c.name||c.phone),"Venda de pacote");
         m.remove();await done?.();
       }catch(err){m.querySelector("#sp-err").textContent="Não foi possível registrar: "+err.message;okb.disabled=false;okb.textContent="Confirmar venda"}
     }
@@ -2265,7 +2288,7 @@ function openStatusPicker(id){
   const scrim=document.createElement("div");scrim.className="status-picker-scrim";scrim.id="status-picker-scrim";
   scrim.innerHTML=`<section class="status-picker action-sheet" role="dialog" aria-modal="true"><div class="sheet-grabber"></div><h3>Status do atendimento</h3>
   <button class="status-option-pending so" style="--c:#e99a2b" data-set-status="pending"><i></i>Pendente<small>aguarda confirmação</small></button>
-  <button class="status-option-confirmed so" style="--c:#3979d1" data-set-status="confirmed"><i></i>Confirmado</button>
+  <button class="status-option-confirmed so" style="--c:#3979d1" data-set-status="confirmed"><i></i>Confirmado<small>aguarda atendimento</small></button>
   <button class="status-option-completed so" style="--c:#8a63c7" data-set-status="completed"><i></i>Atendido<small>falta pagar</small></button>
   <button class="status-option-finalized so" style="--c:#279653" data-set-status="finalized"><i></i>Pago<small>finalizado</small></button>
   <button class="status-option-noshow so" style="--c:#d94b4b" data-set-status="no_show"><i></i>Não compareceu</button>
@@ -2933,4 +2956,21 @@ html{touch-action:manipulation}
 .sheet-close{margin:0!important}
 .pkg-card{cursor:pointer}
 .allday-row{display:flex;align-items:center;gap:10px;margin:0 0 6px}
+
+/* g24 */
+.fcap{font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#5b7a99;margin:0 2px 2px}
+.pro-name{font-size:17px;font-weight:700;color:#10304F;padding:4px 2px 6px}
+select.pro-sel{border:0!important;background:transparent!important;box-shadow:none!important;font-size:17px!important;font-weight:700!important;color:#10304F!important;padding:4px 2px 6px!important;height:auto!important;-webkit-appearance:none;appearance:none}
+.pro-card{position:relative}.pro-card:after{content:"›";position:absolute;right:14px;bottom:10px;font-size:20px;color:#8aa6c4;pointer-events:none}
+.booking-screen .section-title+textarea{margin-top:4px}
+.qty-st{display:flex;align-items:center;gap:12px}.qty-st button{width:36px;height:36px;border-radius:50%;border:1px solid #B5D2EE;background:#fff;font-size:20px;font-weight:700;color:#2378d4;padding:0;box-shadow:var(--box-shadow)}.qty-st b{min-width:18px;text-align:center;font-size:17px}
+.action-sheet{background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(232,243,255,.97))!important}
+.action-sheet .sheet-detail{background:rgba(255,255,255,.7)!important;border:1px solid rgba(255,255,255,.95);box-shadow:var(--box-shadow)}
+.action-sheet .sheet-action{display:flex!important;align-items:center;gap:12px;width:100%;min-height:46px!important;margin:7px 0!important;padding:0 14px!important;border-radius:15px!important;background:rgba(255,255,255,.8)!important;border:1px solid rgba(255,255,255,.95)!important;box-shadow:var(--box-shadow)!important;font-size:15px!important;font-weight:700;color:#10304F;text-decoration:none}
+.action-sheet .sheet-action .sheet-icon{width:30px!important;height:30px!important;border-radius:50%!important;background:rgba(79,148,216,.14)!important;font-size:16px!important;color:#2378d4}
+.action-sheet .sheet-action.cancel{color:#c0392b;border-color:rgba(217,75,75,.35)!important;background:rgba(255,235,235,.7)!important}
+.action-sheet .sheet-action.cancel .sheet-icon{background:rgba(217,75,75,.14)!important;color:#c0392b}
+.action-sheet .sheet-action.pay{background:rgba(230,247,236,.85)!important;border-color:rgba(39,150,83,.35)!important}
+.action-sheet .sheet-action.pay .sheet-icon{background:rgba(39,150,83,.16)!important;color:#1f8a4c}
+.action-sheet .sheet-divider{display:none}
 </style>
