@@ -140,6 +140,12 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}html{backgr
 .stk-scrim{align-items:flex-end}.stk-scrim.stk-top{align-items:center}.stk-card{animation:stk-up .22s ease-out}@keyframes stk-up{from{transform:translate3d(0,40%,0);opacity:.6}to{transform:none;opacity:1}}
 .stk-card.stk-small{animation:none}.stk-grab{width:56px;height:20px;position:relative;margin:-6px auto 6px;cursor:grab;display:block}.stk-grab:after{content:"";position:absolute;width:48px;height:5px;left:4px;top:7px;border-radius:99px;background:#aeb3ba}
 .stk-scrim{touch-action:pan-y;overscroll-behavior:contain}
+
+/* sombra padrão em todas as caixas (f4) */
+:root{--box-shadow:0 4px 12px rgba(35,120,212,.14),0 1px 3px rgba(31,75,117,.14)}
+.card,.panel,.tile,.tablewrap,.bk,.stk-catbtn,.stk-search,.stk-row,.cards>div,.tiles>*{box-shadow:var(--box-shadow)!important}
+.panel .panel,.panel .card,.card .card,.panel .tile,.panel .tablewrap{box-shadow:none!important}
+.field input:not([type=checkbox]):not([type=radio]),.field select,.field textarea,.toolbar input,.toolbar select,.stk-f input,.stk-f select,.stk-f textarea,.stk-card input:not([type=checkbox]):not([type=radio]),.stk-card select,.modalbox input:not([type=checkbox]):not([type=radio]),.modalbox select,.modalbox textarea,.panel input:not([type=checkbox]):not([type=radio]):not([type=range]),.panel select,.panel textarea{box-shadow:var(--box-shadow)!important}
 </style></head>
 <body>
 <div class="top"><button type="button" id="hamb" aria-label="Abrir menu">☰</button><img class="logo" alt="Logo"><div class="fbrand" id="fin-brand" role="button" tabindex="0">Barber Shop JS</div><button type="button" id="logoutF">Sair</button></div>
