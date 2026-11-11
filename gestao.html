@@ -277,7 +277,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #2378d42a;border-color
 .pay-diff{font-weight:700;color:#c0392b;padding:4px 2px}.pay-diff.ok{color:#1f8a4c}
 .pay-foot{padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #C4DFF8}
 .pay-confirm{width:100%;height:50px;font-size:17px;border-radius:14px}.pay-confirm:disabled{opacity:.45}
-.slot.lunch{cursor:pointer}
+.slot.lunch{cursor:pointer}.pay-mini{margin-top:6px;padding-top:6px}.pay-mini b{font-size:16px}.pay-diff.warn{color:#C2700A}.agenda-appointment.status-partial-card{background:#FFE9C7!important;border:2px solid #F0A030!important;color:#7A4300!important}.agenda-appointment.status-partial-card .agenda-sub{font-weight:700}
 .sheet-action.pay{background:#EAF8EF!important;border-color:#8fd3a8!important}
 </style>
 </head>
@@ -389,10 +389,12 @@ function showError(e){notice=e?.message||"Ocorreu um erro.";renderNotice("error"
 function getLocalBookingStatuses(){try{return JSON.parse(localStorage.getItem("barberShopJSBookingStatuses")||"{}")}catch(_){return {}}}
 function setLocalBookingStatus(id,status){const all=getLocalBookingStatuses();all[String(id)]=status;localStorage.setItem("barberShopJSBookingStatuses",JSON.stringify(all))}
 async function loadAgenda(){const date=key(day),wd=day.getDay();try{[bookings,hourPeriods,blocks]=await Promise.all([api(`bookings?select=*&date=eq.${date}&status=not.in.(cancelled,cancelado,canceled)&order=start_min`),api("business_hour_periods?select=id,start_date,end_date,active,schedule&active=eq.true"),api(`blocked_slots?select=*&date=eq.${date}&order=start_min`)]);
+ try{pendingBal={};const pids=(bookings||[]).map(x=>x.id);if(pids.length)(await api(`finance_booking_closures?select=booking_id,balance_due&balance_due=gt.0&booking_id=in.(${pids.join(",")})`)).forEach(c=>{pendingBal[String(c.booking_id)]=Number(c.balance_due)})}catch(e){}
 const setting=(await api("business_hour_settings?select=slot_step_minutes&id=eq.true"))[0];slotStep=Number(setting?.slot_step_minutes||30);slotStepDraft=slotStep;const selected=hourPeriods.filter(p=>p.start_date<=date&&(!p.end_date||p.end_date>=date)).sort((a,b)=>b.start_date.localeCompare(a.start_date)||b.id-a.id)[0];if(selected){dayRanges=normalizeSchedule(selected.schedule)[wd];hours=dayRanges.length?[{open_min:Math.min(...dayRanges.map(x=>x.start_min)),close_min:Math.max(...dayRanges.map(x=>x.end_min)),lunch_start:null,lunch_end:null}]:[]}else{hours=await api(`business_hours?select=*&weekday=eq.${wd}`);const h=hours?.[0];dayRanges=h&&h.open_min!=null?(h.lunch_start!=null&&h.lunch_end!=null?[{start_min:h.open_min,end_min:h.lunch_start},{start_min:h.lunch_end,end_min:h.close_min}]:[{start_min:h.open_min,end_min:h.close_min}]):[]}const localStatuses=getLocalBookingStatuses();bookings=bookings.map(b=>localStatuses[String(b.id)]?{...b,status:localStatuses[String(b.id)]}:b);renderAgenda()}catch(e){shell("Agenda",`<p class="error">${esc(e.message)}</p><button class="btn" id="retry">Tentar novamente</button>`)}}
 let agendaScrollY=0,agendaDayKey=null;
 function agendaAfterRender(){const k=key(day);const y=agendaDayKey===k?agendaScrollY:0;agendaDayKey=k;requestAnimationFrame(()=>window.scrollTo(0,y))}
 window.addEventListener("scroll",()=>{if(document.querySelector(".agenda-grid")&&!document.body.classList.contains("sheet-open")&&!document.querySelector(".booking-screen,.client-picker-screen"))agendaScrollY=window.scrollY},{passive:true});
+let pendingBal={};
 function renderAgenda(){
  let cfg=hours?.[0];
  const navFor=(sub)=>`<div class="agenda-head"><button class="agenda-arrow" data-day="-1" aria-label="Dia anterior">‹</button><button type="button" class="agenda-datebtn" id="open-date-picker" aria-label="Escolher outra data"><span class="agenda-dayname">${DW[day.getDay()]}, ${day.getDate()} de ${day.toLocaleDateString("pt-BR",{month:"long"})}${day.getFullYear()!==new Date().getFullYear()?" de "+day.getFullYear():""}</span></button><button class="agenda-arrow" data-day="1" aria-label="Próximo dia">›</button></div>`;
@@ -438,7 +440,7 @@ function renderAgenda(){
     const start=Number(b.start_min),end=Number(b.end_min);
     const lane=laneOf.get(String(b.id))||0,cols=colsOf.get(String(b.id))||1;
     const durationSlots=Math.max(1,gridTimes.filter(t=>t>=start&&t<end).length);
-    right.push(`<button class="card appointment-card agenda-appointment ${appointmentCardStatus(b.status)} ${cols>1?"agenda-narrow":""}" data-open-booking="${esc(b.id)}" style="grid-column:2;grid-row:${row} / span ${durationSlots};width:calc(${(100/cols).toFixed(4)}% - ${cols>1?3:0}px);margin-left:${(lane*100/cols).toFixed(4)}%;z-index:10"><div class="agenda-appt-main"><b class="agenda-client">${esc(b.client_name)}</b><span class="agenda-sub">${hm(start)} – ${hm(end)} · ${["no_show","nao_compareceu","faltou"].includes(normalizedStatus(b.status))?"Não compareceu":({pending:"Pendente",confirmed:"Confirmado",completed:"Atendido · falta pagar",finalized:"Pago"})[statusClass(b.status)]||statusPortuguese(b.status)}</span></div><span class="agenda-chevron">›</span></button>`);
+    right.push(`<button class="card appointment-card agenda-appointment ${(pendingBal[String(b.id)]>0&&statusClass(b.status)==="completed")?"status-partial-card":appointmentCardStatus(b.status)} ${cols>1?"agenda-narrow":""}" data-open-booking="${esc(b.id)}" style="grid-column:2;grid-row:${row} / span ${durationSlots};width:calc(${(100/cols).toFixed(4)}% - ${cols>1?3:0}px);margin-left:${(lane*100/cols).toFixed(4)}%;z-index:10"><div class="agenda-appt-main"><b class="agenda-client">${esc(b.client_name)}</b><span class="agenda-sub">${(pendingBal[String(b.id)]>0&&statusClass(b.status)==="completed")?"Valor pendente "+fm(pendingBal[String(b.id)]):["no_show","nao_compareceu","faltou"].includes(normalizedStatus(b.status))?"Não compareceu":({pending:"Pendente",confirmed:"Confirmado",completed:"Atendido · falta pagar",finalized:"Pago"})[statusClass(b.status)]||statusPortuguese(b.status)}</span></div><span class="agenda-chevron">›</span></button>`);
    });
   }else if(occupying){
   }else if(block){
@@ -847,7 +849,7 @@ async function showBookingDetail(id){
    <div><b>Horário:</b> ${hm(b.start_min)} às ${hm(b.end_min)}</div>
    <div><b>Serviços:</b> ${esc(services||"Não informado")}</div>
    <b>Valor: ${fm(b.total)}</b>
-   <div class="status-label status-${statusClass(b.status)}">${statusPortuguese(b.status)}</div>
+   <div class="status-label status-${statusClass(b.status)}" ${(pendingBal[String(b.id)]>0&&statusClass(b.status)==="completed")?'style="color:#C2700A!important"':""}>${(pendingBal[String(b.id)]>0&&statusClass(b.status)==="completed")?"Valor pendente "+fm(pendingBal[String(b.id)]):statusPortuguese(b.status)}</div>
   </div>`;
   const pendingActions=`<button class="sheet-action" id="detail-confirm"><span class="sheet-icon">✓</span><span>Confirmar agendamento</span></button>
    <button class="sheet-action cancel" id="detail-cancel-pending"><span class="sheet-icon">✕</span><span>Cancelar agendamento</span></button>`;
@@ -1320,26 +1322,30 @@ const payName=m=>(PAY_METHODS.find(x=>x[0]===m)||[0,m])[1];
 async function openPaymentScreen(b){
   document.querySelector(".pay-screen")?.remove();
   const total=Math.round(Number(b.total||0)*100)/100;
+  let ex=null;try{ex=(await api(`finance_booking_closures?select=*&booking_id=eq.${encodeURIComponent(b.id)}`))[0]||null}catch(e){}
+  const remaining=ex?Math.round(Number(ex.balance_due||0)*100)/100:total;
+  const already=ex?Math.round(Number(ex.amount_paid||0)*100)/100:0;
   let parts=[],split=false;
   const el=document.createElement("div");el.className="pay-screen";
   document.body.appendChild(el);document.body.classList.add("sheet-open");
   const close=()=>{el.remove();document.body.classList.remove("sheet-open")};
   const paid=()=>Math.round(parts.reduce((a,p)=>a+Number(p.amount||0),0)*100)/100;
   const draw=()=>{
-    const diff=Math.round((total-paid())*100)/100;
+    const diff=Math.round((remaining-paid())*100)/100;
+    const bad=!parts.length||paid()<=0||diff<0;
     el.innerHTML=`<header class="pay-head"><button type="button" class="pay-back" id="pay-back" aria-label="Voltar">‹</button><b>Pagamento</b></header>
-    <div class="pay-body"><div class="pay-card"><div class="pay-client">${esc(b.client_name||"Cliente")}</div><div class="pay-sub">${esc(formatBookingDateBR(b.date))} · ${hm(b.start_min)}</div><div class="pay-total"><span>Total a receber</span><b>${fm(total)}</b></div></div>
+    <div class="pay-body"><div class="pay-card"><div class="pay-client">${esc(b.client_name||"Cliente")}</div><div class="pay-sub">${esc(formatBookingDateBR(b.date))} · ${hm(b.start_min)}</div>${already>0?`<div class="pay-total pay-mini"><span>Total do atendimento</span><b>${fm(total)}</b></div><div class="pay-total pay-mini"><span>Já recebido</span><b>${fm(already)}</b></div>`:""}<div class="pay-total"><span>${already>0?"Falta receber":"Total a receber"}</span><b>${fm(remaining)}</b></div></div>
     <h3 class="pay-h">Como foi pago?</h3>
     ${split?`<div class="pay-rows">${parts.map((p,i)=>`<div class="pay-row"><select data-pm="${i}">${PAY_METHODS.map(m=>`<option value="${m[0]}" ${m[0]===p.method?"selected":""}>${m[1]}</option>`).join("")}</select><input data-pa="${i}" type="number" inputmode="decimal" step="0.01" min="0" value="${p.amount}"><button type="button" class="pay-x" data-prm="${i}" aria-label="Remover">✕</button></div>`).join("")}</div>
-    <button type="button" class="pay-link" id="pay-add">＋ Adicionar forma</button>
-    <div class="pay-diff ${diff===0?"ok":""}">${diff===0?"Valor conferido ✓":diff>0?"Faltam "+fm(diff):"Excede "+fm(-diff)}</div>`
+    <button type="button" class="pay-link" id="pay-add">＋ Adicionar forma</button>`
     :`<div class="pay-grid">${PAY_METHODS.map(m=>`<button type="button" class="pay-tile ${parts.length===1&&parts[0].method===m[0]?"on":""}" data-pick="${m[0]}"><span>${m[2]}</span>${m[1]}</button>`).join("")}</div>
     <button type="button" class="pay-link" id="pay-split">Dividir em mais de uma forma</button>`}
-    </div><footer class="pay-foot"><button type="button" class="btn primary pay-confirm" id="pay-ok" ${(!parts.length||(split&&diff!==0))?"disabled":""}>Confirmar pagamento</button></footer>`;
+    ${parts.length?`<div class="pay-diff ${diff===0?"ok":diff<0?"":"warn"}">${diff===0?"Valor conferido ✓ — atendimento será finalizado":diff>0?"Valor pendente: "+fm(diff)+" — o atendimento não será finalizado":"Valor maior que o total ("+fm(-diff)+" a mais)"}</div>`:""}
+    </div><footer class="pay-foot"><button type="button" class="btn primary pay-confirm" id="pay-ok" ${bad?"disabled":""}>${diff>0&&!bad?"Confirmar pagamento parcial":"Confirmar pagamento"}</button></footer>`;
     el.querySelector("#pay-back").onclick=close;
-    el.querySelectorAll("[data-pick]").forEach(x=>x.onclick=()=>{parts=[{method:x.dataset.pick,amount:total}];draw()});
-    el.querySelector("#pay-split")?.addEventListener("click",()=>{split=true;if(!parts.length)parts=[{method:"cash",amount:total}];draw()});
-    el.querySelector("#pay-add")?.addEventListener("click",()=>{const d=Math.max(0,total-paid());parts.push({method:"pix",amount:d});draw()});
+    el.querySelectorAll("[data-pick]").forEach(x=>x.onclick=()=>{parts=[{method:x.dataset.pick,amount:remaining}];draw()});
+    el.querySelector("#pay-split")?.addEventListener("click",()=>{split=true;if(!parts.length)parts=[{method:"cash",amount:remaining}];draw()});
+    el.querySelector("#pay-add")?.addEventListener("click",()=>{parts.push({method:"pix",amount:Math.max(0,Math.round((remaining-paid())*100)/100)});draw()});
     el.querySelectorAll("[data-pm]").forEach(x=>x.onchange=()=>{parts[+x.dataset.pm].method=x.value});
     el.querySelectorAll("[data-pa]").forEach(x=>x.onchange=()=>{parts[+x.dataset.pa].amount=Math.round(Number(x.value||0)*100)/100;draw()});
     el.querySelectorAll("[data-prm]").forEach(x=>x.onclick=()=>{parts.splice(+x.dataset.prm,1);if(!parts.length)split=false;draw()});
@@ -1349,21 +1355,29 @@ async function openPaymentScreen(b){
     const btn=el.querySelector("#pay-ok");btn.disabled=true;btn.textContent="Salvando…";
     try{
       const today=new Date(),ds=today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-"+String(today.getDate()).padStart(2,"0");
-      const exist=await api(`finance_booking_closures?select=id&booking_id=eq.${encodeURIComponent(b.id)}`);
-      if(!exist.length){
-        const cfg=(await api("finance_settings?select=card_fee_percent&limit=1").catch(()=>[]))[0];
-        const fee=Number(cfg?.card_fee_percent||0);
+      const p0=paid(),newBal=Math.round((remaining-p0)*100)/100;
+      const cfg=(await api("finance_settings?select=card_fee_percent&limit=1").catch(()=>[]))[0];
+      const fee=Number(cfg?.card_fee_percent||0);
+      let closureId=ex?.id;
+      if(!ex){
         const disc=Number(b.discount||0)+Number(b.combo_discount||0),sur=Number(b.surcharge||0);
-        const closure=(await api("finance_booking_closures",{method:"POST",body:JSON.stringify({booking_id:b.id,service_total:Math.round((total+disc-sur)*100)/100,product_total:0,discount:disc,surcharge:sur,grand_total:total,amount_paid:paid(),balance_due:0,product_items:[],payment_parts:parts,no_show_fee:0,notes:"",closed_by:uid()})}))[0];
-        for(const p of parts){
-          const mv={movement_date:ds,payment_method:p.method,status:"paid",booking_id:b.id,created_by:uid()};
-          await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"income",description:`Atendimento ${b.client_name} (${payName(p.method)})`,category:"Atendimento",amount:p.amount})});
-          if(p.method==="cash"||p.method==="card")await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"pro_labore",description:`Retirada automática sobre atendimento ${b.client_name} (${payName(p.method)})`,category:"Retirada do proprietário",amount:p.amount})});
-          if(p.method==="card"&&fee>0)await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"expense",description:`Taxa cartão atendimento ${b.client_name}`,category:"Taxas de cartão",amount:Math.round(p.amount*fee)/100})});
-        }
-        api("finance_audit_log",{method:"POST",body:JSON.stringify({table_name:"finance_booking_closures",record_id:String(closure?.id??""),action:"created",new_data:{booking_id:b.id,grand_total:total,amount_paid:paid()},changed_by:uid()})}).catch(()=>null);
+        const closure=(await api("finance_booking_closures",{method:"POST",body:JSON.stringify({booking_id:b.id,service_total:Math.round((total+disc-sur)*100)/100,product_total:0,discount:disc,surcharge:sur,grand_total:total,amount_paid:p0,balance_due:newBal,product_items:[],payment_parts:parts,no_show_fee:0,notes:"",closed_by:uid()})}))[0];
+        closureId=closure?.id;
+        if(newBal>0)await api("finance_movements",{method:"POST",body:JSON.stringify({kind:"income",movement_date:ds,description:`Saldo a receber — ${b.client_name} (${formatBookingDateBR(b.date)})`,category:"Contas a receber",amount:newBal,payment_method:"other",status:"pending",booking_id:b.id,created_by:uid()})});
+      }else{
+        await api(`finance_booking_closures?id=eq.${ex.id}`,{method:"PATCH",body:JSON.stringify({amount_paid:Math.round((already+p0)*100)/100,balance_due:newBal,payment_parts:[...(Array.isArray(ex.payment_parts)?ex.payment_parts:[]),...parts]})});
+        const pend=(await api(`finance_movements?select=id&booking_id=eq.${encodeURIComponent(b.id)}&category=eq.Contas a receber&status=eq.pending`).catch(()=>[]))[0];
+        if(pend)await api(`finance_movements?id=eq.${pend.id}`,{method:"PATCH",body:JSON.stringify(newBal>0?{amount:newBal}:{status:"cancelled"})});
+        else if(newBal>0)await api("finance_movements",{method:"POST",body:JSON.stringify({kind:"income",movement_date:ds,description:`Saldo a receber — ${b.client_name} (${formatBookingDateBR(b.date)})`,category:"Contas a receber",amount:newBal,payment_method:"other",status:"pending",booking_id:b.id,created_by:uid()})});
       }
-      await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"finalized"})});
+      for(const p of parts){
+        const mv={movement_date:ds,payment_method:p.method,status:"paid",booking_id:b.id,created_by:uid()};
+        await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"income",description:`Atendimento ${b.client_name} (${payName(p.method)})`,category:"Atendimento",amount:p.amount})});
+        if(p.method==="cash"||p.method==="card")await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"pro_labore",description:`Retirada automática sobre atendimento ${b.client_name} (${payName(p.method)})`,category:"Retirada do proprietário",amount:p.amount})});
+        if(p.method==="card"&&fee>0)await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"expense",description:`Taxa cartão atendimento ${b.client_name}`,category:"Taxas de cartão",amount:Math.round(p.amount*fee)/100})});
+      }
+      api("finance_audit_log",{method:"POST",body:JSON.stringify({table_name:"finance_booking_closures",record_id:String(closureId??""),action:ex?"updated":"created",new_data:{booking_id:b.id,grand_total:total,amount_paid:p0,balance_due:newBal},changed_by:uid()})}).catch(()=>null);
+      await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:newBal>0?"completed":"finalized"})});
       close();await loadAgenda();
     }catch(err){alert("Não foi possível registrar o pagamento: "+err.message);btn.disabled=false;btn.textContent="Confirmar pagamento"}
   };
