@@ -1420,7 +1420,7 @@ async function showBookingDetail(id){
    $("#detail-cancel")&&($("#detail-cancel").onclick=()=>finishAction("cancelled","Informamos que seu agendamento foi CANCELADO.","Deseja realmente cancelar este agendamento?"));
    const quick=async(status,q)=>{if(q&&!confirm(q))return;try{await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status})});close();await loadAgenda()}catch(err){alert("Não foi possível atualizar: "+err.message)}};
    $("#detail-attended")&&($("#detail-attended").onclick=()=>quick(paidFull?"finalized":"completed"));
-   $("#detail-noshow")&&($("#detail-noshow").onclick=()=>{if(paidAmt0>0){close();noShowPaidDialog(b,cl,loadAgenda)}else quick("no_show","Marcar que o cliente não compareceu?")});
+   $("#detail-noshow")&&($("#detail-noshow").onclick=()=>{if(paidAmt0>0){close();noShowPaidDialog(b,cl,loadAgenda)}else{close();noShowChargeDialog(b,loadAgenda)}});
    $("#detail-pay")&&($("#detail-pay").onclick=()=>{close();openPaymentScreen(b)});
    $("#detail-pay-c")&&($("#detail-pay-c").onclick=()=>{close();openPaymentScreen(b)});
    $("#detail-pay-f")&&($("#detail-pay-f").onclick=()=>{close();openPaymentScreen(b)});
@@ -1571,7 +1571,7 @@ app.addEventListener("click",async e=>{let b=e.target.closest("button");if(!b)re
 try{
 if(b.id==="do-login"){try{await auth({email:val("email").trim(),password:val("password")});notice="";renderLoginOrPage()}catch(err){session=null;saveSession();$("#login-error").textContent=err.message}return}
 if(b.id==="retry"){loadAgenda();return}
-if(b.id==="open-date-picker"){document.querySelector("#dp-scrim")?.remove();const r=b.getBoundingClientRect();const sc=document.createElement("div");sc.id="dp-scrim";sc.className="dp2-scrim";sc.innerHTML=`<section class="dp2" role="dialog" aria-modal="true" aria-label="Escolher data" style="top:${Math.round(r.bottom+8)}px"><button type="button" class="dp2-x" data-dp-close aria-label="Fechar" title="Fechar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div class="dp2-row"><input type="date" id="dp-date" value="${key(day)}"><button type="button" class="dp2-go" data-dp-go>Ir para esta data <span>➜</span></button></div><button type="button" class="dp2-today" data-dp-today>Hoje</button></section>`;document.body.appendChild(sc);sc.addEventListener("click",async ev=>{if(ev.target===sc||ev.target.closest("[data-dp-close]")){sc.remove();return}if(ev.target.closest("[data-dp-today]")){sc.remove();day=new Date();await loadAgenda();return}if(ev.target.closest("[data-dp-go]")){const v=sc.querySelector("#dp-date").value;sc.remove();if(v){day=new Date(v+"T12:00:00");await loadAgenda()}}});return}
+if(b.id==="open-date-picker"){document.querySelector("#dp-scrim")?.remove();const r=b.getBoundingClientRect(),orig=key(day);const sc=document.createElement("div");sc.id="dp-scrim";sc.className="dp2-scrim";sc.innerHTML=`<section class="dp2" role="dialog" aria-modal="true" aria-label="Escolher data" style="top:${Math.round(r.bottom+8)}px"><div class="dp2-row"><input type="date" id="dp-date" value="${orig}"><button type="button" class="dp2-t" data-dp-today><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Hoje</span></button></div><div class="dp2-row2" id="dp-row2"><button type="button" class="dp2-t" data-dp-reset><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg><span>Redefinir</span></button><button type="button" class="dp2-t go" data-dp-go><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span>Ir para esta data</span></button></div></section>`;document.body.appendChild(sc);const inp=sc.querySelector("#dp-date"),row2=sc.querySelector("#dp-row2");inp.addEventListener("input",()=>row2.classList.toggle("show",!!inp.value&&inp.value!==orig));sc.addEventListener("click",async ev=>{if(ev.target===sc){sc.remove();return}if(ev.target.closest("[data-dp-reset]")){inp.value=orig;row2.classList.remove("show");return}if(ev.target.closest("[data-dp-today]")){sc.remove();day=new Date();await loadAgenda();return}if(ev.target.closest("[data-dp-go]")){const v=inp.value;sc.remove();if(v){day=new Date(v+"T12:00:00");await loadAgenda()}}});return}
 if(b.dataset.day){day=new Date(day.getFullYear(),day.getMonth(),day.getDate()+Number(b.dataset.day));await loadAgenda();return}
 if(b.id==="toggle-goto"){$("#goto-panel")?.classList.toggle("open");return}
 if(b.id==="goto"){if(val("goto-date"))day=new Date(val("goto-date")+"T12:00:00");await loadAgenda();return}
@@ -2021,8 +2021,8 @@ async function openPaymentScreen(b,opts={}){
       const ds=payDate||todayLocal();
       const p0=paid(),pt=pTotal(),curDue=curRemaining();
       const inclList=others.filter(o=>incl.has(String(o.b.id)));
-      const cfg=(await api("finance_settings?select=card_fee_percent&limit=1").catch(()=>[]))[0];
-      const fee=Number(cfg?.card_fee_percent||0);
+      const cfg=(await api("finance_settings?select=card_fee_percent,card_fee_credit_percent,card_fee_debit_percent&limit=1").catch(()=>[]))[0];
+      const feeCr=Number(cfg?.card_fee_credit_percent||cfg?.card_fee_percent||0),feeDb=Number(cfg?.card_fee_debit_percent||0);const feeOf=m=>/d[eéÉ]b/i.test(payName(m)||"")?feeDb:feeCr;
       const queue=parts.map(p=>({...p}));
       const take=amt=>{const out=[];let need=Math.round(amt*100)/100;for(const q of queue){if(need<=0.0049)break;const u=Math.min(q.amount,need);if(u<=0)continue;out.push({method:q.method,amount:Math.round(u*100)/100});q.amount=Math.round((q.amount-u)*100)/100;need=Math.round((need-u)*100)/100}return out};
       const sum=l=>Math.round(l.reduce((a,p)=>a+Number(p.amount||0),0)*100)/100;
@@ -2037,7 +2037,7 @@ async function openPaymentScreen(b,opts={}){
           const mv={movement_date:ds,...payMv(p.method),status:"paid",booking_id:bk.id,created_by:uid()};
           await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"income",description:`Atendimento ${bk.client_name} (${payName(p.method)})`,category:"Atendimento",amount:p.amount})});
           if(["cash","card"].includes(payKind(p.method)))await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"pro_labore",description:`Retirada automática sobre atendimento ${bk.client_name} (${payName(p.method)})`,category:"Retirada do proprietário",amount:p.amount})});
-          if(payKind(p.method)==="card"&&fee>0)await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"expense",description:`Taxa cartão atendimento ${bk.client_name}`,category:"Taxas de cartão",amount:Math.round(p.amount*fee)/100})});
+          if(payKind(p.method)==="card"&&feeOf(p.method)>0)await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"expense",description:`Taxa cartão atendimento ${bk.client_name}`,category:"Taxas de cartão",amount:Math.round(p.amount*feeOf(p.method))/100})});
         }
       };
       const settle=async(bk,exb,due,alloc,products)=>{
@@ -2135,6 +2135,29 @@ function noShowPaidDialog(b,cl,done){
   });
 }
 // Venda de crédito ao cliente
+async function noShowChargeDialog(b,done){
+  document.querySelector(".nsm")?.remove();
+  let cfg=null;try{cfg=(await api("finance_settings?select=no_show_fee,no_show_mode&limit=1"))[0]}catch(e){}
+  const fee=Number(cfg?.no_show_fee||0),mode=cfg?.no_show_mode||"fixed",tot=Number(b.total||0);
+  const m=document.createElement("div");m.className="nsm";
+  m.innerHTML=`<div class="nsm-card"><h3>Cliente não compareceu</h3><p>${esc(b.client_name||"Cliente")} · deseja cobrar a falta?</p>
+  <button type="button" data-ns="fixed" ${fee?"":"disabled"}><b>Taxa fixa · ${fm(fee)}${mode==="fixed"?" (padrão)":""}</b><span>Entra em Contas pendentes para receber</span></button>
+  <button type="button" data-ns="booking" ${tot?"":"disabled"}><b>Valor do agendamento · ${fm(tot)}${mode==="booking"?" (padrão)":""}</b><span>Entra em Contas pendentes para receber</span></button>
+  <button type="button" data-ns="none"><b>Não cobrar</b><span>Só marca que o cliente faltou</span></button>
+  <button type="button" class="ns-x" data-ns="x">Voltar</button></div>`;
+  document.body.appendChild(m);
+  m.addEventListener("click",async e=>{
+    if(e.target===m){m.remove();return}
+    const bt=e.target.closest("[data-ns]");if(!bt||bt.disabled)return;const k=bt.dataset.ns;
+    if(k==="x"){m.remove();return}
+    try{
+      const amt=k==="fixed"?fee:k==="booking"?tot:0;
+      await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"no_show"})});
+      if(amt>0)await api("finance_movements",{method:"POST",body:JSON.stringify({kind:"income",movement_date:todayLocal(),description:`Taxa de falta — ${b.client_name||b.client_phone||"cliente"} (${formatBookingDateBR(b.date)})`,category:"Taxa de falta",amount:amt,payment_method:"other",status:"pending",due_date:todayLocal(),booking_id:b.id,created_by:uid()})});
+      m.remove();await done?.();
+    }catch(err){alert("Não foi possível concluir: "+err.message)}
+  });
+}
 async function sellPackageDialog(c,done){
   document.querySelector(".nsm")?.remove();
   await ensurePM();
@@ -2248,6 +2271,7 @@ function openStatusPicker(id){
         }
       }
     }
+    if(b.dataset.setStatus==="no_show"){closeStatusPicker();const cur2=(await api(`bookings?select=*&id=eq.${encodeURIComponent(id)}`).catch(()=>[]))[0];if(cur2)noShowChargeDialog(cur2,loadAgenda);return}
     if(b.dataset.setStatus==="cancelled"){
       closeStatusPicker();
       showAppConfirm("Deseja cancelar o atendimento?",()=>saveAppointmentStatus(id,"cancelled").catch(err=>alert("Não foi possível cancelar: "+(err.message||err))));
@@ -2789,4 +2813,15 @@ body{animation:pg-in .3s ease backwards}
 .dp2 input[type=date]{flex:1;min-width:0;height:46px;border-radius:18px;border:1px solid rgba(255,255,255,.9);background:rgba(255,255,255,.8);color:#10304F;font-size:16px;font-weight:700;padding:0 12px;box-shadow:0 3px 10px rgba(35,120,212,.12)}
 .dp2-go{flex:none;height:46px;padding:0 16px!important;border-radius:18px!important;background:#2F73C9!important;color:#fff!important;border:0!important;font-weight:800;font-size:14px;white-space:nowrap;box-shadow:0 6px 14px rgba(47,115,201,.35)!important;display:flex;align-items:center;gap:6px}
 .dp2-today{width:100%;height:42px;margin-top:8px;border-radius:18px!important;background:rgba(255,255,255,.75)!important;color:#10304F!important;border:1px solid rgba(255,255,255,.9)!important;font-weight:800;font-size:15px;box-shadow:0 3px 10px rgba(35,120,212,.12)!important}
+
+/* g20 */
+.dp2{left:50%!important;transform:none!important;margin-left:calc(min(92vw,380px)/-2);padding:10px!important}
+.dp2:after{left:26px}
+.dp2-row{display:flex;align-items:center;gap:6px}
+.dp2 input[type=date]{background:transparent!important;border:0!important;box-shadow:none!important;height:52px;font-size:17px;font-weight:800;color:#10304F}
+.dp2-t{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:68px;min-height:54px;padding:6px 10px!important;border:0!important;background:transparent!important;box-shadow:none!important;color:#10304F!important;font-size:12px;font-weight:700;border-radius:24px!important;line-height:1.1}
+.dp2-t svg{color:#397bd1}.dp2-t:active{background:rgba(255,255,255,.65)!important}
+.dp2-t.go{flex-direction:row;gap:8px;font-size:14px;font-weight:800;padding:0 14px!important;min-height:46px}
+.dp2-row2{display:none;justify-content:flex-end;gap:4px;margin-top:2px;border-top:1px solid rgba(111,168,220,.28);padding-top:6px}
+.dp2-row2.show{display:flex;animation:pop-bub .25s ease}
 </style>
