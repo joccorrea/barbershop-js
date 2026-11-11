@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#F1B94F">
+<meta name="theme-color" content="#A9D0F5">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="manifest" href="/barbershop-js/manifest.json">
 <link rel="apple-touch-icon" href="/barbershop-js/logo.jpg">
@@ -271,8 +271,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #2378d42a;border-color
 <nav class="menu" id="menu">
 <div class="menu-brand"><img class="logo" src="/barbershop-js/logo.jpg" alt="Logo"><b>Barber Shop JS</b></div>
 <button data-page="agenda">Agenda</button><button data-page="settings">Configurações</button>
-<button data-page="clients">Clientes</button><button data-page="products">Produtos</button>
-<button data-page="services">Serviços</button><button data-page="birthdays">Aniversários</button>
+<button data-page="clients">Clientes</button><button data-page="birthdays">Aniversários</button>
 <button id="finance-menu" type="button">Financeiro</button>
 </nav>
 <div id="app"></div>
@@ -369,9 +368,12 @@ function getLocalBookingStatuses(){try{return JSON.parse(localStorage.getItem("b
 function setLocalBookingStatus(id,status){const all=getLocalBookingStatuses();all[String(id)]=status;localStorage.setItem("barberShopJSBookingStatuses",JSON.stringify(all))}
 async function loadAgenda(){const date=key(day),wd=day.getDay();try{[bookings,hourPeriods,blocks]=await Promise.all([api(`bookings?select=*&date=eq.${date}&status=not.in.(cancelled,cancelado,canceled)&order=start_min`),api("business_hour_periods?select=id,start_date,end_date,active,schedule&active=eq.true"),api(`blocked_slots?select=*&date=eq.${date}&order=start_min`)]);
 const setting=(await api("business_hour_settings?select=slot_step_minutes&id=eq.true"))[0];slotStep=Number(setting?.slot_step_minutes||30);slotStepDraft=slotStep;const selected=hourPeriods.filter(p=>p.start_date<=date&&(!p.end_date||p.end_date>=date)).sort((a,b)=>b.start_date.localeCompare(a.start_date)||b.id-a.id)[0];if(selected){dayRanges=normalizeSchedule(selected.schedule)[wd];hours=dayRanges.length?[{open_min:Math.min(...dayRanges.map(x=>x.start_min)),close_min:Math.max(...dayRanges.map(x=>x.end_min)),lunch_start:null,lunch_end:null}]:[]}else{hours=await api(`business_hours?select=*&weekday=eq.${wd}`);const h=hours?.[0];dayRanges=h&&h.open_min!=null?(h.lunch_start!=null&&h.lunch_end!=null?[{start_min:h.open_min,end_min:h.lunch_start},{start_min:h.lunch_end,end_min:h.close_min}]:[{start_min:h.open_min,end_min:h.close_min}]):[]}const localStatuses=getLocalBookingStatuses();bookings=bookings.map(b=>localStatuses[String(b.id)]?{...b,status:localStatuses[String(b.id)]}:b);renderAgenda()}catch(e){shell("Agenda",`<p class="error">${esc(e.message)}</p><button class="btn" id="retry">Tentar novamente</button>`)}}
+let agendaScrollY=0,agendaDayKey=null;
+function agendaAfterRender(){const k=key(day);const y=agendaDayKey===k?agendaScrollY:0;agendaDayKey=k;requestAnimationFrame(()=>window.scrollTo(0,y))}
+window.addEventListener("scroll",()=>{if(document.querySelector(".agenda-grid")&&!document.body.classList.contains("sheet-open")&&!document.querySelector(".booking-screen,.client-picker-screen"))agendaScrollY=window.scrollY},{passive:true});
 function renderAgenda(){
  let cfg=hours?.[0];
- const navFor=(sub)=>`<div class="agenda-head"><button class="agenda-arrow" data-day="-1" aria-label="Dia anterior">‹</button><button type="button" class="agenda-datebtn" id="open-date-picker" aria-label="Escolher outra data"><span class="agenda-dayname">${DW[day.getDay()]}, ${day.getDate()} de ${day.toLocaleDateString("pt-BR",{month:"long"})}${day.getFullYear()!==new Date().getFullYear()?" de "+day.getFullYear():""}</span><span class="agenda-daysub">${sub||"Toque para escolher a data"}</span></button><button class="agenda-arrow" data-day="1" aria-label="Próximo dia">›</button></div>`;
+ const navFor=(sub)=>`<div class="agenda-head"><button class="agenda-arrow" data-day="-1" aria-label="Dia anterior">‹</button><button type="button" class="agenda-datebtn" id="open-date-picker" aria-label="Escolher outra data"><span class="agenda-dayname">${DW[day.getDay()]}, ${day.getDate()} de ${day.toLocaleDateString("pt-BR",{month:"long"})}${day.getFullYear()!==new Date().getFullYear()?" de "+day.getFullYear():""}</span></button><button class="agenda-arrow" data-day="1" aria-label="Próximo dia">›</button></div>`;
  let nav=navFor("");
  if(!cfg||cfg.open_min==null){shell("Agenda",nav+`<p class="notice">Estabelecimento fechado ou horário não configurado para este dia.</p>`);return}
  const step=Math.max(5,Number(slotStep)||30);
@@ -430,7 +432,8 @@ function renderAgenda(){
  const out=`<div class="agenda-grid" style="--agenda-step:${step/30}">${times.join("")}${right.join("")}</div><button class="agenda-fab" id="agenda-new-booking" aria-label="Novo agendamento" title="Novo agendamento">＋</button>`;
  const recv=bookings.filter(x=>statusClass(x.status)==="completed").reduce((sum,x)=>sum+Number(x.total||0),0);
  const sumTxt=`${n} agendamento(s) · ${fm(bookings.reduce((sum,x)=>sum+Number(x.total||0),0))}${recv>0?` · <b class="agenda-toreceive">A receber: ${fm(recv)}</b>`:""}`;
- shell("Agenda",navFor(sumTxt)+`<div class="agenda-legend"><span><i style="background:#FFF3CF;border:2px solid #E3B341"></i>Pendente</span><span><i style="background:#DCEBFA;border:2px solid #5B9BD5"></i>Confirmado</span><span><i style="background:#EADCF8;border:2px solid #9A6BD1"></i>Falta pagar</span><span><i style="background:#D9F1E2;border:2px solid #4DAA75"></i>Pago</span></div>`+out+`<div class="muted">Toque em um horário para agendar ou bloquear.</div>`);
+ shell("Agenda",navFor("")+`<div class="agenda-meta">${sumTxt}</div><div class="agenda-legend"><span><i style="background:#FFF3CF;border:2px solid #E3B341"></i>Pendente</span><span><i style="background:#DCEBFA;border:2px solid #5B9BD5"></i>Confirmado</span><span><i style="background:#EADCF8;border:2px solid #9A6BD1"></i>Falta pagar</span><span><i style="background:#D9F1E2;border:2px solid #4DAA75"></i>Pago</span></div>`+out+`<div class="muted">Toque em um horário para agendar ou bloquear.</div>`);
+ agendaAfterRender();
 }
 async function loadClients(){try{clients=await api("clients?select=*&order=name");shell("Clientes",`<div class="row between"><span class="muted">${clients.length} cadastro(s)</span><button class="btn primary" id="new-client">＋ Adicionar novo cliente</button></div><input id="client-search" placeholder="Buscar por nome ou telefone"><div id="client-list">${clientList(clients)}</div>`)}catch(e){shell("Clientes",`<p class="error">${esc(e.message)}</p>`)}}
 function clientList(list){return list.map(c=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(c.name)}</b><div class="muted">${esc(c.nickname||"")} ${c.phone?"· "+esc(c.phone):""}</div><div class="muted">${c.birth_date?"Nascimento: "+esc(c.birth_date):""}</div></div><button class="btn small" data-edit-client="${esc(c.phone)}">Editar</button></div><div class="actions"><a class="btn small" href="https://wa.me/${esc(String(c.phone||"").replace(/\D/g,""))}" target="_blank" rel="noopener">WhatsApp</a><button class="btn small" data-history="${esc(c.phone)}">Agendamentos</button></div></div>`).join("")||`<p class="muted">Nenhum cliente cadastrado.</p>`}
@@ -450,11 +453,44 @@ $("#service-form").onsubmit=async e=>{e.preventDefault();try{let data={name:val(
 $("#cancel-service").onclick=loadServices}
 async function loadProducts(){try{products=await api("products?select=*&order=name");shell("Produtos",`<div class="notice">Cadastro e edição de produtos. A baixa automática de estoque por venda ainda não está implementada.</div><div class="row between"><span class="muted">${products.length} produto(s)</span><button class="btn primary" id="new-product">＋ Adicionar produto</button></div>`+products.map(p=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(p.name)}</b><div class="muted">${esc(p.description||"")}</div><div>${fm(p.price)} · Estoque: ${p.stock} ${p.active?"":"· Inativo"}</div></div><button class="btn small" data-edit-product="${p.id}">Editar</button></div></div>`).join(""))}catch(e){shell("Produtos",`<p class="error">${esc(e.message)}</p><p class="muted">Se o banco informar que a tabela products não existe, a migração precisa ser aplicada no Supabase.</p>`)}}
 async function editProduct(id=null){editProductId=id;let p=products.find(x=>x.id===id)||{name:"",description:"",price:0,cost:0,stock:0,active:true};shell(id?"Editar produto":"Novo produto",`<form id="product-form">${field("Nome","pr-name",p.name)}${area("Descrição","pr-description",p.description)}<div class="grid">${field("Preço de venda (R$)","pr-price",p.price,"number",'step="0.01" min="0"')}${field("Custo (R$)","pr-cost",p.cost,"number",'step="0.01" min="0"')}${field("Estoque","pr-stock",p.stock,"number",'step="1" min="0"')}</div><label><input style="width:auto" type="checkbox" id="pr-active"> Produto ativo</label><div class="form-actions"><button class="btn primary">Salvar produto</button><button class="btn" type="button" id="cancel-product">Voltar</button></div></form>`);$("#pr-active").checked=!!p.active;$("#product-form").onsubmit=async e=>{e.preventDefault();try{let data={name:val("pr-name").trim(),description:val("pr-description"),price:num("pr-price"),cost:num("pr-cost"),stock:num("pr-stock"),active:checked("pr-active")};if(!data.name)throw Error("Informe o nome.");if(id)await api(`products?id=eq.${id}`,{method:"PATCH",body:JSON.stringify(data)});else await api("products",{method:"POST",body:JSON.stringify(data)});await loadProducts();notice="Produto salvo.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};$("#cancel-product").onclick=loadProducts}
+
+let packages=[],editPackageId=null;
+async function loadPackages(){
+ try{
+  const [pk,items]=await Promise.all([api("service_packages?select=*&order=name"),api("service_package_items?select=*&order=id")]);
+  packages=pk.map(p=>({...p,items:items.filter(i=>String(i.package_id)===String(p.id))}));
+  shell("Pacotes",`<div class="row between"><span class="muted">${packages.length} pacote(s)</span><button class="btn primary" id="new-package">＋ Adicionar pacote</button></div>`+(packages.map(p=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(p.name)}</b><div class="muted">${esc(p.description||"")}</div><div>${fm(p.price)}${p.active?"":" · Inativo"}</div><div class="muted">${p.items.map(i=>esc(i.service_name)+" x"+i.quantity).join(", ")}${p.has_expiration?` · validade: ${p.expiration_value} ${p.expiration_unit==="weeks"?"semana(s)":"dia(s)"}`:""}</div></div><button class="btn small" data-edit-package="${p.id}">Editar</button></div></div>`).join("")||`<p class="muted">Nenhum pacote cadastrado ainda.</p>`));
+ }catch(e){shell("Pacotes",`<p class="error">${esc(e.message)}</p>`)}
+}
+async function editPackage(id=null){
+ editPackageId=id;
+ const p=packages.find(x=>String(x.id)===String(id))||{name:"",description:"",price:0,active:true,has_expiration:false,expiration_value:30,expiration_unit:"days",validity_start_mode:"purchase",items:[]};
+ try{services=await api("services?select=*&order=sort")}catch(e){}
+ shell(id?"Editar pacote":"Novo pacote",`<form id="package-form"><div class="grid">${field("Nome do pacote","pk-name",p.name)}${field("Preço (R$)","pk-price",p.price,"number",'step="0.01" min="0"')}</div>${area("Descrição","pk-description",p.description||"")}<div class="booking-range-label">Serviços incluídos</div>${(services||[]).filter(s=>s.active||p.items.some(i=>i.service_id===s.id)).map(s=>{const it=p.items.find(i=>i.service_id===s.id);return `<label class="card pk-line"><input type="checkbox" data-pk-service="${s.id}" ${it?"checked":""}><span class="grow"><b>${esc(s.name)}</b></span><span class="muted">Qtd.</span><input type="number" min="1" step="1" data-pk-qty="${s.id}" value="${it?it.quantity:1}"></label>`}).join("")}<label class="pk-opt"><input type="checkbox" id="pk-exp" ${p.has_expiration?"checked":""}> O pacote tem validade</label><div class="grid">${field("Validade (quantidade)","pk-expval",p.expiration_value||30,"number",'min="1"')}<div class="field"><label for="pk-expunit">Unidade</label><select id="pk-expunit"><option value="days">Dias</option><option value="weeks">Semanas</option></select></div></div><div class="field"><label for="pk-start">A validade começa</label><select id="pk-start"><option value="purchase">Na compra</option><option value="first_use">No primeiro uso</option></select></div><label class="pk-opt"><input type="checkbox" id="pk-active" ${p.active?"checked":""}> Pacote ativo</label><div class="form-actions"><button class="btn primary" type="submit">Salvar pacote</button><button class="btn" type="button" id="cancel-package">Voltar</button></div></form>`);
+ $("#pk-expunit").value=p.expiration_unit||"days";$("#pk-start").value=p.validity_start_mode||"purchase";
+ $("#package-form").onsubmit=async e=>{e.preventDefault();try{
+  const chosen=[...app.querySelectorAll("[data-pk-service]")].filter(c=>c.checked).map(c=>{const sid=Number(c.dataset.pkService);const sv=(services||[]).find(x=>x.id===sid);return {service_id:sid,service_name:sv?.name||"",quantity:Math.max(1,Number(app.querySelector(`[data-pk-qty="${sid}"]`).value||1))}});
+  const exp=checked("pk-exp");
+  const data={name:val("pk-name").trim(),description:val("pk-description"),price:num("pk-price"),active:checked("pk-active"),has_expiration:exp,expiration_value:exp?Math.max(1,num("pk-expval")):null,expiration_unit:val("pk-expunit"),validity_start_mode:val("pk-start")};
+  if(!data.name)throw Error("Informe o nome do pacote.");
+  if(!chosen.length)throw Error("Escolha ao menos um serviço do pacote.");
+  let pid=id;
+  if(id)await api(`service_packages?id=eq.${id}`,{method:"PATCH",body:JSON.stringify(data)});
+  else{const r=await api("service_packages",{method:"POST",body:JSON.stringify(data)});pid=r[0].id}
+  await api(`service_package_items?package_id=eq.${pid}`,{method:"DELETE"});
+  await api("service_package_items",{method:"POST",body:JSON.stringify(chosen.map(c=>({...c,package_id:pid})))});
+  await loadPackages();notice="Pacote salvo.";renderNotice("success");
+ }catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};
+ $("#cancel-package").onclick=loadPackages;
+}
 async function loadSettings(){
- shell("Configurações",`<div class="notice">Escolha o que deseja configurar.</div><div class="settings-menu-grid"><button type="button" class="card settings-menu-button" id="open-hours"><span class="settings-menu-icon">◷</span><b>Horários</b><span class="muted">Funcionamento</span></button><button type="button" class="card settings-menu-button" id="open-professionals"><span class="settings-menu-icon">♧</span><b>Profissionais</b><span class="muted">Equipe cadastrada</span></button><button type="button" class="card settings-menu-button" id="open-messages"><span class="settings-menu-icon">✉︎</span><b>Mensagens</b><span class="muted">Confirmação e cancelamento</span></button></div>`);
+ shell("Configurações",`<div class="notice">Escolha o que deseja configurar.</div><div class="settings-menu-grid"><button type="button" class="card settings-menu-button" id="open-hours"><span class="settings-menu-icon">◷</span><b>Horários</b><span class="muted">Funcionamento</span></button><button type="button" class="card settings-menu-button" id="open-professionals"><span class="settings-menu-icon">♧</span><b>Profissionais</b><span class="muted">Equipe cadastrada</span></button><button type="button" class="card settings-menu-button" id="open-messages"><span class="settings-menu-icon">✉︎</span><b>Mensagens</b><span class="muted">Confirmação e cancelamento</span></button><button type="button" class="card settings-menu-button" id="open-services"><span class="settings-menu-icon">✂︎</span><b>Serviços</b><span class="muted">Valores e tempos</span></button><button type="button" class="card settings-menu-button" id="open-products"><span class="settings-menu-icon">▣</span><b>Produtos</b><span class="muted">Estoque e preços</span></button><button type="button" class="card settings-menu-button" id="open-packages"><span class="settings-menu-icon">❖</span><b>Pacotes</b><span class="muted">Combos oferecidos</span></button></div>`);
  $("#open-hours").onclick=()=>navigate("settings-hours");
  $("#open-professionals").onclick=()=>navigate("settings-professionals");
  $("#open-messages").onclick=()=>navigate("settings-messages");
+ $("#open-services").onclick=()=>navigate("services");
+ $("#open-products").onclick=()=>navigate("products");
+ $("#open-packages").onclick=()=>navigate("packages");
 }
 const DEFAULT_BOOKING_MESSAGES={
  confirmed:"Olá, {nome}! Seu agendamento na Barber Shop JS está confirmado para {dia}, às {hora}. Desde já, agradeço a preferência! Caso precise cancelar ou alterar seu horário, peço que me avise com pelo menos 2 horas de antecedência. Será um prazer atendê-lo!",
@@ -776,24 +812,49 @@ async function showBookingDetail(id){
 }
 async function showBlockSheet(block){const id=block.id;document.body.classList.add("sheet-open");const scrollY=window.scrollY;app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="block-sheet"><section class="action-sheet" role="dialog" aria-modal="true" aria-label="Detalhes do bloqueio"><div class="sheet-grabber"></div><h2 class="section-title">Bloqueio de horário</h2><div class="sheet-detail"><b>${esc(block.date||key(day))}</b><div>${hm(block.start_min)}–${hm(block.end_min)}</div><div class="muted">Período bloqueado: ${hm(block.start_min)} até ${hm(block.end_min)}</div><div>${esc(block.reason||"Sem motivo informado")}</div></div><button class="sheet-action" id="block-edit"><span class="sheet-icon">✎</span><span>Editar bloqueio</span></button><button class="sheet-action cancel" id="block-cancel"><span class="sheet-icon">✕</span><span>Cancelar bloqueio</span></button><button class="btn sheet-close" id="block-close">Fechar</button></section></div>`);const close=()=>{const el=$("#block-sheet");if(el){el.remove();document.body.classList.remove("sheet-open");window.scrollTo(0,scrollY)}};$("#block-close").onclick=close;$("#block-sheet").addEventListener("click",e=>{if(e.target.id==="block-sheet")close()});$("#block-edit").onclick=()=>{close();openBooking(Number(block.start_min),"block",{date:block.date,start_min:block.start_min,end_min:block.end_min,reason:block.reason,blockId:block.id})};$("#block-cancel").onclick=async()=>{if(!confirm("Deseja realmente remover este bloqueio?"))return;await api(`blocked_slots?id=eq.${encodeURIComponent(id)}`,{method:"DELETE"});close();await loadAgenda()};bindSheetDrag($("#block-sheet"),close)}
 
-async function navigate(p){page=p;setMenuOpen(false);$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p||((p==="settings-hours"||p==="settings-professionals")&&b.dataset.page==="settings")));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="settings-hours")await loadHours();else if(p==="settings-professionals")await loadProfessionals();else if(p==="settings-messages")loadMessageSettings();else if(p==="birthdays")await loadBirthdays()}
-// Gesto lateral: arrastar da esquerda para a direita retorna à página anterior.
+async function navigate(p){page=p;setMenuOpen(false);$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p||(["settings-hours","settings-professionals","settings-messages","services","products","packages"].includes(p)&&b.dataset.page==="settings")));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="packages")await loadPackages();else if(p==="settings-hours")await loadHours();else if(p==="settings-professionals")await loadProfessionals();else if(p==="settings-messages")loadMessageSettings();else if(p==="birthdays")await loadBirthdays()}
+// Gesto lateral: arrastar da borda esquerda para a direita volta à tela anterior (com animação suave).
 (function(){
- let sx=0,sy=0,tracking=false;
+ let sx=0,sy=0,tracking=false,moving=false,dxNow=0;
+ const el=()=>document.querySelector("#app");
+ const parentPage=()=>["settings-hours","settings-professionals","settings-messages","services","products","packages"].includes(page)?"settings":"agenda";
+ const goBack=async()=>{
+  if($("#menu").classList.contains("open")){setMenuOpen(false);return}
+  const cb=document.querySelector("#cancel-service,#cancel-product,#cancel-edit,#cancel-package");
+  if(cb){cb.click();return}
+  if(page!=="agenda")await navigate(parentPage());
+ };
+ const reset=(animate)=>{const a=el();if(!a)return;a.style.transition=animate?"transform .2s ease,opacity .2s ease":"";a.style.transform="";a.style.opacity="";if(animate)setTimeout(()=>{a.style.transition=""},220)};
  document.addEventListener("touchstart",e=>{
+  tracking=false;moving=false;dxNow=0;
   if(e.touches.length!==1)return;
+  if(document.body.classList.contains("sheet-open")||document.querySelector(".booking-screen,.client-picker-screen,.app-confirm-scrim,.status-picker-scrim"))return;
   sx=e.touches[0].clientX;sy=e.touches[0].clientY;tracking=sx<42;
  },{passive:true});
- document.addEventListener("touchend",e=>{
-  if(!tracking||!e.changedTouches.length)return;
-  const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
-  tracking=false;
-  if(dx<110||Math.abs(dy)>85)return;
-  if(document.body.classList.contains("sheet-open"))return;
-  if(page==="settings-hours"||page==="settings-professionals"||page==="settings-messages"){navigate("settings");return}
-  if(page!=="agenda"){navigate("agenda");return}
-  if($("#menu").classList.contains("open"))setMenuOpen(false);
+ document.addEventListener("touchmove",e=>{
+  if(!tracking||!e.touches.length)return;
+  const dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
+  if(!moving){
+   if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>12){tracking=false;return}
+   if(dx>10)moving=true;else return;
+  }
+  dxNow=Math.max(0,dx);
+  if(page==="agenda"&&!$("#menu").classList.contains("open"))return;
+  const a=el();if(!a)return;
+  a.style.transition="none";a.style.transform=`translateX(${dxNow*.9}px)`;a.style.opacity=String(Math.max(.35,1-dxNow/(window.innerWidth*1.1)));
  },{passive:true});
+ document.addEventListener("touchend",e=>{
+  if(!tracking)return;tracking=false;
+  const was=moving;moving=false;
+  if(!was)return;
+  const commit=dxNow>Math.min(110,window.innerWidth*.28);
+  const a=el();
+  if(commit&&a&&(page!=="agenda"||$("#menu").classList.contains("open"))){
+   a.style.transition="transform .22s ease,opacity .22s ease";a.style.transform="translateX(100%)";a.style.opacity="0";
+   setTimeout(async()=>{reset(false);await goBack()},200);
+  }else reset(true);
+ },{passive:true});
+ document.addEventListener("touchcancel",()=>{tracking=false;if(moving){moving=false;reset(true)}},{passive:true});
 })();
 function setMenuOpen(open){$("#menu").classList.toggle("open",open);$("#menu-backdrop").classList.toggle("open",open);document.body.style.overflow=open?"hidden":""}
 $("#hamb").onclick=()=>setMenuOpen(!$("#menu").classList.contains("open"));
@@ -845,6 +906,8 @@ if(b.dataset.cancel){let id=b.dataset.cancel;if(confirmCancel!==id){confirmCance
 if(b.id==="new-client"){editClient();return}
 if(b.dataset.editClient){editClient(b.dataset.editClient);return}
 if(b.dataset.history){showHistory(b.dataset.history);return}
+if(b.id==="new-package"){editPackage();return}
+if(b.dataset.editPackage){editPackage(Number(b.dataset.editPackage));return}
 if(b.id==="new-service"){editService();return}
 if(b.dataset.editService){editService(Number(b.dataset.editService));return}
 if(b.id==="new-product"){editProduct();return}
@@ -1394,4 +1457,56 @@ body{background:linear-gradient(180deg,#FFF9EC 0%,#FDEFD3 100%) fixed!important}
 .card{border-color:#EBD59A!important}
 .dp-panel{overflow:hidden}
 .dp-panel input[type="date"]{display:block;width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box;-webkit-appearance:none;appearance:none;text-align:center}
+</style>
+
+<style id="theme-v4">
+/* ===== Tom azul claro + barra fixa + ajustes de tamanho ===== */
+:root{--bg:#EEF6FF;--ac:#4F94D8}
+body{background:linear-gradient(180deg,#F3F9FF 0%,#E2EFFC 100%) fixed!important;color:#10304F!important}
+.top{position:fixed!important;top:0;left:0;right:0;margin:0!important;height:68px;padding:6px 16px!important;min-height:0!important;box-sizing:border-box;z-index:900!important;background:linear-gradient(135deg,#D6EAFC,#A9D0F5)!important;color:#10304F!important;border-bottom:4px solid #6FA8DC!important;box-shadow:0 3px 10px #4F94D833!important;display:flex;align-items:center}
+main{padding-top:84px!important}
+.brand{color:#10304F!important}
+.top .btn,.top button{border-color:#10304F55!important;color:#10304F!important}
+.logo{border:2px solid #10304F!important}
+.menu button.primary,.menu button:hover{background:#D6EAFC!important;border-color:#6FA8DC!important;color:#10304F!important}
+.menu button{color:#10304F!important;border-color:#C4DFF8!important}
+.menu-brand b{color:#10304F}
+.primary,.booking-savebar button,.dp-panel .dp-primary,.app-confirm button[data-confirm-ok]{background:#1F4B75!important;border-color:#1F4B75!important;color:#fff!important}
+.agenda-fab{background:#4F94D8!important;color:#fff!important;box-shadow:0 8px 20px #1F4B7555!important}
+.card{border-color:#C4DFF8!important}
+.section-title{color:#10304F!important}
+.muted,.field label,.booking-range-label{color:#4A6B8C!important}
+.agenda-time-cell{background:#E1EFFD!important;border-color:#B9D6F2!important;color:#1F4B75!important}
+.agenda-slot:not(.outside):not(.lunch):not(.blocked){background:#fff!important;border-color:#D5E6F7!important}
+.agenda-slot.outside{background:#EEF5FC!important}
+.slot.lunch{background:#E4EDF7!important;color:#4A6B8C!important}
+.slot.blocked{background:#DDE5EE!important;color:#5A6B7C!important}
+input:focus,select:focus,textarea:focus{outline:2px solid #4F94D866!important;border-color:#4F94D8!important}
+.booking-screen .booking-head{background:#EAF4FE!important}
+.booking-screen .service-choice:has(input[type="checkbox"]:checked){background:#DCEBFA!important;border:2px solid #4F94D8!important;color:#10304F!important}
+.booking-screen .service-choice:has(input[type="checkbox"]:checked) .service-price-edit{color:#1F4B75!important}
+/* barra de data pequena e delicada */
+.agenda-head{background:linear-gradient(135deg,#E8F3FE,#CFE5FA)!important;border:1.5px solid #8DBDEB!important;color:#10304F!important;border-radius:14px!important;padding:2px 4px!important;margin:2px 0 6px!important;box-shadow:none!important}
+.agenda-head .agenda-arrow{width:40px!important;height:38px!important;font-size:24px!important;color:#1F4B75!important}
+.agenda-datebtn,.agenda-dayname{color:#10304F!important}
+.agenda-dayname{font-size:18px!important;line-height:1.1}
+.agenda-meta{font-size:12px;color:#4A6B8C;text-align:center;margin:0 0 6px}
+.agenda-meta .agenda-toreceive{color:#6B3FA0!important}
+.agenda-legend{font-size:11px!important;margin:0 0 8px!important;justify-content:center}
+/* notificação e título mais discretos */
+.management-pushbar{float:right;margin:0 0 4px 8px!important}
+.management-pushbar .btn{font-size:11px!important;padding:5px 10px!important;min-height:0!important;border-color:#C4DFF8!important}
+.section-title{font-size:20px!important;margin:4px 2px 8px!important}
+.agenda-head,.card,.row,.settings-menu-grid,.subnav,form,.notice,.agenda-meta,.agenda-legend,#notice{clear:both}
+/* botões das configurações menores e delicados */
+.settings-menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+.settings-menu-button{min-height:84px!important;padding:10px 8px!important;gap:3px!important;border-radius:16px!important;border:1px solid #C4DFF8!important;box-shadow:0 2px 8px #4F94D81a!important}
+.settings-menu-button b{font-size:15px!important;font-weight:600!important}
+.settings-menu-button .muted{font-size:12px!important}
+.settings-menu-icon{font-size:22px!important;color:#4F94D8!important}
+/* pacotes */
+.pk-line{display:flex;align-items:center;gap:10px;padding:8px 12px!important;margin:6px 0!important}
+.pk-line input[type="checkbox"],.pk-opt input[type="checkbox"]{width:auto}
+.pk-line input[type="number"]{width:72px}
+.pk-opt{display:block;margin:10px 0}
 </style>
