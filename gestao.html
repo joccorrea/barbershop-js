@@ -400,7 +400,7 @@ button.cb-pill{cursor:pointer;font-family:inherit}
 <div class="menu-brand"><img class="logo" alt="Logo"><b>Barber Shop JS</b></div>
 <button data-page="agenda">Agenda</button><button data-page="settings">Configurações</button>
 <button data-page="clients">Clientes</button><button data-page="birthdays">Aniversários</button>
-<button id="finance-menu" type="button">Financeiro</button><button id="pw-menu" type="button">Alterar minha senha</button>
+<button id="finance-menu" type="button">Financeiro</button>
 </nav>
 <div id="app"></div>
 </main>
@@ -950,7 +950,8 @@ async function editCombo(id=null){
  $("#cancel-combo").onclick=loadCombos;
 }
 async function loadSettings(){
- shell("Configurações",`<div class="notice">Escolha o que deseja configurar.</div><div class="settings-menu-grid"><button type="button" class="card settings-menu-button" id="open-hours"><span class="settings-menu-icon">◷</span><b>Horários</b><span class="muted">Funcionamento</span></button><button type="button" class="card settings-menu-button" id="open-professionals"><span class="settings-menu-icon">♧</span><b>Profissionais</b><span class="muted">Equipe cadastrada</span></button><button type="button" class="card settings-menu-button" id="open-roles"><span class="settings-menu-icon">🔑</span><b>Permissões e acessos</b><span class="muted">O que cada função pode</span></button><button type="button" class="card settings-menu-button" id="open-messages"><span class="settings-menu-icon">✉︎</span><b>Mensagens</b><span class="muted">Confirmação e cancelamento</span></button><button type="button" class="card settings-menu-button" id="open-services"><span class="settings-menu-icon">✂︎</span><b>Serviços</b><span class="muted">Valores e tempos</span></button><button type="button" class="card settings-menu-button" id="open-products"><span class="settings-menu-icon">▣</span><b>Produtos</b><span class="muted">Estoque e preços</span></button><button type="button" class="card settings-menu-button" id="open-paymethods"><span class="settings-menu-icon">＄</span><b>Formas de pagamento</b><span class="muted">Dinheiro, Pix, cartão…</span></button><button type="button" class="card settings-menu-button" id="open-packages"><span class="settings-menu-icon">❖</span><b>Pacotes</b><span class="muted">Pacotes de serviços</span></button><button type="button" class="card settings-menu-button" id="open-combos"><span class="settings-menu-icon">✦</span><b>Combos</b><span class="muted">Descontos por conjunto</span></button></div>`);
+ shell("Configurações",`<div class="notice">Escolha o que deseja configurar.</div><div class="settings-menu-grid"><button type="button" class="card settings-menu-button" id="open-hours"><span class="settings-menu-icon">◷</span><b>Horários</b><span class="muted">Funcionamento</span></button><button type="button" class="card settings-menu-button" id="open-professionals"><span class="settings-menu-icon">♧</span><b>Profissionais</b><span class="muted">Equipe cadastrada</span></button><button type="button" class="card settings-menu-button" id="open-roles"><span class="settings-menu-icon">🔑</span><b>Permissões e acessos</b><span class="muted">O que cada função pode</span></button><button type="button" class="card settings-menu-button" id="open-messages"><span class="settings-menu-icon">✉︎</span><b>Mensagens</b><span class="muted">Confirmação e cancelamento</span></button><button type="button" class="card settings-menu-button" id="open-services"><span class="settings-menu-icon">✂︎</span><b>Serviços</b><span class="muted">Valores e tempos</span></button><button type="button" class="card settings-menu-button" id="open-products"><span class="settings-menu-icon">▣</span><b>Produtos</b><span class="muted">Estoque e preços</span></button><button type="button" class="card settings-menu-button" id="open-paymethods"><span class="settings-menu-icon">＄</span><b>Formas de pagamento</b><span class="muted">Dinheiro, Pix, cartão…</span></button><button type="button" class="card settings-menu-button" id="open-packages"><span class="settings-menu-icon">❖</span><b>Pacotes</b><span class="muted">Pacotes de serviços</span></button><button type="button" class="card settings-menu-button" id="open-combos"><span class="settings-menu-icon">✦</span><b>Combos</b><span class="muted">Descontos por conjunto</span></button><button type="button" class="card settings-menu-button" id="open-password"><span class="settings-menu-icon">🔒</span><b>Alterar senha</b><span class="muted">Sua senha de acesso</span></button></div>`);
+ $("#open-password").onclick=()=>changePasswordSheet();
  $("#open-hours").onclick=()=>navigate("settings-hours");
  $("#open-roles").onclick=()=>navigate("settings-roles");
  if(window.__me&&!window.__me.owner){["#open-hours","#open-professionals","#open-messages","#open-paymethods","#open-roles"].forEach(q=>$(q)?.classList.add("hidden"));if(!can("finance_edit"))["#open-packages","#open-combos"].forEach(q=>$(q)?.classList.add("hidden"))}
@@ -1308,12 +1309,12 @@ function changePasswordSheet(){
  $("#pw-save").onclick=async()=>{const a=$("#pw1").value,b=$("#pw2").value,m=$("#pw-msg");if(a.length<8){m.textContent="A senha precisa ter pelo menos 8 caracteres.";return}if(a!==b){m.textContent="As senhas não são iguais.";return}
   try{const r=await fetch(SB+"/auth/v1/user",{method:"PUT",headers:{apikey:KEY,Authorization:"Bearer "+session.access_token,"Content-Type":"application/json"},body:JSON.stringify({password:a})});const j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.msg||j.message||j.error_description||"Falha");close();alert("Senha alterada.")}catch(e){m.textContent="Não foi possível alterar: "+e.message}};
 }
-$("#pw-menu").onclick=()=>{setMenuOpen(false);changePasswordSheet()};
+
 
 function mins(id){let v=val(id);if(!v)return null;let [h,m]=v.split(":").map(Number);return h*60+m}
 $("#app").addEventListener("submit",async e=>{if(e.target.id!=="hours-form")return;e.preventDefault();try{for(const x of hours){let wd=x.weekday,o=mins("o-"+wd),c=mins("c-"+wd),ls=mins("ls-"+wd),le=mins("le-"+wd);if((o==null)!=(c==null))throw Error("Informe abertura e fechamento ou deixe ambos vazios.");if(o!=null&&c<=o)throw Error("Fechamento deve ser depois da abertura: "+DW[wd]);await api(`business_hours?weekday=eq.${wd}`,{method:"PATCH",body:JSON.stringify({open_min:o,close_min:c,lunch_start:ls,lunch_end:le})})}await loadHours();notice="Horários atualizados.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}});
 async function loadBirthdays(){try{clients=await api("clients?select=name,phone,birth_date&birth_date=not.is.null");let list=clients.filter(c=>c.birth_date&&Number(c.birth_date.split("-")[1])===month.getMonth()+1).sort((a,b)=>Number(a.birth_date.split("-")[2])-Number(b.birth_date.split("-")[2]));shell("Aniversários",`<div class="row between"><button class="btn" id="month-prev">‹</button><b>${MONTH[month.getMonth()]} ${month.getFullYear()}</b><button class="btn" id="month-next">›</button></div>`+(list.map(c=>{let d=c.birth_date.split("-")[2],first=c.name.split(" ")[0],text=`Feliz aniversário, ${first}! 🎂 A Barber Shop JS deseja um dia incrível pra você.`;return `<div class="card"><b>${d}/${String(month.getMonth()+1).padStart(2,"0")} · ${esc(c.name)}</b><div class="muted">${esc(c.phone)}</div><div class="actions"><a class="btn small" target="_blank" rel="noopener" href="https://wa.me/${esc(c.phone)}?text=${encodeURIComponent(text)}">Enviar parabéns</a></div></div>`}).join("")||`<p class="muted">Nenhum aniversariante neste mês.</p>`))}catch(e){shell("Aniversários",`<p class="error">${esc(e.message)}</p>`)}}
-function renderLoginOrPage(){if(!session){loginView();return}currentUserUI();const qs=new URLSearchParams(location.search),pendingReview=qs.get("booking");if(pendingReview){showBookingReview(pendingReview);return}const pgq=qs.get("page");if(pgq&&["agenda","clients","birthdays","settings"].includes(pgq))page=pgq;navigate(page)}
+function renderLoginOrPage(){if(!session){loginView();return}currentUserUI();const qs=new URLSearchParams(location.search),pendingReview=qs.get("booking");if(pendingReview){showBookingReview(pendingReview);return}const pgq=qs.get("page");if(pgq&&["agenda","clients","birthdays","settings","settings-professionals"].includes(pgq))page=pgq;navigate(page)}
 function serviceDurationMinutes(service){
  const name=String(service?.name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
  const thirtyMinuteServices=new Set(["corte simples","degrade na zero","degrade navalhado","degrade na shaver","undercut feminino","corte feminino"]);
@@ -1386,10 +1387,11 @@ async function showBookingDetail(id){
   else regularActions=editBtn+cancelBtn;
   document.body.classList.add("sheet-open");
   const scrollY=window.scrollY;
-  app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="detail-sheet"><section class="action-sheet" role="dialog" aria-modal="true" aria-label="Detalhes do agendamento"><div class="sheet-grabber"></div><h2 class="section-title">${isPending?"Agendamento pendente":"Agendamento"}</h2>${details}${isPending?pendingActions:regularActions}${page!=="agenda"?`<button class="sheet-action" id="detail-goto-agenda"><span class="sheet-icon">${ICO.cal}</span><span>Ir para a agenda</span></button>`:""}<button class="btn sheet-close" id="detail-close">Fechar</button></section></div>`);
+  app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="detail-sheet"><section class="action-sheet" role="dialog" aria-modal="true" aria-label="Detalhes do agendamento"><div class="sheet-grabber"></div><h2 class="section-title">${isPending?"Agendamento pendente":"Agendamento"}</h2>${details}${isPending?pendingActions:regularActions}${b.client_phone?`<button class="sheet-action" id="detail-goto-client"><span class="sheet-icon">${ICO2.user}</span><span>Ir para o cliente</span></button>`:""}${page!=="agenda"?`<button class="sheet-action" id="detail-goto-agenda"><span class="sheet-icon">${ICO.cal}</span><span>Ir para a agenda</span></button>`:""}<button class="btn sheet-close" id="detail-close">Fechar</button></section></div>`);
   const close=()=>{const el=$("#detail-sheet");if(el){el.remove();document.body.classList.remove("sheet-open");window.scrollTo(0,scrollY)}};
   fillClientBadge(b.client_phone,"#detail-badge",b.id,b.client_name);
   $("#detail-close").onclick=close;
+  if($("#detail-goto-client"))$("#detail-goto-client").onclick=async()=>{close();await navigate("clients");showClientCard(b.client_phone)};
   if($("#detail-goto-agenda"))$("#detail-goto-agenda").onclick=()=>{close();gotoBooking(b.id,b.date)};
   $("#detail-sheet").addEventListener("click",e=>{if(e.target.id==="detail-sheet")close()});
   $("#detail-edit")?.addEventListener("click",()=>{close();openBooking(Number(b.start_min),"book",b)});
@@ -1457,12 +1459,12 @@ async function gotoBooking(id,date){
  setTimeout(()=>{const el=document.querySelector(`[data-open-booking="${CSS.escape(String(id))}"]`);if(el){el.scrollIntoView({block:"center"});el.classList.add("flash-booking");setTimeout(()=>el.classList.remove("flash-booking"),2600)}},180);
 }
 
-const ICO2={eye:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',arrow:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'};
+const ICO2={calplus:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></svg>',ban:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>',user:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>',eye:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',arrow:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'};
 let popOn=null;
 function closePop(){document.querySelector('.pop-scrim')?.remove();popOn?.classList.remove('pop-on');popOn=null;window.removeEventListener('scroll',closePop,true)}
 function popMenu(card,items){closePop();if(!items.length)return;popOn=card;card.classList.add('pop-on');
- const sc=document.createElement('div');sc.className='pop-scrim';const m=document.createElement('div');m.className='pop';
- m.innerHTML=items.map((it,i)=>`<button type="button" class="pop-i ${it.cls||''}" data-pi="${i}">${it.icon||''}<span>${it.label}</span></button>`).join('');
+ const sc=document.createElement('div');sc.className='pop-scrim';const m=document.createElement('div');m.className='pop'+(items.length===1?' single':'');
+ m.innerHTML=items.map((it,i)=>`<button type="button" class="pop-i ${it.cls||''}${it.label?'':' io'}" data-pi="${i}" aria-label="${esc(it.title||it.label||'')}" title="${esc(it.title||it.label||'')}">${it.icon||''}${it.label?`<span>${it.label}</span>`:''}</button>`).join('');
  sc.appendChild(m);document.body.appendChild(sc);
  const r=card.getBoundingClientRect(),mw=m.offsetWidth,mh=m.offsetHeight,vw=window.innerWidth,vh=window.innerHeight;
  const left=Math.min(vw-mw-8,Math.max(8,r.left+r.width/2-mw/2)),top=Math.min(vh-mh-8,Math.max(8,r.top+r.height/2-mh/2));
@@ -1476,7 +1478,7 @@ document.addEventListener("click",e=>{
  const h=e.target.closest(".hist-item");
  if(h&&!e.target.closest("a,button"))h.classList.toggle("open");
 });
-async function navigate(p){if(session&&!window.__me)await loadMe();if(window.__me&&window.__me.has_access===false){setMenuOpen(false);app.innerHTML=`<div class="card"><div class="section-title">Sem acesso</div><p class="muted">Esta conta ainda não foi liberada pelo proprietário. Peça para ele criar o seu acesso em Configurações → Profissionais.</p></div>`;return}p=guardPage(p);page=p;setMenuOpen(false);ensurePM();$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p||(["settings-hours","settings-professionals","settings-messages","settings-payments","settings-roles","services","products","packages","combos"].includes(p)&&b.dataset.page==="settings")));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="packages")await loadPackages();else if(p==="combos")await loadCombos();else if(p==="settings-hours")await loadHours();else if(p==="settings-professionals")await loadProfessionals();else if(p==="settings-messages")loadMessageSettings();else if(p==="settings-payments")await loadPayMethods();else if(p==="settings-roles")await loadRoles();else if(p==="birthdays")await loadBirthdays()}
+async function navigate(p){if(session&&!window.__me)await loadMe();if(window.__me&&window.__me.has_access===false){setMenuOpen(false);app.innerHTML=`<div class="card"><div class="section-title">Sem acesso</div><p class="muted">Esta conta ainda não foi liberada pelo proprietário. Peça para ele criar o seu acesso em Configurações → Profissionais.</p></div>`;return}p=guardPage(p);page=p;ensurePM();$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p||(["settings-hours","settings-professionals","settings-messages","settings-payments","settings-roles","services","products","packages","combos"].includes(p)&&b.dataset.page==="settings")));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="packages")await loadPackages();else if(p==="combos")await loadCombos();else if(p==="settings-hours")await loadHours();else if(p==="settings-professionals")await loadProfessionals();else if(p==="settings-messages")loadMessageSettings();else if(p==="settings-payments")await loadPayMethods();else if(p==="settings-roles")await loadRoles();else if(p==="birthdays")await loadBirthdays()}
 // Gesto lateral: arrastar da borda esquerda para a direita volta à tela anterior,
 // mostrando a tela de baixo (instantâneo da tela anterior) enquanto arrasta.
 (function(){
@@ -1548,7 +1550,7 @@ $("#brand-home").onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&session){e.pre
 $("#finance-menu").onclick=()=>{setMenuOpen(false);document.body.style.transition="opacity .16s ease";document.body.style.opacity="0";setTimeout(()=>{location.href="financeiro.html"},150)};
 $("#menu-backdrop").onclick=()=>setMenuOpen(false);
 $("#logout").onclick=()=>{window.__me=null;window.__myBarberId=null;session=null;saveSession();setMenuOpen(false);renderLoginOrPage()};
-$("#menu").addEventListener("click",e=>{let b=e.target.closest("[data-page]");if(b){setMenuOpen(false);navigate(b.dataset.page)}});
+$("#menu").addEventListener("click",async e=>{let b=e.target.closest("[data-page]");if(b){try{await navigate(b.dataset.page)}finally{setMenuOpen(false);softIn()}}});
 let touchStartX=0,touchStartY=0,touchStartTarget=null,swipeActive=false,swipeDx=0,swipeUnderlay=null,swipeAxis=null;
 function beginSwipeBack(screen){
  if(!swipeBackSnapshot)return;
@@ -1576,8 +1578,9 @@ if(b.id==="today"){day=new Date();await loadAgenda();return}
 if(b.dataset.openBooking){await showBookingDetail(b.dataset.openBooking);return}
 if(b.dataset.openBlock){const block=blocks.find(x=>String(x.id)===String(b.dataset.openBlock));if(block)await showBlockSheet(block);return}
 if(b.dataset.agBarber!=null){agendaBarber=b.dataset.agBarber;try{localStorage.setItem("bsjs_agenda_barber",agendaBarber)}catch(e){}applyAgendaBarber();renderAgenda();return}
-if(b.id==="agenda-new-booking"){await openBooking(null);return}
-if(b.dataset.slot!=null){window.__newBarber=b.dataset.slotBarber||null;await openBooking(Number(b.dataset.slot));return}
+const __slotMenu=(start,barber)=>popMenu(b,[{icon:ICO2.calplus,title:"Agendar",fn:()=>{window.__newBarber=barber;openBooking(start,"book")}},{icon:ICO2.ban,title:"Bloquear",cls:"danger",fn:()=>{window.__newBarber=barber;openBooking(start,"block")}}]);
+if(b.id==="agenda-new-booking"){__slotMenu(null,null);return}
+if(b.dataset.slot!=null){__slotMenu(Number(b.dataset.slot),b.dataset.slotBarber||null);return}
 if(b.dataset.blockScope){readBookingInputs();bookingDraft.blockAll=b.dataset.blockScope==="all";renderBookingScreen();return}
 if(b.id==="booking-back"){bookingDraft=null;await loadAgenda();return}
 if(b.id==="mode-book"||b.id==="mode-block"){readBookingInputs();bookingDraft.mode=b.id==="mode-book"?"book":"block";renderBookingScreen();return}
@@ -1763,7 +1766,7 @@ function __renderBookingScreen(){
  const timeInput=(id,label,value)=>`<div class="field">${label?`<label>${label}</label>`:''}<input id="${id}" type="time" value="${value==null?'':hm(value)}" step="1800"></div>`;
  const dateInput=(id,label,value)=>`<div class="field">${label?`<label>${label}</label>`:''}<input id="${id}" type="date" value="${key(value)}"></div>`;
  app.innerHTML=`<section class="booking-screen">
- <div class="booking-head"><button class="btn form-back" id="booking-back" aria-label="Voltar à agenda" title="Voltar à agenda">←</button><button class="btn ${d.mode==='book'?'primary':''}" id="mode-book">AGENDAR</button><button class="btn ${d.mode==='block'?'primary':''}" id="mode-block">BLOQUEAR</button></div>
+ <div class="booking-head"><button class="btn form-back" id="booking-back" aria-label="Voltar à agenda" title="Voltar à agenda">←</button></div>
  <h2 class="section-title">${d.mode==='book'?'Novo agendamento':'Bloquear horário'}</h2>
  ${(d.barbers&&d.barbers.length>1&&!(d.mode==='block'&&d.blockAll))?`<div class="field"><label>Profissional</label><select id="booking-barber">${d.barbers.map(b=>`<option value="${b.id}" ${Number(b.id)===Number(d.barberId)?'selected':''}>${esc(b.name)}</option>`).join('')}</select></div>`:''}
  ${d.mode==='book'?`
@@ -2763,4 +2766,16 @@ body{animation:pg-in .3s ease backwards}
 .pkg-opt b{grid-column:1;font-size:15px}.pkg-opt span{grid-column:1;font-size:12.5px;color:#5b7a99}.pkg-opt em{grid-column:2;grid-row:1/3;align-self:center;font-style:normal;font-weight:800}
 .pkg-opt.on{border-color:#397bd1!important;background:#DCEBFA!important}
 .hrow.pop-on{outline:2px solid rgba(79,148,216,.7)}
+
+/* g18 */
+.pop.single{border-radius:26px;padding:6px}
+.pop.single .pop-i{flex-direction:row;gap:9px;min-width:0;max-width:none;min-height:42px;padding:0 18px 0 14px;white-space:nowrap;font-size:14px;border-radius:21px}
+.pop.single .pop-i svg{width:20px;height:20px}
+.pop-i.io{min-width:62px;min-height:56px}.pop-i.io svg{width:26px;height:26px}
+.settings-menu-grid{grid-template-columns:1fr!important;gap:8px!important}
+#app .settings-menu-button{flex-direction:row!important;justify-content:flex-start!important;text-align:left!important;min-height:0!important;height:auto!important;gap:2px 12px!important;padding:10px 14px!important;border-radius:18px!important;display:grid!important;grid-template-columns:42px 1fr 14px;grid-template-rows:auto auto;align-items:center}
+#app .settings-menu-button .settings-menu-icon{grid-row:1/3;grid-column:1;width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#DCEBFA,#BBD9F6);display:grid;place-items:center;font-size:21px;color:#2F73C9}
+#app .settings-menu-button b{grid-column:2;font-size:16px;font-weight:700;color:#10304F}
+#app .settings-menu-button .muted{grid-column:2;font-size:12.5px}
+#app .settings-menu-button:after{content:"›";grid-column:3;grid-row:1/3;font-size:22px;color:#8FB6E0;line-height:1}
 </style>
