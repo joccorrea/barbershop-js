@@ -99,6 +99,21 @@ main{padding-top:84px!important}
 .menu-brand b{color:#10304F;font-size:17px}
 .menu button{background:#fff;color:#10304F;border:1px solid #C4DFF8;text-align:left;border-radius:12px;padding:14px 12px;font-weight:600}
 .menu button:hover,.menu button.current{background:#D6EAFC;border-color:#6FA8DC}
+
+.bk-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.bk{background:#fff;border:1px solid #C4DFF8;border-radius:14px;padding:10px 12px;box-shadow:0 1px 6px #4F94D81a}
+.bk-top{display:flex;gap:10px;align-items:flex-start}
+.bk-when{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:52px;padding:6px 4px;border-radius:12px;background:linear-gradient(135deg,#D6EAFC,#A9D0F5);color:#10304F;flex:none}
+.bk-when b{font-size:15px;line-height:1.1}.bk-when span{font-size:12px}
+.bk-main{flex:1;min-width:0}.bk-main b{display:block;font-size:15px;color:#10304F;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk-main .small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk-side{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
+.bk-side b{font-size:15px;color:#10304F}
+.bk-fin{margin-top:8px;font-size:12px;color:#4A6B8C}
+.bk-actions{display:flex;gap:6px;margin-top:10px}
+.bk-actions button{padding:8px 10px;font-size:13px;border-radius:10px}
+.bk-actions button:first-child{flex:1}
+input,select,textarea{font-size:16px}
 </style>
 </head>
 <body>
@@ -153,7 +168,7 @@ main{padding-top:84px!important}
 <section class="section" id="section-appointments">
 <div class="panel"><h2>Atendimentos do mês</h2><p class="small">Finalize o atendimento por aqui. O fechamento fica vinculado ao agendamento e não pode ser criado duas vezes. Produtos vendidos são baixados do estoque.</p>
 <div class="toolbar"><div class="field"><label>Status</label><select id="bookingFilter"><option value="all">Todos os status</option><option value="confirmed">Confirmados</option><option value="completed">Realizados</option><option value="finalized">Finalizados</option><option value="no_show">Faltas</option><option value="cancelled">Cancelados</option></select></div><div class="field"><label>Buscar cliente</label><input id="bookingSearch" placeholder="Nome ou telefone"></div></div>
-<div class="tablewrap"><table><thead><tr><th>Data / horário</th><th>Cliente</th><th>Serviços</th><th>Total agendado</th><th>Status</th><th>Financeiro</th><th>Ação</th></tr></thead><tbody id="bookingRows"><tr><td colspan="7" class="empty">Carregando…</td></tr></tbody></table></div></div>
+<div id="bookingRows" class="bk-list"><div class="empty">Carregando…</div></div></div>
 </section>
 <section class="section" id="section-movements"><div class="layout">
 <div class="panel"><h2>Novo lançamento</h2><form id="movementForm"><div class="formgrid">
@@ -217,10 +232,7 @@ document.addEventListener('click',function(e){
  if(!b)return;
  e.preventDefault();
  e.stopImmediatePropagation();
- const params=new URLSearchParams(window.location.search);
- params.set('aba',b.dataset.tab);const mv=document.getElementById('month');if(mv&&mv.value)params.set('month',mv.value);
- const href=window.location.pathname+'?'+params.toString()+window.location.hash;
- window.open(href,'_blank');
+ if(window.__openSection)window.__openSection(b.dataset.tab);
 },true);
 (async()=>{'use strict';
 const SUPABASE_URL='https://esuvgaijkahzoctyyawe.supabase.co',KEY='sb_publishable_bC-fW9ei_xw9ovFzPJE7cA_Fkd8QSsz',SESSION='bsjs_admin_session';
@@ -271,7 +283,8 @@ function renderCardsReports(){
 function renderMovements(){const list=movements.filter(x=>!$('filter').value||x.kind===$('filter').value);$('rows').innerHTML=list.length?list.map(x=>`<tr><td><b>${dateBR(x.movement_date)}</b><br>${esc(x.description)}<br><span class="small">${esc(x.category||'')}</span></td><td><span class="tag">${kindName(x.kind)}</span></td><td>${methodName(x.payment_method)}</td><td>${x.status==='paid'?'Pago/recebido':x.status==='pending'?'Pendente':'Cancelado'}</td><td><b>${money(x.amount)}</b></td><td>${x.status==='cancelled'?'—':canEdit?`<button class="danger" data-cancel="${x.id}">Cancelar</button>`:'—'}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Nenhum lançamento.</td></tr>'}
 function renderProducts(){$('productRows').innerHTML=products.length?products.map(p=>`<tr><td>${esc(p.name)}<br><span class="small">${esc(p.category||'')}</span></td><td>${money(p.sale_price)}</td><td>${money(p.cost_price)}</td><td>${p.stock_quantity}</td><td>${p.min_stock}</td><td>${Number(p.stock_quantity)<=Number(p.min_stock)?'<span class="tag red">Estoque baixo</span>':'Disponível'}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Cadastre o primeiro produto.</td></tr>';$('stockProduct').innerHTML=products.length?products.map(p=>`<option value="${p.id}">${esc(p.name)} — estoque ${p.stock_quantity}</option>`).join(''):'<option value="">Cadastre um produto primeiro</option>'}
 function renderCash(){const active=cashSessions.find(c=>!c.closed_at);$('cashInfo').textContent=active?`Caixa aberto desde ${new Date(active.opened_at).toLocaleString('pt-BR')} | Fundo inicial: ${money(active.opening_amount)}`:'Nenhum caixa aberto.';$('openCash').classList.toggle('hidden',!!active);$('closeCash').classList.toggle('hidden',!active);$('cashRows').innerHTML=cashSessions.length?cashSessions.map(c=>`<tr><td>${new Date(c.opened_at).toLocaleString('pt-BR')}</td><td>${money(c.opening_amount)}</td><td>${c.closed_at?new Date(c.closed_at).toLocaleString('pt-BR'):'Aberto'}</td><td>${c.counted_cash==null?'—':money(c.counted_cash)}</td><td>${c.expected_cash==null?'—':money(c.expected_cash)}</td><td>${c.difference==null?'—':money(c.difference)}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Sem histórico.</td></tr>'}
-function renderBookings(){const f=$('bookingFilter').value,q=$('bookingSearch').value.toLowerCase();const list=bookings.filter(b=>(f==='all'||b.status===f)&&(`${b.client_name} ${b.client_phone}`).toLowerCase().includes(q));$('bookingRows').innerHTML=list.length?list.map(b=>{const c=closures.find(x=>String(x.booking_id)===String(b.id));const st={pending:'Pendente',confirmed:'Confirmado',completed:'Realizado',finalized:'Finalizado',no_show:'Falta',cancelled:'Cancelado'}[b.status]||b.status;let action='—';if(canEdit&&!c){action=`<div class="actions"><button data-close-booking="${b.id}">${b.status==='no_show'?'Registrar falta':'Fechar atendimento'}</button><button type="button" class="secondary" data-edit-booking="${b.id}">Editar</button><button type="button" class="danger" data-delete-booking="${b.id}">Excluir</button></div>`}else if(c)action=`<span class="tag">Fechado — edição/exclusão bloqueada</span>`;return `<tr><td>${bookingDate(b)}<br>${String(Math.floor(b.start_min/60)).padStart(2,'0')}:${String(b.start_min%60).padStart(2,'0')}</td><td><b>${esc(b.client_name)}</b><br><span class="small">${esc(b.client_phone||'')}</span></td><td>${esc(serviceNames(b))}</td><td>${money(b.total)}</td><td><span class="tag">${st}</span></td><td>${c?`Total ${money(c.grand_total)}<br>Recebido ${money(c.amount_paid)}<br>Saldo ${money(c.balance_due)}`:'Sem fechamento'}</td><td>${action}</td></tr>`}).join(''):'<tr><td colspan="7" class="empty">Nenhum atendimento neste filtro.</td></tr>'}
+function normTxt(v){return String(v||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()}
+function renderBookings(){const f=$('bookingFilter').value,q=normTxt($('bookingSearch').value);const list=bookings.filter(b=>(f==='all'||b.status===f)&&normTxt(`${b.client_name} ${b.client_phone}`).includes(q));$('bookingRows').innerHTML=list.length?list.map(b=>{const c=closures.find(x=>String(x.booking_id)===String(b.id));const st={pending:'Pendente',confirmed:'Confirmado',completed:'Realizado',finalized:'Finalizado',no_show:'Falta',cancelled:'Cancelado'}[b.status]||b.status;let action='';if(canEdit&&!c){action=`<div class="bk-actions"><button data-close-booking="${b.id}">${b.status==='no_show'?'Registrar falta':'Fechar atendimento'}</button><button type="button" class="secondary" data-edit-booking="${b.id}">Editar</button><button type="button" class="danger" data-delete-booking="${b.id}">Excluir</button></div>`}const hh=`${String(Math.floor(b.start_min/60)).padStart(2,'0')}:${String(b.start_min%60).padStart(2,'0')}`;return `<div class="bk"><div class="bk-top"><div class="bk-when"><b>${dateBR(b.date).slice(0,5)}</b><span>${hh}</span></div><div class="bk-main"><b>${esc(b.client_name)}</b><div class="small">${esc(serviceNames(b))}</div><div class="small">${esc(b.client_phone||'')}</div></div><div class="bk-side"><b>${money(b.total)}</b><span class="tag">${st}</span></div></div>${c?`<div class="bk-fin"><span class="tag">Fechado</span> Total ${money(c.grand_total)} · Recebido ${money(c.amount_paid)} · Saldo ${money(c.balance_due)}</div>`:''}${action}</div>`}).join(''):'<div class="empty">Nenhum atendimento neste filtro.</div>'}
 async function editBooking(id){try{requireEdit();const b=bookings.find(x=>String(x.id)===String(id));if(!b)throw Error('Atendimento não encontrado.');if(closures.some(c=>String(c.booking_id)===String(b.id)))throw Error('Atendimento fechado financeiramente não pode ser editado.');const name=prompt('Nome do cliente:',b.client_name||'');if(name===null)return;if(!name.trim())throw Error('O nome do cliente não pode ficar vazio.');const phone=prompt('Telefone do cliente:',b.client_phone||'');if(phone===null)return;const date=prompt('Data (AAAA-MM-DD):',String(b.date||'').slice(0,10));if(date===null)return;if(!/^\d{4}-\d{2}-\d{2}$/.test(date))throw Error('Data inválida. Use AAAA-MM-DD.');const start=prompt('Horário inicial em minutos desde 00:00 (ex.: 540 = 09:00):',String(b.start_min??540));if(start===null)return;const startMin=Number(start);if(!Number.isInteger(startMin)||startMin<0||startMin>1439)throw Error('Horário inválido. Informe minutos de 0 a 1439.');const status=prompt('Status (pending, confirmed, completed, no_show, cancelled):',b.status||'confirmed');if(status===null)return;if(!['pending','confirmed','completed','no_show','cancelled'].includes(status))throw Error('Status inválido.');await api('bookings?id=eq.'+encodeURIComponent(b.id),{method:'PATCH',body:JSON.stringify({client_name:name.trim(),client_phone:phone.trim(),date,start_min:startMin,status})});msg('Atendimento atualizado.');await load()}catch(e){msg('Não foi possível editar: '+e.message,true)}}
 async function deleteBooking(id){try{requireEdit();const b=bookings.find(x=>String(x.id)===String(id));if(!b)throw Error('Atendimento não encontrado.');if(closures.some(c=>String(c.booking_id)===String(b.id)))throw Error('Atendimento fechado financeiramente não pode ser excluído.');if(!confirm('Tem certeza que deseja excluir o atendimento de '+(b.client_name||'cliente')+' em '+bookingDate(b)+'? Esta ação não pode ser desfeita.'))return;await api('bookings?id=eq.'+encodeURIComponent(b.id),{method:'DELETE'});msg('Atendimento excluído.');await load()}catch(e){msg('Não foi possível excluir: '+e.message,true)}}
 function renderPending(){const list=movements.filter(x=>x.status==='pending');$('pendingRows').innerHTML=list.length?list.map(x=>`<tr><td>${dateBR(x.due_date)}</td><td>${esc(x.description)}</td><td>${kindName(x.kind)}</td><td>${methodName(x.payment_method)}</td><td>${money(x.amount)}</td><td>${canEdit?`<button data-paid="${x.id}">Marcar recebido/pago</button>`:'—'}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Nenhuma conta pendente.</td></tr>'}
@@ -423,7 +436,7 @@ const LOGO="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACgCAYAAACLz2ctAA
 function setMenu(o){$('menu').classList.toggle('open',o);$('menu-backdrop').classList.toggle('open',o);document.body.style.overflow=o?'hidden':''}
 $('hamb').onclick=()=>setMenu(!$('menu').classList.contains('open'));$('menu-backdrop').onclick=()=>setMenu(false);
 document.querySelectorAll('[data-gpage]').forEach(b=>{b.onclick=()=>{location.href='gestao.html?page='+b.dataset.gpage}});
-$('fin-home').onclick=()=>{setMenu(false);if(new URLSearchParams(location.search).get('aba'))location.href=location.pathname};
+$('fin-home').onclick=()=>{setMenu(false);if(new URLSearchParams(location.search).get('aba')){const p=new URLSearchParams(location.search);p.delete('aba');history.replaceState({},'',location.pathname+(p.toString()?'?'+p.toString():''));showDashboard()}};
 $('fin-brand').onclick=()=>{location.href='gestao.html?page=agenda'};
 $('logoutF').onclick=()=>{try{localStorage.removeItem('bsjs_admin_session')}catch(e){}location.href='gestao.html'};
 $('refresh').onclick=load;$('month').onchange=load;$('filter').onchange=renderMovements;$('bookingFilter').onchange=renderBookings;$('bookingSearch').oninput=renderBookings;$('clear').onclick=()=>{$('movementForm').reset();$('date').value=fmtDate(new Date())};
@@ -442,12 +455,29 @@ function showFinanceSection(tab){
  $('sectionViewTitle').textContent=sectionTitles[tab]||'Financeiro';
  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));
 }
-function returnToFinanceDashboard(){
- const params=new URLSearchParams(window.location.search);
- params.delete('aba');
- const query=params.toString();
- window.location.href=window.location.pathname+(query?'?'+query:'')+window.location.hash;
+function showDashboard(){
+ document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+ $('financeDashboard').classList.remove('hidden');
+ $('sectionViewHeader').classList.add('hidden');
+ window.scrollTo(0,0);
 }
+function returnToFinanceDashboard(){
+ if(history.state&&history.state.aba){history.back();return}
+ const p=new URLSearchParams(window.location.search);p.delete('aba');
+ history.replaceState({},'',window.location.pathname+(p.toString()?'?'+p.toString():''));
+ showDashboard();
+}
+window.__openSection=function(tab){
+ if(!document.getElementById('section-'+tab))return;
+ const p=new URLSearchParams(window.location.search);p.set('aba',tab);
+ history.pushState({aba:tab},'',window.location.pathname+'?'+p.toString());
+ showFinanceSection(tab);window.scrollTo(0,0);
+};
+window.addEventListener('popstate',function(){
+ const a=new URLSearchParams(window.location.search).get('aba');
+ if(a&&document.getElementById('section-'+a)){showFinanceSection(a);window.scrollTo(0,0)}else showDashboard();
+});
 $('sectionBack').onclick=returnToFinanceDashboard;
 if(requestedTab&&document.getElementById('section-'+requestedTab)){showFinanceSection(requestedTab)}
 else{
