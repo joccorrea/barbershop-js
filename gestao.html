@@ -669,7 +669,7 @@ setSub(backFromClient,clientBackTo?"card":"clients");
 let formtab="cadastro";const draw=()=>{app.querySelectorAll("[data-formtab]").forEach(x=>x.classList.toggle("on",x.dataset.formtab===formtab));const body=$("#client-form-body");if(formtab==="cadastro")body.innerHTML=`<div class="grid">${field("Nome completo","c-name",c.name)}${field("Telefone/WhatsApp","c-phone",c.phone,"tel",phone?"readonly":"")}${field("Apelido","c-nickname",c.nickname||"")}${field("Data de nascimento","c-birth",c.birth_date||"","date")}</div>`;
 if(formtab==="endereco")body.innerHTML=`<div class="grid">${field("Rua","p-street",profile.street)}${field("Número","p-number",profile.number)}${field("Complemento","p-complement",profile.complement)}${field("Bairro","p-neighborhood",profile.neighborhood)}${field("Cidade","p-city",profile.city)}${field("Estado","p-state",profile.state)}${field("CEP","p-postal",profile.postal_code)}</div>${area("Observações","p-notes",profile.notes)}`;
 if(formtab==="fotos")body.innerHTML=`${area("URLs das fotos (uma por linha)","p-photos",(profile.photos||[]).join("\n"))}<p class="muted">Use links públicos de imagens. As URLs serão guardadas no cadastro.</p>`;
-if(formtab==="pacotes"){body.innerHTML=`<div class="muted">Carregando…</div>`;clientPkgsHtml(phone).then(h=>{if(formtab==="pacotes")body.innerHTML=h})}
+if(formtab==="pacotes"){const ld=()=>clientPkgsHtml(phone,true).then(h=>{if(formtab==="pacotes"){body.innerHTML=h;bindPkgCards(body,phone,ld)}});body.innerHTML=`<div class="muted">Carregando…</div>`;ld()}
 if(formtab==="historico")body.innerHTML=history.filter(notCancelled).length?histRows(history.filter(notCancelled)):`<p class="muted">Nenhum agendamento encontrado.</p>`};
 draw();$("#client-form").onsubmit=async e=>{e.preventDefault();try{let ph=String(val("c-phone")||c.phone||"").replace(/\D/g,""),name=String(val("c-name")||c.name||"").trim();if(name.length<2||ph.length<10)throw Error("Informe nome e telefone com DDD.");let bd=val("c-birth")||c.birth_date||null;await api("clients?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify({phone:ph,name,nickname:val("c-nickname")||c.nickname||"",birth_date:bd})});let prof={phone:ph,street:val("p-street")||profile.street||"",number:val("p-number")||profile.number||"",complement:val("p-complement")||profile.complement||"",neighborhood:val("p-neighborhood")||profile.neighborhood||"",city:val("p-city")||profile.city||"",state:val("p-state")||profile.state||"",postal_code:val("p-postal")||profile.postal_code||"",notes:val("p-notes")||profile.notes||"",photos:(val("p-photos")?val("p-photos").split("\n").map(s=>s.trim()).filter(Boolean):(profile.photos||[])),updated_at:new Date().toISOString()};await api("client_profiles?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify(prof)});if(clientBackTo){await showClientCard(clientBackTo)}else await loadClients();notice="Cliente salvo com sucesso.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};
 app.querySelectorAll("[data-formtab]").forEach(b=>b.onclick=()=>{formtab=b.dataset.formtab;draw()});const deleteButton=$("#delete-client");if(deleteButton)deleteButton.onclick=async()=>{if(!phone)return;if(!confirm(`Tem certeza que deseja excluir o cliente ${c.name||phone}? Os agendamentos antigos serão mantidos no histórico.`))return;deleteButton.disabled=true;try{await api(`client_profiles?phone=eq.${encodeURIComponent(phone)}`,{method:"DELETE"});await api(`clients?phone=eq.${encodeURIComponent(phone)}`,{method:"DELETE"});await loadClients();notice="Cliente excluído com sucesso.";renderNotice("success")}catch(err){deleteButton.disabled=false;const n=$("#notice");if(n)n.innerHTML=`<div class="notice error">Não foi possível excluir o cliente: ${esc(err.message)}</div>`}}}
@@ -718,19 +718,18 @@ function clientOptionsSheet(phone){
  app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="co-sheet"><section class="action-sheet" role="dialog" aria-modal="true"><div class="sheet-grabber"></div><h2 class="section-title">${esc(c.name)}</h2>
   <button class="sheet-action" id="co-summary"><span class="sheet-icon">◉</span><span>Ver perfil do cliente</span></button>
   <button class="sheet-action" id="co-full"><span class="sheet-icon">➜</span><span>Ir para o cadastro do cliente</span></button>
-  <button class="sheet-action" id="co-change"><span class="sheet-icon">⇄</span><span>Alterar cliente</span></button>
-  <button class="sheet-action cancel" id="co-close"><span class="sheet-icon">×</span><span>Fechar</span></button></section></div>`);
+  <button class="sheet-action" id="co-change"><span class="sheet-icon">⇄</span><span>Alterar cliente</span></button></section></div>`);
  const close=()=>{$("#co-sheet")?.remove();document.body.classList.remove("sheet-open")};
- $("#co-close").onclick=close;$("#co-sheet").addEventListener("click",e=>{if(e.target.id==="co-sheet")close()});bindSheetDrag($("#co-sheet"),close);
+ $("#co-sheet").addEventListener("click",e=>{if(e.target.id==="co-sheet")close()});bindSheetDrag($("#co-sheet"),close);
  $("#co-change").onclick=()=>{close();renderClientPicker()};
  $("#co-summary").onclick=()=>{close();clientSummarySheet(c)};
  $("#co-full").onclick=async()=>{close();const keep=bookingDraft;await showClientCard(phone);bookingDraft=keep;const back=()=>renderBookingScreen();if($("#back-clients")){$("#back-clients").textContent="← Voltar ao agendamento";$("#back-clients").onclick=back}try{setSub(back,"agenda")}catch(e){}};
 }
 async function clientSummarySheet(c){
  document.body.classList.add("sheet-open");
- app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="cs-sheet"><section class="action-sheet" role="dialog" aria-modal="true"><div class="sheet-grabber"></div><h2 class="section-title">${esc(c.name)}</h2><div id="cs-body" class="muted">Carregando…</div><button class="sheet-action cancel" id="cs-close"><span class="sheet-icon">×</span><span>Fechar</span></button></section></div>`);
+ app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="cs-sheet"><section class="action-sheet" role="dialog" aria-modal="true"><div class="sheet-grabber"></div><h2 class="section-title">${esc(c.name)}</h2><div id="cs-body" class="muted">Carregando…</div></section></div>`);
  const close=()=>{$("#cs-sheet")?.remove();document.body.classList.remove("sheet-open")};
- $("#cs-close").onclick=close;$("#cs-sheet").addEventListener("click",e=>{if(e.target.id==="cs-sheet")close()});bindSheetDrag($("#cs-sheet"),close);
+ $("#cs-sheet").addEventListener("click",e=>{if(e.target.id==="cs-sheet")close()});bindSheetDrag($("#cs-sheet"),close);
  try{
   let full=c;try{full=(await api(`clients?select=*&phone=eq.${encodeURIComponent(c.phone)}`))[0]||c}catch(e){}
   const st=await clientStats(c.phone);const nx=st.scheduled[0];
@@ -786,7 +785,54 @@ async function fetchClientPkgs(phone,excludeId){
  pb.filter(b=>!done.has(String(b.id))).forEach(b=>b.services.forEach(x=>{if(x&&x.pkg){const k=x.pkg+"|"+x.id;reserved[k]=(reserved[k]||0)+Number(x.pkgQty||0)}}));
  return cps.filter(p=>(!p.expires_at||new Date(p.expires_at)>new Date())&&!pkgBlockedG(p,cps)).map(p=>({id:p.id,name:p.package_name,expires_at:p.expires_at,items:its.filter(i=>i.client_package_id===p.id).map(i=>({service_id:i.service_id,name:i.service_name,rem:Math.max(0,Number(i.quantity_remaining)-(reserved[p.id+"|"+i.service_id]||0))}))})).filter(p=>p.items.some(i=>i.rem>0)).sort((a,b)=>String(a.expires_at||"9").localeCompare(String(b.expires_at||"9"))||a.id-b.id);
 }
-async function clientPkgsHtml(phone){
+const EYE_SVG='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+function bindPkgCards(root,phone,reload){
+ root.querySelectorAll("[data-cpk]").forEach(card=>card.onclick=()=>{
+  const id=Number(card.dataset.cpk);
+  popMenu(card,[{icon:X_SVG,title:"Cancelar pacote",cls:"danger",fn:()=>cancelClientPackage(id,phone,reload)},{icon:EYE_SVG,title:"Ver pacote",fn:()=>viewClientPackage(id)}]);
+ });
+}
+async function viewClientPackage(id){
+ document.querySelector(".nsm")?.remove();
+ const m=document.createElement("div");m.className="nsm";m.innerHTML=`<div class="nsm-card"><h3>Pacote</h3><div class="muted">Carregando…</div></div>`;document.body.appendChild(m);
+ m.addEventListener("click",e=>{if(e.target===m||e.target.closest("[data-ns=x]"))m.remove()});
+ try{
+  const cp=(await api(`client_packages?select=*&id=eq.${id}`))[0];if(!cp)throw Error("Pacote não encontrado.");
+  const its=await api(`client_package_services?select=*&client_package_id=eq.${id}`);
+  let reds=[];if(its.length)reds=await api(`client_package_redemptions?select=*&client_package_service_id=in.(${its.map(i=>i.id).join(",")})`);
+  let bks=[];if(reds.length)bks=await api(`bookings?select=id,date,start_min&id=in.(${[...new Set(reds.map(r=>r.booking_id))].join(",")})`).catch(()=>[]);
+  const stTxt={active:"Ativo",used:"Totalmente usado",cancelled:"Cancelado",expired:"Vencido"}[cp.status]||cp.status;
+  const val=cp.expires_at?"até "+pkgDateBR(cp.expires_at):(cp.validity_start_mode==="first_use"?"validade a partir do 1º uso":"sem validade");
+  const use=reds.map(r=>{const bk=bks.find(x=>String(x.id)===String(r.booking_id)),it=its.find(i=>i.id===r.client_package_service_id);return {d:bk?bk.date:"",t:`${bk?pkgDateBR(bk.date)+" · "+hm(bk.start_min):"—"} — ${esc(it?it.service_name:"Serviço")} ×${Number(r.quantity)}`}}).sort((a,b)=>b.d.localeCompare(a.d));
+  m.querySelector(".nsm-card").innerHTML=`<h3>${esc(cp.package_name)}</h3><p>${esc(stTxt)} · ${esc(val)}<br>Comprado em ${pkgDateBR(cp.purchased_at)} por ${fm(cp.purchased_price)}</p>
+  <div class="cpk-i" style="margin-bottom:10px">${its.map(i=>`<span class="${Number(i.quantity_remaining)<=0?"z":""}">${esc(i.service_name)} ${Number(i.quantity_remaining)}/${Number(i.quantity_purchased)}</span>`).join("")}</div>
+  <h3 style="font-size:15px;margin:6px 0">Utilizações</h3>${use.length?use.map(u=>`<div class="muted" style="margin:3px 0">${u.t}</div>`).join(""):`<div class="muted">Ainda não utilizado.</div>`}
+  <div class="dlg-foot"><button type="button" data-ns="x">Fechar</button></div>`;
+ }catch(e){m.querySelector(".nsm-card").innerHTML=`<h3>Pacote</h3><p class="error">${esc(e.message)}</p><div class="dlg-foot"><button type="button" data-ns="x">Fechar</button></div>`}
+}
+async function cancelClientPackage(id,phone,reload){
+ try{
+  const cp=(await api(`client_packages?select=*&id=eq.${id}`))[0];if(!cp)return;
+  const grp=(await api(`client_packages?select=id,purchased_price,status&client_phone=eq.${encodeURIComponent(cp.client_phone)}&package_id=eq.${cp.package_id}&purchased_at=eq.${encodeURIComponent(cp.purchased_at)}`)).filter(x=>x.status!=="cancelled");
+  const gsum=grp.reduce((a,x)=>a+Number(x.purchased_price||0),0),frac=gsum>0?Math.min(1,Number(cp.purchased_price||0)/gsum):1;
+  const t0=new Date(cp.purchased_at).getTime(),lo=new Date(t0-60000).toISOString(),hi=new Date(t0+5*60000).toISOString();
+  const nm=String(cp.package_name||"").replace(/[*(),]/g," ");
+  let mv=[];try{mv=await api(`finance_movements?select=*&status=eq.paid&category=in.${encodeURIComponent('("Venda de pacote","Retirada do proprietário")')}&description=ilike.*${encodeURIComponent("Venda pacote "+nm)}*&created_at=gte.${encodeURIComponent(lo)}&created_at=lte.${encodeURIComponent(hi)}`)}catch(e){}
+  const cn=String(cp.client_name||cp.client_phone||"");mv=mv.filter(x=>String(x.description||"").includes(cn));
+  const pay=Math.round(mv.filter(x=>x.kind==="income").reduce((a,x)=>a+Number(x.amount||0),0)*frac*100)/100;
+  const its=await api(`client_package_services?select=id,quantity_purchased,quantity_remaining&client_package_id=eq.${id}`);
+  const used=its.reduce((a,i)=>a+Number(i.quantity_purchased)-Number(i.quantity_remaining),0);
+  const ok=await appConfirmP(`Cancelar o pacote <b>${esc(cp.package_name)}</b>?${pay>0?`<br>O pagamento de ${fm(pay)} registrado na venda também será cancelado.`:""}${used>0?`<br>Ele já foi usado ${used} vez(es); esses atendimentos continuam no histórico.`:""}`,"Cancelar pacote");
+  if(!ok)return;
+  for(const x of mv){
+   if(frac>=0.999)await api(`finance_movements?id=eq.${x.id}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});
+   else await api(`finance_movements?id=eq.${x.id}`,{method:"PATCH",body:JSON.stringify({amount:Math.round(Number(x.amount)*(1-frac)*100)/100})});
+  }
+  await api(`client_packages?id=eq.${id}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});
+  await reload?.();
+ }catch(e){alert("Não foi possível cancelar o pacote: "+e.message)}
+}
+async function clientPkgsHtml(phone,manage){
  try{
   const enc=encodeURIComponent(phone);
   const cps=await api(`client_packages?select=*&client_phone=eq.${enc}&order=purchased_at.desc,id.desc`);
@@ -796,8 +842,8 @@ async function clientPkgsHtml(phone){
   const live=act.filter(p=>!p.expires_at||new Date(p.expires_at)>now),old=cps.length-live.length;
   const card=p=>{const mine=its.filter(i=>i.client_package_id===p.id).sort((a,b)=>String(a.service_name).localeCompare(String(b.service_name),"pt"));const wait=pkgBlockedG(p,act);
    const val=p.expires_at?"até "+pkgDateBR(p.expires_at):(p.validity_start_mode==="first_use"?"validade a partir do 1º uso":"sem validade");
-   return `<div class="cpk${wait?" wait":""}"><div class="cpk-h"><b>${esc(p.package_name)}</b><small>${wait?"em espera (sequência)":esc(val)}</small></div><div class="cpk-i">${mine.map(i=>`<span class="${Number(i.quantity_remaining)<=0?"z":""}">${esc(i.service_name)} ${Number(i.quantity_remaining)}/${Number(i.quantity_purchased)}</span>`).join("")}</div></div>`};
-  return (live.length?live.map(card).join(""):`<div class="muted">Nenhum pacote ativo.</div>`)+(old?`<div class="muted" style="margin-top:4px">${old} pacote(s) já utilizado(s) ou vencido(s).</div>`:"");
+   return `<div class="cpk${wait?" wait":""}"${manage?` data-cpk="${p.id}"`:""}><div class="cpk-h"><b>${esc(p.package_name)}</b><small>${wait?"em espera (sequência)":esc(val)}</small></div><div class="cpk-i">${mine.map(i=>`<span class="${Number(i.quantity_remaining)<=0?"z":""}">${esc(i.service_name)} ${Number(i.quantity_remaining)}/${Number(i.quantity_purchased)}</span>`).join("")}</div></div>`};
+  return (live.length?live.map(card).join(""):`<div class="muted">Nenhum pacote ativo.</div>`)+(old?`<div class="muted" style="margin-top:4px">${old} pacote(s) encerrado(s) (usados, vencidos ou cancelados).</div>`:"");
  }catch(e){return `<div class="muted">Pacotes indisponíveis.</div>`}
 }
 async function showClientCard(phone){
@@ -1917,7 +1963,7 @@ async function unredeemBooking(id){
 }
 function comboAmount(c,sub){const v=Number(c.discount||0);return Math.max(0,Math.min(sub,c.discount_type==="percent"?Math.round(sub*Math.min(v,100))/100:v))}
 function bookingCombo(d){
- const ids=d.services.map(x=>Number(x.id));let best=null;const sub=bookingSubtotal(d);
+ const cvv=pkgCover(d);const ids=d.services.filter(x=>Number(x.qty||1)-(cvv[x.id]||0)>0).map(x=>Number(x.id));let best=null;const sub=bookingSubtotal(d);
  (d.combos||[]).filter(c=>c.active).forEach(c=>{
   const groups={};c.items.forEach(i=>{(groups[i.group_no]=groups[i.group_no]||[]).push(Number(i.service_id))});
   const gs=Object.values(groups);
@@ -2258,9 +2304,16 @@ async function openPaymentScreen(b,opts={}){
         let applied=null;
         for(const p of list){let val=0;const ns=svcs.map(x=>{if(x.pkg)return x;const it=p.items.find(i=>Number(i.service_id)===Number(x.id));const c=it?Math.min(Number(x.qty||1),it.rem):0;if(c>0){val+=Number(x.price||0)*c;return {...x,pkg:p.id,pkgQty:c}}return x});if(val>0){applied={ns,val};break}}
         if(applied){
-          const nt=Math.max(0,Math.round((total-applied.val)*100)/100);
-          await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({services:applied.ns,total:nt})});
-          b.services=applied.ns;b.total=nt;total=nt;baseRemaining=nt;
+          const sub=applied.ns.reduce((a,x)=>a+Number(x.price||0)*(Number(x.qty||1)-Number(x.pkgQty||0)),0);
+          const ids=applied.ns.filter(x=>Number(x.qty||1)-Number(x.pkgQty||0)>0).map(x=>Number(x.id));
+          let cv=0;
+          if(Number(b.combo_discount||0)>0){try{
+            const cs=await api("service_combos?select=*&active=eq.true"),ci=cs.length?await api("service_combo_items?select=*&combo_id=in.("+cs.map(c=>c.id).join(",")+")"):[];
+            cs.forEach(c=>{const gr={};ci.filter(i=>String(i.combo_id)===String(c.id)).forEach(i=>{(gr[i.group_no]=gr[i.group_no]||[]).push(Number(i.service_id))});const gs=Object.values(gr);if(gs.length&&gs.every(g=>g.some(id=>ids.includes(id)))){const a=comboAmount(c,sub);if(a>cv)cv=a}});
+          }catch(e){cv=0}}
+          const nt=Math.max(0,Math.round((sub-cv-Number(b.discount||0)+Number(b.surcharge||0))*100)/100);
+          await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({services:applied.ns,total:nt,combo_discount:cv})});
+          b.services=applied.ns;b.total=nt;b.combo_discount=cv;total=nt;baseRemaining=nt;
           pkgSvcs=applied.ns.filter(x=>x&&x.pkg&&Number(x.pkgQty)>0);pkgPending=true;
           if(remaining()<=0)parts=[];else if(parts.length===1&&parts[0].method!=="credit")parts[0].amount=remaining();
         }else if(list.length){alert("Pacote vendido, mas nenhum serviço deste agendamento faz parte dele.")}
