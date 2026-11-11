@@ -989,7 +989,7 @@ function editPayMethod(m){
  <label style="font-size:13px;color:#5b7a99;font-weight:600">Como o sistema trata</label><div class="pm-kinds">${PM_KINDS.map(k=>`<button type="button" data-pm-kind="${k[0]}" class="${k[0]===kind?"on":""}"><b>${k[1]}</b><span>${k[2]}</span></button>`).join("")}</div>
  ${isNew?"":`<label class="pay-optrow"><span>Ativa (aparece nas telas)</span><input type="checkbox" id="pm-active" ${active?"checked":""} style="width:auto"></label>`}
  <div id="pm-err" class="pay-diff"></div>
- <div class="dlg-foot"><button type="button" class="dlg-back" data-ns="x">Voltar</button><button type="button" class="dlg-ok" id="pm-ok">Salvar</button></div></div>`};
+ <div class="dlg-foot"><button type="button" data-ns="x">Voltar</button><button type="button" id="pm-ok">Salvar</button></div></div>`};
  draw();document.body.appendChild(d);
  d.addEventListener("click",async e=>{
   if(e.target===d||e.target.closest("[data-ns=x]")){d.remove();return}
@@ -1573,7 +1573,12 @@ app.addEventListener("click",async e=>{let b=e.target.closest("button");if(!b)re
 try{
 if(b.id==="do-login"){try{await auth({email:val("email").trim(),password:val("password")});notice="";renderLoginOrPage()}catch(err){session=null;saveSession();$("#login-error").textContent=err.message}return}
 if(b.id==="retry"){loadAgenda();return}
-if(b.id==="open-date-picker"){document.querySelector("#dp-scrim")?.remove();const r=b.getBoundingClientRect(),orig=key(day);const sc=document.createElement("div");sc.id="dp-scrim";sc.className="dp2-scrim";sc.innerHTML=`<section class="dp2" role="dialog" aria-modal="true" aria-label="Escolher data" style="top:${Math.round(r.bottom+8)}px"><div class="dp2-row"><input type="date" id="dp-date" value="${orig}"><div class="dp2-r1"><button type="button" class="dp2-t" data-dp-today><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Hoje</span></button></div><div class="dp2-r2"><button type="button" class="dp2-t" data-dp-reset><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg><span>Redefinir</span></button><button type="button" class="dp2-t go" data-dp-go><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span>Ir para</span></button></div></div></section>`;document.body.appendChild(sc);const inp=sc.querySelector("#dp-date"),box=sc.querySelector(".dp2");inp.addEventListener("input",()=>box.classList.toggle("chg",!!inp.value&&inp.value!==orig));sc.addEventListener("click",async ev=>{if(ev.target===sc){sc.remove();return}if(ev.target.closest("[data-dp-reset]")){inp.value=orig;box.classList.remove("chg");return}if(ev.target.closest("[data-dp-today]")){sc.remove();day=new Date();await loadAgenda();return}if(ev.target.closest("[data-dp-go]")){const v=inp.value;sc.remove();if(v){day=new Date(v+"T12:00:00");await loadAgenda()}}});return}
+if(b.id==="open-date-picker"){document.querySelector("#dp-scrim")?.remove();const r=b.getBoundingClientRect(),cur=new Date(day);let vy=cur.getFullYear(),vm=cur.getMonth();const sc=document.createElement("div");sc.id="dp-scrim";sc.className="dp2-scrim";const MN=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];const lab=d=>String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear();
+sc.innerHTML=`<section class="dp2" role="dialog" aria-modal="true" aria-label="Escolher data" style="top:${Math.round(r.bottom+8)}px"><div class="dp2-row"><button type="button" class="dp2-dbtn" data-dp-toggle><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>${lab(cur)}</span></button><div class="dp2-r1"><button type="button" class="dp2-t" data-dp-today><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg><span>Hoje</span></button></div></div><div class="dp2-cal"></div></section>`;document.body.appendChild(sc);
+const box=sc.querySelector(".dp2"),cal=sc.querySelector(".dp2-cal");
+const drawCal=()=>{const first=new Date(vy,vm,1),n=new Date(vy,vm+1,0).getDate(),td=key(new Date()),sk=key(cur);let h=`<div class="dp2-mh"><button type="button" data-dp-m="-1">‹</button><span>${MN[vm]} ${vy}</span><button type="button" data-dp-m="1">›</button></div><div class="dp2-g">${["D","S","T","Q","Q","S","S"].map(x=>`<span>${x}</span>`).join("")}`;for(let i=0;i<first.getDay();i++)h+="<i></i>";for(let d=1;d<=n;d++){const k=vy+"-"+String(vm+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");h+=`<button type="button" data-dp-d="${k}" class="${k===td?"td ":""}${k===sk?"sel":""}">${d}</button>`}cal.innerHTML=h+"</div>"};
+drawCal();
+sc.addEventListener("click",async ev=>{if(ev.target===sc){sc.remove();return}if(ev.target.closest("[data-dp-toggle]")){box.classList.toggle("open");return}const mb=ev.target.closest("[data-dp-m]");if(mb){vm+=Number(mb.dataset.dpM);if(vm<0){vm=11;vy--}if(vm>11){vm=0;vy++}drawCal();return}const db=ev.target.closest("[data-dp-d]");if(db){sc.remove();day=new Date(db.dataset.dpD+"T12:00:00");await loadAgenda();return}if(ev.target.closest("[data-dp-today]")){sc.remove();day=new Date();await loadAgenda()}});return}
 if(b.dataset.day){day=new Date(day.getFullYear(),day.getMonth(),day.getDate()+Number(b.dataset.day));await loadAgenda();return}
 if(b.id==="toggle-goto"){$("#goto-panel")?.classList.toggle("open");return}
 if(b.id==="goto"){if(val("goto-date"))day=new Date(val("goto-date")+"T12:00:00");await loadAgenda();return}
@@ -2192,7 +2197,7 @@ async function sellPackageDialog(c,done){
   <label class="pay-optrow"><span>Valor (R$)</span><div class="pay-money" style="width:130px"><i>R$</i><input id="sp-amt" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,00"></div></label>
   <h3 class="pay-h" style="margin:10px 0 0;font-size:15px">Como foi pago?</h3><div id="sp-split"></div>
   <div id="sp-err" class="pay-diff"></div>
-  <div class="dlg-foot"><button type="button" class="dlg-back" data-ns="x">Voltar</button><button type="button" class="dlg-ok" id="sp-ok" disabled>Confirmar venda</button></div></div>`;
+  <div class="dlg-foot"><button type="button" data-ns="x">Voltar</button><button type="button" id="sp-ok" disabled>Confirmar venda</button></div></div>`;
   document.body.appendChild(m);
   const okb=m.querySelector("#sp-ok");
   const sp=mountSplit(m.querySelector("#sp-split"),()=>Number(m.querySelector("#sp-amt").value||0),i=>{okb.disabled=!(sel&&i.ok)});
@@ -2226,7 +2231,7 @@ async function sellCreditDialog(c,done){
   <h3 class="pay-h" style="margin:10px 0 0;font-size:15px">Como foi pago?</h3><div id="sc-split"></div>
   <label class="pay-optrow"><span>Data do pagamento</span><input type="date" id="sc-date" value="${todayLocal()}"></label>
   <div id="sc-err" class="pay-diff"></div>
-  <div class="dlg-foot"><button type="button" class="dlg-back" data-ns="x">Voltar</button><button type="button" class="dlg-ok" id="sc-ok" disabled>Confirmar venda</button></div></div>`;
+  <div class="dlg-foot"><button type="button" data-ns="x">Voltar</button><button type="button" id="sc-ok" disabled>Confirmar venda</button></div></div>`;
   document.body.appendChild(m);
   const okb=m.querySelector("#sc-ok");
   const sp=mountSplit(m.querySelector("#sc-split"),()=>Number(m.querySelector("#sc-amt").value||0),i=>{okb.disabled=!(Number(m.querySelector("#sc-amt").value||0)>0&&i.ok)});
@@ -2256,17 +2261,16 @@ async function saveAppointmentStatus(id,status){
 function openStatusPicker(id){
   closeStatusPicker();
   const scrim=document.createElement("div");scrim.className="status-picker-scrim";scrim.id="status-picker-scrim";
-  scrim.innerHTML=`<section class="status-picker" role="dialog" aria-modal="true"><h3>Status do atendimento</h3>
+  scrim.innerHTML=`<section class="status-picker action-sheet" role="dialog" aria-modal="true"><div class="sheet-grabber"></div><h3>Status do atendimento</h3>
   <button class="status-option-pending" data-set-status="pending">🟡 Pendente — aguarda confirmação</button>
   <button class="status-option-confirmed" data-set-status="confirmed">🔵 Confirmado</button>
   <button class="status-option-completed" data-set-status="completed">🟣 Atendido — falta pagar</button>
   <button class="status-option-finalized" data-set-status="finalized">🟢 Pago — finalizado</button>
   <button class="status-option-noshow" data-set-status="no_show">🔴 Não compareceu / faltou</button>
-  <button data-set-status="cancelled">Cancelar agendamento</button>
-  <button data-close-status>Fechar</button></section>`;
-  document.body.appendChild(scrim);
+  <button data-set-status="cancelled">Cancelar agendamento</button></section>`;
+  document.body.appendChild(scrim);bindSheetDrag(scrim,closeStatusPicker);
   scrim.addEventListener("click",async e=>{
-    if(e.target===scrim||e.target.closest("[data-close-status]")){closeStatusPicker();return}
+    if(e.target===scrim)return
     const b=e.target.closest("[data-set-status]");if(!b)return;
     const target=b.dataset.setStatus;
     if(target!=="finalized"){
@@ -2299,14 +2303,18 @@ function openStatusPicker(id){
     try{await saveAppointmentStatus(id,b.dataset.setStatus)}catch(err){alert("Não foi possível atualizar o status: "+(err.message||err))}
   });
 }
+let apptHoldT=null,apptSink=null,apptXY=null;
+const apptClear=()=>{clearTimeout(appointmentHoldTimer);clearTimeout(apptSink);apptSink=null;document.querySelectorAll(".holding").forEach(c=>c.classList.remove("holding"))};
 document.addEventListener("pointerdown",e=>{
   const card=e.target.closest(".agenda-appointment[data-open-booking],.ag-appt[data-open-booking]");if(!card)return;
-  appointmentHoldTriggered=false;appointmentHoldTarget=card;
-  clearTimeout(appointmentHoldTimer);
-  appointmentHoldTimer=setTimeout(()=>{appointmentHoldTriggered=true;openStatusPicker(card.dataset.openBooking)},550);
+  appointmentHoldTriggered=false;appointmentHoldTarget=card;apptXY=[e.clientX,e.clientY];
+  apptClear();
+  apptSink=setTimeout(()=>card.classList.add("holding"),140);
+  appointmentHoldTimer=setTimeout(()=>{appointmentHoldTriggered=true;card.classList.remove("holding");card.classList.add("pum");setTimeout(()=>card.classList.remove("pum"),300);openStatusPicker(card.dataset.openBooking)},650);
 });
-document.addEventListener("pointerup",()=>clearTimeout(appointmentHoldTimer));
-document.addEventListener("pointercancel",()=>clearTimeout(appointmentHoldTimer));
+document.addEventListener("pointermove",e=>{if(apptXY&&(Math.abs(e.clientX-apptXY[0])>9||Math.abs(e.clientY-apptXY[1])>9)){apptXY=null;apptClear()}});
+document.addEventListener("pointerup",()=>{apptXY=null;apptClear()});
+document.addEventListener("pointercancel",()=>{apptXY=null;apptClear()});
 document.addEventListener("contextmenu",e=>{
   const card=e.target.closest(".agenda-appointment[data-open-booking],.ag-appt[data-open-booking]");if(!card)return;
   e.preventDefault();clearTimeout(appointmentHoldTimer);appointmentHoldTriggered=true;openStatusPicker(card.dataset.openBooking);
@@ -2420,6 +2428,23 @@ if(session){const pendingReview=new URLSearchParams(location.search).get("bookin
 })();
 </script>
 <script>["gesturestart","gesturechange","gestureend"].forEach(function(t){document.addEventListener(t,function(e){e.preventDefault()},{passive:false})});document.addEventListener("touchmove",function(e){if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});</script>
+<script>
+(function(){
+ var RB=/^(voltar|cancelar|fechar|voltar à agenda)$/i,RS=/^(salvar\b.*|gravar|confirmar venda.*)$/i,RD=/^excluir$/i;
+ function cls(b){if(b.dataset.bb||b.classList.contains("mini")||b.closest(".pay-foot,.pay-head"))return null;var t=(b.textContent||"").trim();if(!t||t.length>40)return null;return RS.test(t)?"save":RB.test(t)?"back":RD.test(t)?"del":null}
+ function run(){
+  var all=[].slice.call(document.querySelectorAll("button:not([data-bb])")),hit=[];
+  all.forEach(function(b){var k=cls(b);if(k){b.dataset.bb=k;b.classList.add("bb-btn","bb-"+k);var t=(b.textContent||"").trim();b.setAttribute("aria-label",t);b.title=t;hit.push(b)}});
+  hit.forEach(function(b){
+   if(b.parentElement&&b.parentElement.classList.contains("bb-row"))return;
+   var P=b.parentElement,row=document.createElement("div");row.className="bb-row";P.insertBefore(row,b);
+   var n=b;while(n){var nx=n.nextElementSibling;if(n.dataset&&n.dataset.bb&&n.tagName==="BUTTON"){row.appendChild(n);n=nx}else break}
+  });
+ }
+ var q=0;function sched(){if(q)return;q=requestAnimationFrame(function(){q=0;run()})}
+ new MutationObserver(sched).observe(document.documentElement,{childList:true,subtree:true});run();
+})();
+</script>
 </body></html>
 <style>
 /* v14: status shown by the appointment card itself, not by extra labels */
@@ -2655,7 +2680,7 @@ main{position:relative}
 </style>
 <style id="theme-v6">
 /* sem zoom automático do iOS ao tocar nos campos */
-#app input,#app select,#app textarea,.booking-screen input,.booking-screen select,.booking-screen textarea{font-size:16px!important}
+:is(#app,.app-clone) input,:is(#app,.app-clone) select,:is(#app,.app-clone) textarea,.booking-screen input,.booking-screen select,.booking-screen textarea{font-size:16px!important}
 html{-webkit-text-size-adjust:100%}
 /* linhas de lista (clientes e serviços) */
 .alpha-h{font-size:12px;font-weight:800;letter-spacing:.5px;color:#4F94D8;margin:12px 4px 6px}
@@ -2692,7 +2717,7 @@ html{-webkit-text-size-adjust:100%}
 .period-day-name{font-weight:700;text-transform:capitalize;color:#10304F;min-width:34px}
 .period-day-times{color:#4A6B8C;text-align:right}
 .slot-setting{gap:8px!important}
-#app h3{font-size:15px;margin:10px 2px 6px}
+:is(#app,.app-clone) h3{font-size:15px;margin:10px 2px 6px}
 
 /* serviços do agendamento – opção 1: círculo de seleção + preço em destaque */
 label.service-choice{background:#fff!important;border:1px solid #C4DFF8!important;border-radius:14px!important;box-shadow:none!important;cursor:pointer}
@@ -2709,9 +2734,9 @@ label.service-choice.on .svc-price{background:#fff}
 .booking-screen label.service-choice:has(input:checked),.booking-screen label.service-choice.on{background:#EAF4FF!important;border:1px solid #4F94D8!important;box-shadow:none!important;color:#10304F!important}
 .booking-screen label.service-choice input[type=checkbox]{position:relative!important;opacity:1!important;width:24px!important;height:24px!important;pointer-events:auto!important}
 
-#app label.service-choice input[type="checkbox"]{border:2px solid #A9C6E4!important;border-radius:50%!important;background:#fff!important;box-shadow:none!important;-webkit-appearance:none!important;appearance:none!important;width:24px!important;height:24px!important;min-height:0!important;padding:0!important;position:relative!important;opacity:1!important}
-#app label.service-choice input[type="checkbox"]:checked{background:#4F94D8!important;border-color:#4F94D8!important}
-#app label.service-choice input[type="checkbox"]:checked::after{content:"";position:absolute;left:6px;top:2px;width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+:is(#app,.app-clone) label.service-choice input[type="checkbox"]{border:2px solid #A9C6E4!important;border-radius:50%!important;background:#fff!important;box-shadow:none!important;-webkit-appearance:none!important;appearance:none!important;width:24px!important;height:24px!important;min-height:0!important;padding:0!important;position:relative!important;opacity:1!important}
+:is(#app,.app-clone) label.service-choice input[type="checkbox"]:checked{background:#4F94D8!important;border-color:#4F94D8!important}
+:is(#app,.app-clone) label.service-choice input[type="checkbox"]:checked::after{content:"";position:absolute;left:6px;top:2px;width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
 
 /* g7: visual padrão dos cadastros */
 .chk-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:6px}
@@ -2761,9 +2786,9 @@ input.sw:checked{background:#2378d4}input.sw:checked::after{transform:translateX
 
 /* sombra padrão em todas as caixas (g14) */
 :root{--box-shadow:0 4px 12px rgba(35,120,212,.14),0 1px 3px rgba(31,75,117,.14)}
-#app .card,#app .lrow,#app .hrow,#app .pay-optrow,#app .service-choice,#app .settings-menu-button,#app .professional-card,#app .chk-item,#app .tr-item,#app .appointment-card,#app .cc-credit,#app .cc-stats>div,#app .cc-badge,#app .agenda-time-cell,#app .agenda-slot,#app .agenda-appointment,#app .ag-appt,#app .ag-cell,#app .pd-item,#app .notice,.booking-screen .card,.booking-screen .service-choice,.pay-body .card,.pay-body .pay-optrow,.sheet-scrim .tr-item{box-shadow:var(--box-shadow)!important}
-#app .card .card,#app .card .lrow,#app .card .chk-item,#app .card .service-choice,#app .card .cc-stats>div,#app .card .appointment-card,.booking-screen .card .card,.pay-body .card .pay-optrow{box-shadow:none!important}
-#app input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not(.sw),#app select,#app textarea,.booking-screen input:not([type=checkbox]):not([type=radio]):not(.sw):not(.dt-box input),.booking-screen select,.booking-screen textarea,.pay-body input:not([type=checkbox]):not([type=radio]),.pay-body select,.pay-body textarea,.sheet-scrim input:not([type=checkbox]):not([type=radio]):not(.sw),.sheet-scrim select,.sheet-scrim textarea,#login-card input{box-shadow:var(--box-shadow)!important}
+:is(#app,.app-clone) .card,:is(#app,.app-clone) .lrow,:is(#app,.app-clone) .hrow,:is(#app,.app-clone) .pay-optrow,:is(#app,.app-clone) .service-choice,:is(#app,.app-clone) .settings-menu-button,:is(#app,.app-clone) .professional-card,:is(#app,.app-clone) .chk-item,:is(#app,.app-clone) .tr-item,:is(#app,.app-clone) .appointment-card,:is(#app,.app-clone) .cc-credit,:is(#app,.app-clone) .cc-stats>div,:is(#app,.app-clone) .cc-badge,:is(#app,.app-clone) .agenda-time-cell,:is(#app,.app-clone) .agenda-slot,:is(#app,.app-clone) .agenda-appointment,:is(#app,.app-clone) .ag-appt,:is(#app,.app-clone) .ag-cell,:is(#app,.app-clone) .pd-item,:is(#app,.app-clone) .notice,.booking-screen .card,.booking-screen .service-choice,.pay-body .card,.pay-body .pay-optrow,.sheet-scrim .tr-item{box-shadow:var(--box-shadow)!important}
+:is(#app,.app-clone) .card .card,:is(#app,.app-clone) .card .lrow,:is(#app,.app-clone) .card .chk-item,:is(#app,.app-clone) .card .service-choice,:is(#app,.app-clone) .card .cc-stats>div,:is(#app,.app-clone) .card .appointment-card,.booking-screen .card .card,.pay-body .card .pay-optrow{box-shadow:none!important}
+:is(#app,.app-clone) input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not(.sw),:is(#app,.app-clone) select,:is(#app,.app-clone) textarea,.booking-screen input:not([type=checkbox]):not([type=radio]):not(.sw):not(.dt-box input),.booking-screen select,.booking-screen textarea,.pay-body input:not([type=checkbox]):not([type=radio]),.pay-body select,.pay-body textarea,.sheet-scrim input:not([type=checkbox]):not([type=radio]):not(.sw),.sheet-scrim select,.sheet-scrim textarea,#login-card input{box-shadow:var(--box-shadow)!important}
 .std-actions .btn:not(.primary){box-shadow:var(--box-shadow)!important}
 .dt-box,.booking-screen .client-card-compact{box-shadow:var(--box-shadow)!important}
 
@@ -2817,11 +2842,11 @@ body{animation:pg-in .3s ease backwards}
 .pop.single .pop-i svg{width:20px;height:20px}
 .pop-i.io{min-width:62px;min-height:56px}.pop-i.io svg{width:26px;height:26px}
 .settings-menu-grid{grid-template-columns:1fr!important;gap:8px!important}
-#app .settings-menu-button{flex-direction:row!important;justify-content:flex-start!important;text-align:left!important;min-height:0!important;height:auto!important;gap:2px 12px!important;padding:10px 14px!important;border-radius:18px!important;display:grid!important;grid-template-columns:42px 1fr 14px;grid-template-rows:auto auto;align-items:center}
-#app .settings-menu-button .settings-menu-icon{grid-row:1/3;grid-column:1;width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#DCEBFA,#BBD9F6);display:grid;place-items:center;font-size:21px;color:#2F73C9}
-#app .settings-menu-button b{grid-column:2;font-size:16px;font-weight:700;color:#10304F}
-#app .settings-menu-button .muted{grid-column:2;font-size:12.5px}
-#app .settings-menu-button:after{content:"›";grid-column:3;grid-row:1/3;font-size:22px;color:#8FB6E0;line-height:1}
+:is(#app,.app-clone) .settings-menu-button{flex-direction:row!important;justify-content:flex-start!important;text-align:left!important;min-height:0!important;height:auto!important;gap:2px 12px!important;padding:10px 14px!important;border-radius:18px!important;display:grid!important;grid-template-columns:42px 1fr 14px;grid-template-rows:auto auto;align-items:center}
+:is(#app,.app-clone) .settings-menu-button .settings-menu-icon{grid-row:1/3;grid-column:1;width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#DCEBFA,#BBD9F6);display:grid;place-items:center;font-size:21px;color:#2F73C9}
+:is(#app,.app-clone) .settings-menu-button b{grid-column:2;font-size:16px;font-weight:700;color:#10304F}
+:is(#app,.app-clone) .settings-menu-button .muted{grid-column:2;font-size:12.5px}
+:is(#app,.app-clone) .settings-menu-button:after{content:"›";grid-column:3;grid-row:1/3;font-size:22px;color:#8FB6E0;line-height:1}
 
 /* g19 */
 .dp2-scrim{position:fixed;inset:0;z-index:7000;background:rgba(16,48,79,.16)}
@@ -2845,11 +2870,6 @@ body{animation:pg-in .3s ease backwards}
 .dp2-row2.show{display:flex;animation:pop-bub .25s ease}
 
 /* g21 */
-.dlg-foot{display:flex;gap:10px;margin-top:12px}
-.dlg-foot button{text-align:center;display:flex;align-items:center;justify-content:center;flex:1;height:46px;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer}
-.dlg-back{background:#fff;border:1.5px solid #9CC3EE;color:#2f6fb0}
-.dlg-ok{flex:1.4!important;background:#2378d4;border:0;color:#fff;box-shadow:0 4px 12px #2378d433}
-.dlg-ok:disabled{opacity:.45;box-shadow:none}
 .cc-x{width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.9);background:linear-gradient(135deg,rgba(255,255,255,.85),rgba(200,226,250,.6));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--box-shadow);color:#10304F;font-size:16px;font-weight:800;display:grid;place-items:center;padding:0;cursor:pointer}
 .pm-del{color:#c0392b!important}
 .dp2-row{display:flex;align-items:center;gap:4px}
@@ -2858,9 +2878,36 @@ body{animation:pg-in .3s ease backwards}
 .dp2-t.go{flex-direction:column!important;gap:3px!important;font-size:12px!important;padding:6px 10px!important;min-height:54px!important}
 .dp2-t.go svg{color:#2378d4}
 .dp2-t{min-width:60px!important}
-.std-actions{display:flex!important;gap:8px!important;margin-top:16px;padding:10px;border-radius:20px;background:linear-gradient(135deg,rgba(255,255,255,.75),rgba(214,232,250,.55));border:1px solid rgba(255,255,255,.9);box-shadow:var(--box-shadow)}
-.std-actions .btn{flex:1;grid-column:auto!important;height:44px!important;border-radius:14px!important;font-size:15px!important;font-weight:800!important;background:#fff!important;border:1.5px solid #9CC3EE!important;color:#2f6fb0!important;box-shadow:none!important}
-.std-actions .btn.danger{border-color:#e3a39b!important;color:#c0392b!important}
-.std-actions .btn.primary{flex:1.5;background:#2378d4!important;border-color:#2378d4!important;color:#fff!important;box-shadow:0 4px 12px #2378d433!important}
 html{touch-action:manipulation}
+.booking-savebar button{background:linear-gradient(135deg,rgba(90,162,230,.95),rgba(35,120,212,.88))!important;border:1px solid rgba(255,255,255,.75)!important;-webkit-backdrop-filter:blur(14px) saturate(1.7);backdrop-filter:blur(14px) saturate(1.7);box-shadow:0 8px 20px rgba(31,100,180,.28),inset 0 1px 0 rgba(255,255,255,.7)!important}
+.agenda-appointment,.ag-appt{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;transition:transform .5s cubic-bezier(.2,.7,.3,1),filter .5s ease}
+.agenda-appointment.holding,.ag-appt.holding{transform:scale(.94)!important;filter:brightness(.93)}
+.agenda-appointment.pum,.ag-appt.pum{animation:appt-pum .28s cubic-bezier(.3,1.5,.5,1)}
+@keyframes appt-pum{0%{transform:scale(.94)}60%{transform:scale(1.025)}100%{transform:scale(1)}}
+.status-picker{padding-top:8px!important}.status-picker h3{text-align:center}
+.dp2-cal{display:none;margin-top:8px;border-top:1px solid rgba(111,168,220,.28);padding-top:8px}.dp2.open .dp2-cal{display:block;animation:pop-bub .22s ease}
+.dp2-mh{display:flex;align-items:center;justify-content:space-between;font-weight:800;color:#10304F;margin-bottom:4px;text-transform:capitalize}
+.dp2-mh button{width:38px;height:38px;border:0;border-radius:50%;background:transparent;color:#2378d4;font-size:22px;font-weight:800;padding:0}
+.dp2-g{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.dp2-g span{font-size:11px;font-weight:700;color:#5b7a99;padding:4px 0}
+.dp2-g button{height:38px;border:0;border-radius:50%;background:transparent;color:#10304F;font-size:15px;font-weight:600;padding:0}
+.dp2-g button.td{box-shadow:inset 0 0 0 1.5px #4F94D8}
+.dp2-g button.sel{background:#2378d4;color:#fff}
+.dp2-g button:active{background:rgba(255,255,255,.7)}
+.dp2-dbtn{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:52px;border:0;background:transparent;color:#10304F;font-size:16px;font-weight:800;text-align:left;padding:0 8px;border-radius:24px}
+.dp2-dbtn svg{color:#397bd1;flex:none}
+
+/* bolhas de ação */
+.bb-row{display:flex!important;align-items:center;justify-content:space-between;gap:14px;margin:16px 0 6px!important;width:100%;grid-column:1/-1;background:none!important;border:0!important;box-shadow:none!important;padding:0!important}
+.bb-back{order:0}.bb-del{order:1}.bb-save{order:2;margin-left:auto}
+button.bb-btn.bb-btn{flex:none!important;width:54px!important;min-width:54px!important;max-width:54px!important;height:54px!important;min-height:54px!important;padding:0!important;margin:0!important;border-radius:50%!important;display:grid!important;place-items:center;font-size:0!important;line-height:0!important;color:#10304F!important;border:1px solid rgba(255,255,255,.9)!important;background:linear-gradient(135deg,rgba(255,255,255,.82),rgba(190,220,250,.55))!important;-webkit-backdrop-filter:blur(14px) saturate(1.7);backdrop-filter:blur(14px) saturate(1.7);box-shadow:0 8px 20px rgba(31,100,180,.24),inset 0 1px 0 rgba(255,255,255,.95),inset 0 -6px 12px rgba(111,168,220,.16)!important;transition:transform .15s ease,opacity .15s}
+button.bb-btn::before{content:"";display:block;width:26px;height:26px;background:currentColor;-webkit-mask:var(--bbi) center/contain no-repeat;mask:var(--bbi) center/contain no-repeat}
+button.bb-btn.bb-save.bb-save{margin-left:auto!important}
+button.bb-btn:active{transform:scale(.92)}
+button.bb-btn:disabled{opacity:.45}
+button.bb-back{--bbi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 5l-7 7 7 7'/%3E%3C/svg%3E")}
+button.bb-save{--bbi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 3h13l4 4v14H3V3h1zm2 2v5h10V5H6zm0 9v5h12v-5H6zm8-8h2v3h-2V6z'/%3E%3C/svg%3E")}
+button.bb-btn.bb-save{color:#fff!important;background:linear-gradient(135deg,rgba(90,162,230,.95),rgba(35,120,212,.88))!important;border-color:rgba(255,255,255,.7)!important}
+button.bb-del{--bbi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3'/%3E%3C/svg%3E")}
+button.bb-btn.bb-del{color:#c0392b!important}
 </style>
