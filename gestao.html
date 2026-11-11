@@ -1657,10 +1657,11 @@ if(b.dataset.slot!=null){__slotMenu(Number(b.dataset.slot),b.dataset.slotBarber|
 if(b.dataset.blockScope){readBookingInputs();bookingDraft.blockAll=b.dataset.blockScope==="all";renderBookingScreen();return}
 if(b.id==="booking-back"){bookingDraft=null;await loadAgenda();return}
 if(b.id==="mode-book"||b.id==="mode-block"){readBookingInputs();bookingDraft.mode=b.id==="mode-book"?"book":"block";renderBookingScreen();return}
+if(b.dataset.pkgPick){bookingDraft.pkgId=Number(b.dataset.pkgPick);refreshBookingTotals(true);return}
 if(b.id==="booking-barber-btn"){readBookingInputs();pickBarberGlass();return}
 if(b.id==="open-client-picker"){readBookingInputs();if(bookingDraft&&bookingDraft.selectedPhone){clientOptionsSheet(bookingDraft.selectedPhone);return}renderClientPicker();return}
 if(b.id==="booking-add-client"){readBookingInputs();bookingDraft.addingClient=true;bookingDraft.selectedPhone=null;renderBookingScreen();return}
-if(b.dataset.pickClient){readBookingInputs();const __prevSel=bookingDraft.selectedPhone;bookingDraft.selectedPhone=b.dataset.pickClient;if(__prevSel&&String(__prevSel)!==String(b.dataset.pickClient)){bookingDraft.services=[];bookingDraft.endManuallyChanged=false;if(Number.isFinite(Number(bookingDraft.start)))bookingDraft.end=Number(bookingDraft.start)+30}bookingDraft.newName="";bookingDraft.newPhone="";bookingDraft.addingClient=false;bookingDraft.query="";renderBookingScreen();offerPrevServices(b.dataset.pickClient);return}
+if(b.dataset.pickClient){readBookingInputs();const __prevSel=bookingDraft.selectedPhone;bookingDraft.selectedPhone=b.dataset.pickClient;if(__prevSel&&String(__prevSel)!==String(b.dataset.pickClient)){bookingDraft.services=[];bookingDraft.endManuallyChanged=false;if(Number.isFinite(Number(bookingDraft.start)))bookingDraft.end=Number(bookingDraft.start)+30}bookingDraft.newName="";bookingDraft.newPhone="";bookingDraft.addingClient=false;bookingDraft.query="";bookingDraft.pkgs=[];bookingDraft.pkgId=null;bookingDraft.usePkg=true;renderBookingScreen();loadBookingPkgs();offerPrevServices(b.dataset.pickClient);return}
 if(b.id==="client-picker-back"){renderBookingScreen();return}
 if(b.id==="client-picker-add-new"){readBookingInputs();renderBookingClientRegistration();return}
 if(b.id==="client-picker-contacts"){await pickPhoneContact();return}
@@ -1707,6 +1708,7 @@ app.addEventListener("change",e=>{
   }
   readBookingInputs();refreshBookingTotals(true);
  }
+ if(e.target.id==="pkg-use"&&bookingDraft){bookingDraft.usePkg=e.target.checked;refreshBookingTotals(true)}
  if(e.target.id==="adj-combo-on"&&bookingDraft){bookingDraft.comboOff=!e.target.checked;refreshBookingTotals()}
  if((e.target.id==="booking-date"||e.target.id==="booking-end-date")&&bookingDraft){readBookingInputs();if(e.target.id==="booking-date"){const dd=bookingDraft.date;bookingDraft.endDate=new Date(dd.getFullYear(),dd.getMonth(),dd.getDate()+Math.floor((Number(bookingDraft.end)||0)/1440))}renderBookingScreen()}
 });
@@ -1793,14 +1795,91 @@ async function renderBookingClientRegistration(){
     await api("clients?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify({phone,name:state.name.trim(),nickname:state.nickname,birth_date:state.birth_date||null})});
     const profile={phone,street:state.street,number:state.number,complement:state.complement,neighborhood:state.neighborhood,city:state.city,state:state.state,postal_code:state.postal_code,notes:state.notes,updated_at:new Date().toISOString()};
     await api("client_profiles?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify(profile)});
-    const fresh=await api("clients?select=phone,name&order=name");d.clients=fresh;d.selectedPhone=phone;d.newName="";d.newPhone="";d.addingClient=false;d.query="";renderBookingScreen();
+    const fresh=await api("clients?select=phone,name&order=name");d.clients=fresh;d.selectedPhone=phone;d.newName="";d.newPhone="";d.addingClient=false;d.query="";d.pkgs=[];d.pkgId=null;renderBookingScreen();loadBookingPkgs();
    }catch(err){const el=$("#reg-error");if(el)el.textContent=err.message}
   });
  };
  draw();
 }
 
-function bookingSubtotal(d){return d.services.reduce((a,x)=>a+Number(x.price||0)*Number(x.qty||1),0)}
+const pkgBlockedG=(p,all)=>!!p.starts_at&&all.some(o=>o.id!==p.id&&o.status==="active"&&o.package_id===p.package_id&&o.purchased_at===p.purchased_at&&(!o.starts_at||o.starts_at<p.starts_at)&&(!o.expires_at||new Date(o.expires_at)>new Date()));
+function pkgCover(d){const out={};if(!d||d.usePkg===false||!d.pkgId)return out;const p=(d.pkgs||[]).find(x=>x.id===d.pkgId);if(!p)return out;(d.services||[]).forEach(s=>{const it=p.items.find(i=>Number(i.service_id)===Number(s.id));if(it){const c=Math.min(Number(s.qty||1),it.rem);if(c>0)out[s.id]=c}});return out}
+function bookingSubtotal(d){const cv=pkgCover(d);return d.services.reduce((a,x)=>a+Number(x.price||0)*(Number(x.qty||1)-(cv[x.id]||0)),0)}
+const pkgDateBR=t=>String(t||"").slice(0,10).split("-").reverse().join("/");
+function pkgCardInner(d){
+ if(!d.pkgs||!d.pkgs.length)return "";
+ const on=d.usePkg!==false,cv=pkgCover(d),covered=Object.keys(cv).length>0;
+ const rem=p=>p.items.reduce((a,i)=>a+i.rem,0);
+ const info=p=>`<span>restam ${rem(p)}${p.expires_at?" · até "+pkgDateBR(p.expires_at):""}</span>`;
+ return `<div class="pkc-h">Pacote do cliente</div>`+
+  (d.pkgs.length>1?`<div class="pkc-list">${d.pkgs.map(p=>`<button type="button" data-bb="x" class="pkc-opt${p.id===d.pkgId?" on":""}" data-pkg-pick="${p.id}"><b>${esc(p.name)}</b>${info(p)}</button>`).join("")}</div>`:`<div class="pkc-one"><b>${esc(d.pkgs[0].name)}</b>${info(d.pkgs[0])}</div>`)+
+  `<label class="pay-optrow pkc-sw"><span>Usar pacote neste agendamento<small>${on?(covered?"Os serviços do pacote ficam sem cobrança":"Nenhum serviço marcado está no pacote"):"Os serviços serão cobrados normalmente"}</small></span><input type="checkbox" id="pkg-use" ${on?"checked":""}></label>`;
+}
+function refreshPkgUI(){
+ const d=bookingDraft;if(!d)return;
+ const box=$("#pkg-card");if(box){box.innerHTML=pkgCardInner(d);box.classList.toggle("hidden",!(d.pkgs&&d.pkgs.length))}
+ const cv=pkgCover(d),p=d.usePkg!==false&&(d.pkgs||[]).find(x=>x.id===d.pkgId);
+ document.querySelectorAll(".service-choice[data-sid]").forEach(row=>{
+  const el=row.querySelector(".svc-price");if(!el)return;
+  const sid=Number(row.dataset.sid),sel=d.services.find(x=>Number(x.id)===sid),it=p&&p.items.find(i=>Number(i.service_id)===sid);
+  const base=sel?Number(sel.price||0):Number((d.catalog.find(c=>Number(c.id)===sid)||{}).price||0);
+  let t=fm(base);
+  if(it&&it.rem>0){const q=sel?Number(sel.qty||1):1;if(!sel||(cv[sid]||0)>=q)t="Pacote";else if(cv[sid])t="Pacote ×"+cv[sid]+" + "+fm(base*(q-cv[sid]))}
+  el.textContent=t;el.classList.toggle("pkg",t.indexOf("Pacote")===0);
+ });
+}
+async function loadBookingPkgs(){
+ const d=bookingDraft;if(!d)return;const phone=d.selectedPhone;
+ if(!phone||d.mode!=="book"){d.pkgs=[];d.pkgId=null;refreshPkgUI();refreshBookingTotals(true);return}
+ const enc=encodeURIComponent(phone);
+ try{
+  const cps=await api(`client_packages?select=*&client_phone=eq.${enc}&status=eq.active`);
+  let its=[];if(cps.length)its=await api(`client_package_services?select=*&client_package_id=in.(${cps.map(p=>p.id).join(",")})`);
+  const bks=await api(`bookings?select=id,services,status&client_phone=eq.${enc}&status=in.(pending,confirmed,completed)`);
+  const pb=bks.filter(b=>String(b.id)!==String(d.editingId)&&(b.services||[]).some(x=>x&&x.pkg));
+  let reds=[];if(pb.length)reds=await api(`client_package_redemptions?select=booking_id&booking_id=in.(${pb.map(b=>b.id).join(",")})`);
+  const done=new Set(reds.map(r=>String(r.booking_id))),reserved={};
+  pb.filter(b=>!done.has(String(b.id))).forEach(b=>b.services.forEach(x=>{if(x&&x.pkg){const k=x.pkg+"|"+x.id;reserved[k]=(reserved[k]||0)+Number(x.pkgQty||0)}}));
+  d.pkgs=cps.filter(p=>(!p.expires_at||new Date(p.expires_at)>new Date())&&!pkgBlockedG(p,cps)).map(p=>({id:p.id,name:p.package_name,expires_at:p.expires_at,items:its.filter(i=>i.client_package_id===p.id).map(i=>({service_id:i.service_id,name:i.service_name,rem:Math.max(0,Number(i.quantity_remaining)-(reserved[p.id+"|"+i.service_id]||0))}))})).filter(p=>p.items.some(i=>i.rem>0));
+  const tot=p=>p.items.reduce((a,i)=>a+i.rem,0);
+  d.pkgs.sort((a,b)=>tot(b)-tot(a)||String(a.expires_at||"9").localeCompare(String(b.expires_at||"9")));
+ }catch(e){d.pkgs=[]}
+ if(!d.pkgs.some(p=>p.id===d.pkgId))d.pkgId=d.pkgs[0]?.id||null;
+ refreshPkgUI();refreshBookingTotals(true);
+}
+async function redeemBookingPackage(b){
+ const sv=(Array.isArray(b.services)?b.services:[]).filter(x=>x&&x.pkg&&Number(x.pkgQty)>0);if(!sv.length)return;
+ const touched=new Set();
+ for(const x of sv){
+  const its=await api(`client_package_services?select=*&client_package_id=eq.${x.pkg}`);
+  const it=its.find(i=>Number(i.service_id)===Number(x.id))||its.find(i=>String(i.service_name).toLowerCase()===String(x.name).toLowerCase());
+  if(!it)continue;
+  const q=Math.min(Number(x.pkgQty),Number(it.quantity_remaining));if(q<=0)continue;
+  await api(`client_package_services?id=eq.${it.id}`,{method:"PATCH",body:JSON.stringify({quantity_remaining:Number(it.quantity_remaining)-q})});
+  await api("client_package_redemptions",{method:"POST",body:JSON.stringify({client_package_service_id:it.id,booking_id:b.id,quantity:q,redeemed_by:uid()})});
+  touched.add(x.pkg);
+ }
+ for(const cpid of touched){
+  const cp=(await api(`client_packages?select=*&id=eq.${cpid}`))[0];if(!cp)continue;
+  const its=await api(`client_package_services?select=quantity_remaining&client_package_id=eq.${cpid}`);
+  const patch={};
+  if(cp.validity_start_mode==="first_use"&&!cp.first_used_at){
+   const first=new Date();patch.first_used_at=first.toISOString();
+   const pk=(await api(`service_packages?select=*&id=eq.${cp.package_id}`).catch(()=>[]))[0];
+   if(pk&&pk.has_expiration&&pk.expiration_value){const dd=new Date(first);dd.setDate(dd.getDate()+Number(pk.expiration_value)*(pk.expiration_unit==="weeks"?7:1));patch.expires_at=dd.toISOString()}
+  }
+  if(its.every(i=>Number(i.quantity_remaining)<=0))patch.status="used";
+  if(Object.keys(patch).length)await api(`client_packages?id=eq.${cpid}`,{method:"PATCH",body:JSON.stringify(patch)});
+ }
+}
+async function unredeemBooking(id){
+ const rd=await api(`client_package_redemptions?select=*&booking_id=eq.${encodeURIComponent(id)}`).catch(()=>[]);
+ for(const r of rd){
+  const it=(await api(`client_package_services?select=*&id=eq.${r.client_package_service_id}`).catch(()=>[]))[0];
+  if(it){await api(`client_package_services?id=eq.${it.id}`,{method:"PATCH",body:JSON.stringify({quantity_remaining:Number(it.quantity_remaining)+Number(r.quantity)})});await api(`client_packages?id=eq.${it.client_package_id}&status=eq.used`,{method:"PATCH",body:JSON.stringify({status:"active"})}).catch(()=>null)}
+ }
+ if(rd.length)await api(`client_package_redemptions?booking_id=eq.${encodeURIComponent(id)}`,{method:"DELETE"});
+}
 function comboAmount(c,sub){const v=Number(c.discount||0);return Math.max(0,Math.min(sub,c.discount_type==="percent"?Math.round(sub*Math.min(v,100))/100:v))}
 function bookingCombo(d){
  const ids=d.services.map(x=>Number(x.id));let best=null;const sub=bookingSubtotal(d);
@@ -1825,11 +1904,11 @@ function adjustmentsHtml(d){
  <div class="row between adj-total"><b>Valor total</b><b id="adj-total">${fm(t.total)}</b></div>`;
 }
 function refreshBookingTotals(rebuildCombo=false){
- if(!bookingDraft)return;const d=bookingDraft;
+ if(!bookingDraft)return;const d=bookingDraft;try{refreshPkgUI()}catch(e){}
  if(rebuildCombo){const box=$("#adj-card");if(box){box.innerHTML=adjustmentsHtml(d);return}}
  const t=bookingTotals(d);const a=$("#adj-sub"),b=$("#adj-total");if(a)a.textContent=fm(t.sub);if(b)b.textContent=fm(t.total);
 }
-function renderBookingScreen(){const __r=__renderBookingScreen();try{prettyDateTime()}catch(e){}try{if(bookingDraft?.selectedPhone)fillClientBadge(bookingDraft.selectedPhone,"#booking-client-badge",null,(bookingDraft.clients||[]).find(c=>c.phone===bookingDraft.selectedPhone)?.name)}catch(e){}return __r}
+function renderBookingScreen(){const __r=__renderBookingScreen();try{prettyDateTime()}catch(e){}try{refreshPkgUI()}catch(e){}try{if(bookingDraft?.selectedPhone)fillClientBadge(bookingDraft.selectedPhone,"#booking-client-badge",null,(bookingDraft.clients||[]).find(c=>c.phone===bookingDraft.selectedPhone)?.name)}catch(e){}return __r}
 function __renderBookingScreen(){
  const d=bookingDraft;
  const selected=d.services;
@@ -1852,8 +1931,9 @@ function __renderBookingScreen(){
  <div id="booking-client-badge" class="cb-row booking-badge-out"></div>
  <div class="booking-range-label">Início</div><div class="booking-date-time-line"><div class="field"><input id="booking-date" type="date" aria-label="Data de início" title="${["dom","seg","ter","qua","qui","sex","sáb"][d.date.getDay()]}, ${d.date.toLocaleDateString("pt-BR")}" value="${key(d.date)}"></div><div class="field"><input id="booking-start" type="time" aria-label="Horário de início" value="${startMin==null?'':hm(startMin)}" step="1800"></div></div>
  <div class="section-title">Serviços</div>
- <div>${(d.catalog||[]).map(x=>{const chosen=selected.find(z=>String(z.id)===String(x.id));const price=chosen?Number(chosen.price):Number(x.price||0);return `<label class="service-choice${chosen?' on':''}"><input type="checkbox" data-service="${x.id}" ${chosen?'checked':''}><span class="grow"><b>${esc(x.name)}</b><span class="muted">${(()=>{const dm=Number(x.duration_min||0);return dm>0?dm+" min":(x.is_cut||serviceAddsDuration(x)?"30 min":"")})()}</span></span><span class="svc-price">${fm(price)}</span></label>`}).join('')}</div>
+ <div>${(d.catalog||[]).map(x=>{const chosen=selected.find(z=>String(z.id)===String(x.id));const price=chosen?Number(chosen.price):Number(x.price||0);return `<label class="service-choice${chosen?' on':''}" data-sid="${x.id}"><input type="checkbox" data-service="${x.id}" ${chosen?'checked':''}><span class="grow"><b>${esc(x.name)}</b><span class="muted">${(()=>{const dm=Number(x.duration_min||0);return dm>0?dm+" min":(x.is_cut||serviceAddsDuration(x)?"30 min":"")})()}</span></span><span class="svc-price">${fm(price)}</span></label>`}).join('')}</div>
  <div class="booking-range-label">Fim</div><div class="field-line">${dateInput('booking-end-date','',d.endDate||new Date(d.date.getFullYear(),d.date.getMonth(),d.date.getDate()+Math.floor(endMin/1440)))}${timeInput('booking-end','',endMin==null?null:endMin%1440)}</div>
+ <div class="card pkg-card2 hidden" id="pkg-card"></div>
  <div class="section-title">Desconto ou acréscimo</div>
  <div class="card adj-card" id="adj-card">${adjustmentsHtml(d)}</div>
  <div class="section-title">Observações</div>
@@ -1886,8 +1966,8 @@ async function openBooking(start,mode='book',existing=null){
   if(!$(".booking-screen")){swipeBackSnapshot=app.innerHTML;swipeBackScrollY=window.scrollY}
   const [cs,ss,bs,cbs,cbi]=await Promise.all([api("clients?select=phone,name&order=name"),api("services?select=id,name,price,is_cut,duration_min,active&active=eq.true&order=sort"),api("rpc/agenda_barbers",{method:"POST",body:"{}"}),api("service_combos?select=*&active=eq.true").catch(()=>[]),api("service_combo_items?select=*").catch(()=>[])]);const combosList=cbs.map(c=>({...c,items:cbi.filter(i=>String(i.combo_id)===String(c.id))}));
   const ddate=existing?.date?new Date(existing.date+"T12:00:00"):new Date(day.getFullYear(),day.getMonth(),day.getDate());const savedServices=existing?.services||[];const __nb=window.__newBarber;window.__newBarber=null;const __ns=(()=>{if(existing||start!=null)return null;const stp=Math.max(5,Number(slotStep)||30),n=new Date(),isToday=ddate.toDateString()===n.toDateString();let m=isToday?Math.ceil((n.getHours()*60+n.getMinutes())/stp)*stp:((dayRanges&&dayRanges[0]&&Number(dayRanges[0].start_min))||540);return Math.min(m,1440-stp)})();if(__ns!=null)start=__ns;
-  bookingDraft={barberId:(existing?.barber_id!=null?Number(existing.barber_id):(__nb!=null?Number(__nb):(agendaBarber&&agendaBarber!=="all"?Number(agendaBarber):(bs[0]?.id||null)))),blockAll:existing?(existing.blockId?existing.barber_id==null:false):agendaBarber==="all",mode,start:existing?.start_min!=null?Number(existing.start_min):(start==null?null:Number(start)),date:ddate,clients:cs,catalog:ss,barbers:bs,services:savedServices.map(x=>({...x,id:x.id??ss.find(y=>y.name===x.name)?.id})),query:'',newName:'',newPhone:'',selectedPhone:existing?.client_phone||null,addingClient:false,end:existing?.end_min!=null?Number(existing.end_min):(start==null?null:Number(start)+30),endDate:ddate,editingId:existing?.id||null,editingBlockId:existing?.blockId||null,reason:existing?.reason||'',notes:existing?.notes||'',existingStatus:existing?.status||"confirmed",endManuallyChanged:false,combos:combosList,discount:Number(existing?.discount||0),surcharge:Number(existing?.surcharge||0),comboOff:!!existing&&Number(existing?.combo_discount||0)===0&&savedServices.length>0&&!!(()=>{try{return bookingCombo({services:savedServices.map(x=>({id:x.id??ss.find(y=>y.name===x.name)?.id})),combos:combosList})}catch(e){return null}})()};
-  renderBookingScreen();
+  bookingDraft={pkgs:[],pkgId:(existing?.services||[]).find(x=>x&&x.pkg)?.pkg||null,usePkg:existing?!!(existing.services||[]).some(x=>x&&x.pkg):true,barberId:(existing?.barber_id!=null?Number(existing.barber_id):(__nb!=null?Number(__nb):(agendaBarber&&agendaBarber!=="all"?Number(agendaBarber):(bs[0]?.id||null)))),blockAll:existing?(existing.blockId?existing.barber_id==null:false):agendaBarber==="all",mode,start:existing?.start_min!=null?Number(existing.start_min):(start==null?null:Number(start)),date:ddate,clients:cs,catalog:ss,barbers:bs,services:savedServices.map(x=>({...x,id:x.id??ss.find(y=>y.name===x.name)?.id})),query:'',newName:'',newPhone:'',selectedPhone:existing?.client_phone||null,addingClient:false,end:existing?.end_min!=null?Number(existing.end_min):(start==null?null:Number(start)+30),endDate:ddate,editingId:existing?.id||null,editingBlockId:existing?.blockId||null,reason:existing?.reason||'',notes:existing?.notes||'',existingStatus:existing?.status||"confirmed",endManuallyChanged:false,combos:combosList,discount:Number(existing?.discount||0),surcharge:Number(existing?.surcharge||0),comboOff:!!existing&&Number(existing?.combo_discount||0)===0&&savedServices.length>0&&!!(()=>{try{return bookingCombo({services:savedServices.map(x=>({id:x.id??ss.find(y=>y.name===x.name)?.id})),combos:combosList})}catch(e){return null}})()};
+  renderBookingScreen();loadBookingPkgs();
  }catch(e){alert("Não foi possível abrir o formulário: "+e.message)}
 }
 function readBookingInputs(){
@@ -1969,7 +2049,7 @@ async function saveBookingForm(){
   }
   const barber=d.barbers.find(x=>Number(x.id)===Number(d.barberId))||d.barbers[0];if(!barber)throw Error("Cadastre um profissional ativo.");
   const tt=bookingTotals(d);const total=tt.total;
-  const payload={discount:tt.disc,surcharge:tt.sur,combo_discount:tt.comboVal,barber_id:barber.id,date:key(d.date),start_min:d.start,end_min:end,client_name:client.name,client_phone:client.phone,services:d.services.map(x=>({id:x.id,name:x.name,qty:Number(x.qty||1),price:Number(x.price||0)})),total,notes:(d.notes||"").trim()||null,status:d.existingStatus||"confirmed"};if(d.editingId){await api(`bookings?id=eq.${encodeURIComponent(d.editingId)}`,{method:"PATCH",body:JSON.stringify(payload)});await syncClosureAfterEdit(d.editingId,payload)}else await api("bookings",{method:"POST",body:JSON.stringify(payload)});
+  const payload={discount:tt.disc,surcharge:tt.sur,combo_discount:tt.comboVal,barber_id:barber.id,date:key(d.date),start_min:d.start,end_min:end,client_name:client.name,client_phone:client.phone,services:(()=>{const cv=pkgCover(d);return d.services.map(x=>{const o={id:x.id,name:x.name,qty:Number(x.qty||1),price:Number(x.price||0)};if(cv[x.id]){o.pkg=d.pkgId;o.pkgQty=cv[x.id]}return o})})(),total,notes:(d.notes||"").trim()||null,status:d.existingStatus||"confirmed"};if(d.editingId){await api(`bookings?id=eq.${encodeURIComponent(d.editingId)}`,{method:"PATCH",body:JSON.stringify(payload)});await syncClosureAfterEdit(d.editingId,payload)}else await api("bookings",{method:"POST",body:JSON.stringify(payload)});
   bookingDraft=null;day=d.date;await loadAgenda();
   }catch(e){let message=e.message||"Não foi possível salvar o agendamento.";if(message.includes("23P01")||message.includes("bookings_barber_id_date_int4range_excl")||message.includes("exclusion constraint"))message="O banco estava bloqueando horários sobrepostos. A restrição foi removida; atualize a página e tente novamente. Se persistir, confira se a versão publicada usa o projeto Supabase correto.";if(err){err.textContent=message;err.classList.remove('hidden')}else alert(message)}
 }
@@ -2050,6 +2130,9 @@ async function openPaymentScreen(b,opts={}){
   let credits=[];try{if(b.client_phone)credits=await api(`client_credits?select=*&client_phone=eq.${encodeURIComponent(b.client_phone)}&status=eq.available&remaining_amount=gt.0&order=created_at`)}catch(e){}
   let creditAvail=Math.round(credits.reduce((a,c)=>a+Number(c.remaining_amount||0),0)*100)/100;
   let others=[];try{if(b.client_phone){const cs=await clientStats(b.client_phone);others=cs.owing.filter(o=>String(o.b.id)!==String(b.id))}}catch(e){}
+  const pkgSvcs=(Array.isArray(b.services)?b.services:[]).filter(x=>x&&x.pkg&&Number(x.pkgQty)>0);
+  let pkgRed=[];try{if(pkgSvcs.length)pkgRed=await api(`client_package_redemptions?select=id&booking_id=eq.${encodeURIComponent(b.id)}`)}catch(e){}
+  let pkgPending=pkgSvcs.length>0&&!pkgRed.length;
   const incl=new Set();
   const mkMethods=()=>[...payList(),["credit","Crédito do cliente","🎁"]];
   let methods=mkMethods();let editing=false;
@@ -2079,10 +2162,10 @@ async function openPaymentScreen(b,opts={}){
   const statusInfo=()=>{
     const rem=remaining(),diff=Math.round((rem-paid())*100)/100,pt=pTotal();
     const creditUsed=parts.filter(p=>p.method==="credit").reduce((a,p)=>a+Number(p.amount||0),0);
-    const bad=diff<0||(paid()<=0&&pt<=0)||creditUsed>creditAvail+0.001||parts.some(p=>!(Number(p.amount)>0));
+    const bad=diff<0||(paid()<=0&&pt<=0&&!(pkgPending&&rem<=0))||creditUsed>creditAvail+0.001||parts.some(p=>!(Number(p.amount)>0));
     const msg=!parts.length?"":creditUsed>creditAvail+0.001?`Crédito disponível: ${fm(creditAvail)}`:diff===0?"Valor conferido ✓":diff>0?`Valor pendente: ${fm(diff)} — ficará a receber`:`Valor maior que o total (${fm(-diff)} a mais)`;
     const cls=diff===0&&parts.length?"ok":diff<0||creditUsed>creditAvail+0.001?"":"warn";
-    const label=editing?(diff>0&&!bad?"Salvar alterações (valor pendente)":"Salvar alterações"):paid()<=0&&pt>0?"Salvar produtos (valor pendente)":diff>0&&!bad?"Confirmar pagamento parcial":"Confirmar pagamento";
+    const label=pkgPending&&rem<=0&&pt<=0&&!parts.length?"Confirmar uso do pacote":editing?(diff>0&&!bad?"Salvar alterações (valor pendente)":"Salvar alterações"):paid()<=0&&pt>0?"Salvar produtos (valor pendente)":diff>0&&!bad?"Confirmar pagamento parcial":"Confirmar pagamento";
     return {bad,msg,cls,label};
   };
   const refresh=()=>{const i=statusInfo();const d=el.querySelector("#pay-diff"),ok=el.querySelector("#pay-ok");if(d){d.textContent=i.msg;d.className="pay-diff "+i.cls}if(ok){ok.disabled=i.bad;ok.textContent=i.label}};
@@ -2093,21 +2176,22 @@ async function openPaymentScreen(b,opts={}){
     el.innerHTML=`<header class="pay-head"><button type="button" class="pay-back" id="pay-back" aria-label="Voltar">‹</button><b>Pagamento</b></header>
     <div class="pay-body">${editing?`<div class="pay-edit-banner">✎ Alterando pagamento — veja como foi pago, ajuste e confirme.</div>`:""}<div class="pay-card"><div class="pay-client">${esc(b.client_name||"Cliente")}</div><div class="pay-sub">${esc(formatBookingDateBR(b.date))} · ${hm(b.start_min)}</div>
     <div class="pay-total pay-mini"><span>Serviços</span><b>${fm(total)}</b></div>
+    ${pkgSvcs.length?`<div class="pay-total pay-mini"><span>Pacote</span><b>${esc(pkgSvcs.map(x=>x.name+(Number(x.pkgQty)>1?" ×"+x.pkgQty:"")).join(", "))}${pkgRed.length?" ✓":""}</b></div>`:""}
     ${(ex&&Number(ex.product_total)>0)||pt>0?`<div class="pay-total pay-mini"><span>Produtos</span><b>${fm(Number(ex?.product_total||0)+pt)}</b></div>`:""}
     ${already>0?`<div class="pay-total pay-mini"><span>Já recebido</span><b style="color:#1f8a4c">${fm(already)}</b></div>`:""}
     <div class="pay-total"><span>${settled?"Situação":already>0?"Falta receber":"Total a receber"}</span><b>${settled?"Pago ✓":fm(rem)}</b></div></div>
-    ${already>0?`<div class="pay-actions"><button type="button" class="pay-sm" id="pay-alter">✎ Alterar valor pago</button><button type="button" class="pay-sm danger" id="pay-cancel">Cancelar pagamento</button></div>`:""}
+    ${already>0?`<div class="pay-actions"><button type="button" class="pay-sm" id="pay-alter">✎ Alterar valor pago</button><button type="button" class="pay-sm danger" id="pay-cancel">Cancelar pagamento</button></div>`:(pkgRed.length&&ex?`<div class="pay-actions"><button type="button" class="pay-sm danger" id="pay-cancel">Cancelar baixa do pacote</button></div>`:"")}
     ${others.length?`<div class="pay-incl"><div class="pay-incl-h">Incluir agendamentos anteriores <small>este cliente tem ${fm(others.reduce((a,o)=>a+o.v,0))} pendente</small></div>${others.map(o=>`<label class="pay-inclrow"><input type="checkbox" data-incl="${o.b.id}" ${incl.has(String(o.b.id))?"checked":""}><span><b>${esc(o.b.date.split("-").reverse().join("/"))} · ${esc((o.b.services||[]).map(x=>x.name).join(", ")||"Agendamento")}</b><small>${o.v<Number(o.b.total||0)-0.001?"pagamento parcial":"atendido, não pago"}</small></span><b>${fm(o.v)}</b></label>`).join("")}</div>`:""}
     <h3 class="pay-h">Produtos</h3>
     ${prods.length?`<div class="pay-prods">${prods.map((p,i)=>`<div class="pay-prod"><div class="pp-n"><b>${esc(p.name)}</b><span>${fm(p.unit_price)} cada</span></div><div class="pp-q"><button type="button" data-pq="-1" data-i="${i}">−</button><b>${p.quantity}</b><button type="button" data-pq="1" data-i="${i}">+</button></div><div class="pp-t">${fm(p.quantity*p.unit_price)}</div><button type="button" class="pay-x" data-prd="${i}" aria-label="Remover">✕</button></div>`).join("")}</div>`:""}
     <button type="button" class="pay-addprod" id="pay-addprod">＋ Adicionar produto</button>
-    ${settled&&pt<=0?`<div class="pay-diff ok" style="margin-top:6px">Atendimento totalmente pago ✓</div>`:`<h3 class="pay-h">Como foi pago?</h3>
+    ${settled&&pt<=0?(pkgPending?`<div class="pay-diff ok" style="margin-top:6px">Serviços cobertos pelo pacote ✓ — é só confirmar para dar baixa.</div>${needsDoneToggle?`<div class="pay-opts"><label class="pay-optrow"><span>Serviço já realizado?<small>${serviceDone?"O agendamento ficará concluído":"Fica marcado como pago, falta atender"}</small></span><input type="checkbox" id="pay-done" ${serviceDone?"checked":""}></label></div>`:""}`:`<div class="pay-diff ok" style="margin-top:6px">Atendimento totalmente pago ✓</div>`):`<h3 class="pay-h">Como foi pago?</h3>
     <div class="pay-grid">${methods.map(m=>`<button type="button" class="pay-tile ${has(m[0])?"on":""} ${m[0]==="credit"?"pay-tile-credit":""}" data-pick="${m[0]}" ${m[0]==="credit"&&creditAvail<=0&&!has("credit")?"disabled":""}><span>${m[2]}</span>${m[1]}${m[0]==="credit"?`<small>Saldo ${fm(creditAvail)}</small>`:""}</button>`).join("")}</div>
     ${parts.length?`<div class="pay-amts">${parts.map((p,i)=>{const mm=methods.find(x=>x[0]===p.method)||[p.method,payName(p.method),"💰"];return `<label class="pay-amt"><span>${mm[2]} ${mm[1]}</span><div class="pay-money"><i>R$</i><input data-pa="${i}" type="text" inputmode="decimal" autocomplete="off" value="${String(p.amount).replace(".",",")}"></div></label>`}).join("")}</div>`:`<p class="pay-hint">Toque na forma de pagamento. Para dividir, toque em mais de uma e informe o valor de cada.</p>`}
     <div id="pay-diff" class="pay-diff ${info.cls}">${info.msg}</div>
     <div class="pay-opts"><label class="pay-optrow"><span>Data do pagamento</span><input type="date" id="pay-date" value="${payDate}"></label>
     ${needsDoneToggle?`<label class="pay-optrow"><span>Serviço já realizado?<small>${serviceDone?"O agendamento ficará concluído":"Fica marcado como pago, falta atender"}</small></span><input type="checkbox" id="pay-done" ${serviceDone?"checked":""}></label>`:""}</div>`}
-    </div>${settled&&pt<=0?"":`<footer class="pay-foot"><button type="button" class="btn primary pay-confirm" id="pay-ok" ${info.bad?"disabled":""}>${info.label}</button></footer>`}
+    </div>${settled&&pt<=0&&!pkgPending?"":`<footer class="pay-foot"><button type="button" class="btn primary pay-confirm" id="pay-ok" ${info.bad?"disabled":""}>${info.label}</button></footer>`}
     ${pickerOpen?`<div class="pay-picker" id="pay-picker"><div class="pay-picker-card"><div class="pay-picker-h"><b>Escolha o produto</b><button type="button" id="pp-close" class="pay-x">✕</button></div>${catalog.length?catalog.map(p=>`<button type="button" class="pp-item" data-pp="${p.id}" ${Number(p.stock_quantity)<=0?"disabled":""}><span><b>${esc(p.name)}</b><small>Estoque: ${p.stock_quantity}</small></span><b>${fm(p.sale_price)}</b></button>`).join(""):`<p class="muted" style="padding:12px">Nenhum produto ativo cadastrado. Cadastre em Configurações › Produtos.</p>`}</div></div>`:""}`;
     {const nb=el.querySelector(".pay-body");if(nb)nb.scrollTop=__top}
     const q=x=>el.querySelector(x),qa=x=>el.querySelectorAll(x);
@@ -2133,7 +2217,7 @@ async function openPaymentScreen(b,opts={}){
     try{
       for(const p of prods){const c=catalog.find(z=>z.id===p.product_id);if(!c||p.quantity>Number(c.stock_quantity))throw Error("Estoque insuficiente para "+p.name+".")}
       if(parts.some(p=>p.method==="credit")&&!b.client_phone)throw Error("O agendamento precisa ter telefone para usar crédito.");
-      if(editing){await undoPayment(b.id,{phone:b.client_phone,name:b.client_name});catalog=await api("finance_products?select=*&active=eq.true&order=name");credits=b.client_phone?await api(`client_credits?select=*&client_phone=eq.${encodeURIComponent(b.client_phone)}&status=eq.available&remaining_amount=gt.0&order=created_at`):[]}
+      if(editing){await undoPayment(b.id,{editing:true,phone:b.client_phone,name:b.client_name});catalog=await api("finance_products?select=*&active=eq.true&order=name");credits=b.client_phone?await api(`client_credits?select=*&client_phone=eq.${encodeURIComponent(b.client_phone)}&status=eq.available&remaining_amount=gt.0&order=created_at`):[]}
       const ds=payDate||todayLocal();
       const p0=paid(),pt=pTotal(),curDue=curRemaining();
       const inclList=others.filter(o=>incl.has(String(o.b.id)));
@@ -2178,6 +2262,7 @@ async function openPaymentScreen(b,opts={}){
       // atendimento atual
       const curAlloc=take(Math.min(p0,curDue));
       const newBal=await settle(b,ex,curDue,curAlloc,prods);
+      if(pkgPending){await redeemBookingPackage(b);pkgPending=false}
       for(const p of prods){const c=catalog.find(z=>z.id===p.product_id);await api(`finance_products?id=eq.${p.product_id}`,{method:"PATCH",body:JSON.stringify({stock_quantity:Number(c.stock_quantity)-p.quantity,updated_at:new Date().toISOString()})});await api("finance_stock_movements",{method:"POST",body:JSON.stringify({product_id:p.product_id,movement_type:"sale",quantity:p.quantity,unit_cost:p.unit_cost||0,description:`Venda no atendimento ${b.client_name}`,movement_date:ds,created_by:uid()})})}
       let st;
       if(!needsDoneToggle)st=newBal>0?"completed":"finalized";
@@ -2198,6 +2283,7 @@ async function openPaymentScreen(b,opts={}){
   draw();
 }
 async function undoPayment(id,o={}){
+  if(!o.editing)await unredeemBooking(id).catch(()=>null);
   const cl=await api(`finance_booking_closures?select=*&booking_id=eq.${encodeURIComponent(id)}`);
   const cats=encodeURIComponent('("Atendimento","Retirada do proprietário","Taxas de cartão","Contas a receber","Caixinha")');
   if(o.keepPaid)await api(`finance_movements?booking_id=eq.${encodeURIComponent(id)}&status=eq.pending&category=eq.Contas a receber`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});
@@ -3065,6 +3151,13 @@ html{touch-action:manipulation}
 .pk-row.hidden{display:none}
 .pk-total{border-top:1px solid #D5E6F7;margin-top:4px;padding-top:10px;font-weight:800}
 .pk-seg{flex:0 0 auto;display:flex;border:1px solid #B5D2EE;border-radius:999px;overflow:hidden;margin-left:auto}.pk-seg button{border:0!important;background:#fff!important;padding:0 14px!important;min-width:46px;font-weight:800;font-size:15px!important;color:#2378d4!important;min-height:0;height:34px!important;border-radius:0!important;box-shadow:none!important}.pk-seg button.on{color:#fff!important;background:linear-gradient(135deg,rgba(90,162,230,.95),rgba(35,120,212,.9))!important}
+.service-choice .svc-price.pkg,.svc-price.pkg{background:#DDF3E6!important;color:#1B7A45!important;font-weight:800}
+.pkg-card2{padding:12px 14px!important}.pkg-card2.hidden{display:none}
+.pkc-h{font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#5b7a99;margin:0 0 6px}
+.pkc-one,.pkc-opt{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;padding:8px 12px;border-radius:12px;border:1.5px solid #D5E6F7;background:#F3F9FF;margin-bottom:8px;color:#10304F}
+.pkc-one span,.pkc-opt span{font-size:12.5px;color:#5b7a99;font-weight:500}
+.pkc-opt.on{background:#E6F0FB;border:2px solid #5B9BD5}
+.pkc-sw{margin-top:4px}
 /* g27 */
 .professional-actions .pill{font-weight:700}
 /* g26 */
