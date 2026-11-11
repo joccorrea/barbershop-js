@@ -367,6 +367,14 @@ button.cb-pill{cursor:pointer;font-family:inherit}
 .pd-cats{display:grid;gap:6px;max-height:46vh;overflow:auto;margin-bottom:8px}.pd-cats button{height:42px;border-radius:12px;border:1.5px solid #C4DFF8;background:#fff;color:#10304F;font-size:15px;text-align:left;padding:0 12px}.pd-cats button.on{border-color:#4F94D8;background:#EAF4FF;box-shadow:0 0 0 2px #4F94D8 inset;font-weight:700}
 .pd-newcat{width:100%;height:42px;border-radius:12px;border:1.5px dashed #4F94D8;background:#F3F9FF;color:#1F4B75;font-weight:700;font-size:15px}.pd-addcat{display:flex;gap:6px}.pd-addcat input{flex:1;height:42px;border-radius:12px;border:1.5px solid #C4DFF8;padding:0 12px;font-size:16px;color:#10304F;background:#fff}.pd-addcat button{height:42px;padding:0 14px;border-radius:12px;border:0;background:#1F4B75;color:#fff;font-weight:700}
 .pd-seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}.pd-seg button{height:42px;border-radius:12px;border:1.5px solid #C4DFF8;background:#fff;color:#10304F;font-weight:700;font-size:15px}.pd-seg button.on{border-color:#4F94D8;background:#EAF4FF;box-shadow:0 0 0 2px #4F94D8 inset}
+.ps-sub{display:block;font-size:12px;font-weight:500;color:#4A6B8C}.ps-row{display:grid;grid-template-columns:1fr 108px 10px 108px;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid #DCEAF8}.ps-row input[type=time]{height:38px;padding:0 6px;font-size:15px}.ps-row label{display:flex;gap:8px;align-items:center;font-weight:600}
+.chk-list{display:grid;gap:6px;margin-top:4px}.chk-item{display:flex;gap:10px;align-items:center;background:#fff;border:1.5px solid #C4DFF8;border-radius:12px;padding:9px 12px;font-weight:600}.chk-item input{width:auto}
+.agenda-pros{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}.ag-chip{padding:8px 15px;border-radius:99px;border:1.5px solid #C4DFF8;background:#fff;color:#10304F;font-weight:700;font-size:14px}.ag-chip.on{background:#1F4B75;color:#fff;border-color:#1F4B75}
+.ag-cols{display:grid;gap:4px;align-items:stretch;grid-auto-rows:minmax(38px,auto)}.ag-colh{text-align:center;font-weight:800;font-size:13px;color:#1F4B75;padding:4px 0}.ag-time{font-size:12px;font-weight:700;color:#4A6B8C;padding-top:10px}
+.ag-cell{border:1px dashed #C4DFF8;background:#fff;border-radius:10px;min-height:38px;font-size:11px;color:#7A4500}.ag-cell.off{background:#E6EEF7;border-color:transparent}.ag-cell.blk{background:#FFE9C7;border:1px solid #E3B341;font-weight:700}
+.ag-appt{border-radius:10px;padding:5px 6px;text-align:left;font-size:12px;overflow:hidden;min-height:38px;border-width:2px;border-style:solid;z-index:2}.ag-appt b{display:block;color:#10304F;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ag-appt.status-pending-card{background:#FFF3CF;border-color:#E3B341}.ag-appt.status-confirmed-card{background:#DCEBFA;border-color:#5B9BD5}.ag-appt.status-completed-card{background:#EADCF8;border-color:#9A6BD1}.ag-appt.status-finalized-card{background:#D9F1E2;border-color:#4DAA75}.ag-appt.status-partial-card{background:#FFE4C2;border-color:#E58A1F}.ag-appt.status-prepaid-card{background:#D5F3EF;border-color:#2BA79A}.ag-appt.status-noshow-card{background:#F3DCDC;border-color:#C95B5B}.ag-appt.status-cancelled-card{background:#eee;border-color:#bbb}
+.ag-seg{display:flex;gap:6px}.ag-seg button{flex:1;height:42px;border-radius:12px;border:1.5px solid #C4DFF8;background:#fff;color:#10304F;font-weight:700;font-size:14px}.ag-seg button.on{border-color:#4F94D8;background:#EAF4FF;box-shadow:0 0 0 2px #4F94D8 inset}
 .slot.lunch{cursor:pointer}.slot-h{font-size:15px!important;margin:10px 2px 6px!important}
 .slot-card{padding:10px 12px!important;border-radius:14px!important}
 .slot-compact{display:flex!important;flex-wrap:wrap!important;justify-content:space-between;align-items:center!important;gap:8px!important}
@@ -487,9 +495,61 @@ function loginView(){app.innerHTML=`<div class="card" id="login-card"><div class
 function showError(e){notice=e?.message||"Ocorreu um erro.";renderNotice("error")}
 function getLocalBookingStatuses(){try{return JSON.parse(localStorage.getItem("barberShopJSBookingStatuses")||"{}")}catch(_){return {}}}
 function setLocalBookingStatus(id,status){const all=getLocalBookingStatuses();all[String(id)]=status;localStorage.setItem("barberShopJSBookingStatuses",JSON.stringify(all))}
-async function loadAgenda(){const date=key(day),wd=day.getDay();try{[bookings,hourPeriods,blocks]=await Promise.all([api(`bookings?select=*&date=eq.${date}&status=not.in.(cancelled,cancelado,canceled)&order=start_min`),api("business_hour_periods?select=id,start_date,end_date,active,schedule&active=eq.true"),api(`blocked_slots?select=*&date=eq.${date}&order=start_min`)]);
+async function loadAgenda(){const date=key(day),wd=day.getDay();try{[bookings,hourPeriods,blocks,agBarbers]=await Promise.all([api(`bookings?select=*&date=eq.${date}&status=not.in.(cancelled,cancelado,canceled)&order=start_min`),api("business_hour_periods?select=id,start_date,end_date,active,schedule&active=eq.true"),api(`blocked_slots?select=*&date=eq.${date}&order=start_min`),api("barbers?select=id,name,active,schedule,role&active=eq.true&order=id")]);
  try{pendingBal={};paidAmt={};const pids=(bookings||[]).map(x=>x.id);if(pids.length)(await api(`finance_booking_closures?select=booking_id,amount_paid,balance_due&booking_id=in.(${pids.join(",")})`)).forEach(c=>{const k=String(c.booking_id);paidAmt[k]=Number(c.amount_paid||0);if(Number(c.balance_due)>0)pendingBal[k]=Number(c.balance_due)})}catch(e){}
-const setting=(await api("business_hour_settings?select=slot_step_minutes&id=eq.true"))[0];slotStep=Number(setting?.slot_step_minutes||30);slotStepDraft=slotStep;const selected=hourPeriods.filter(p=>p.start_date<=date&&(!p.end_date||p.end_date>=date)).sort((a,b)=>b.start_date.localeCompare(a.start_date)||b.id-a.id)[0];if(selected){dayRanges=normalizeSchedule(selected.schedule)[wd];hours=dayRanges.length?[{open_min:Math.min(...dayRanges.map(x=>x.start_min)),close_min:Math.max(...dayRanges.map(x=>x.end_min)),lunch_start:null,lunch_end:null}]:[]}else{hours=await api(`business_hours?select=*&weekday=eq.${wd}`);const h=hours?.[0];dayRanges=h&&h.open_min!=null?(h.lunch_start!=null&&h.lunch_end!=null?[{start_min:h.open_min,end_min:h.lunch_start},{start_min:h.lunch_end,end_min:h.close_min}]:[{start_min:h.open_min,end_min:h.close_min}]):[]}const localStatuses=getLocalBookingStatuses();bookings=bookings.map(b=>localStatuses[String(b.id)]?{...b,status:localStatuses[String(b.id)]}:b);renderAgenda()}catch(e){shell("Agenda",`<p class="error">${esc(e.message)}</p><button class="btn" id="retry">Tentar novamente</button>`)}}
+const setting=(await api("business_hour_settings?select=slot_step_minutes&id=eq.true"))[0];slotStep=Number(setting?.slot_step_minutes||30);slotStepDraft=slotStep;const selected=hourPeriods.filter(p=>p.start_date<=date&&(!p.end_date||p.end_date>=date)).sort((a,b)=>b.start_date.localeCompare(a.start_date)||b.id-a.id)[0];if(selected){dayRanges=normalizeSchedule(selected.schedule)[wd];hours=dayRanges.length?[{open_min:Math.min(...dayRanges.map(x=>x.start_min)),close_min:Math.max(...dayRanges.map(x=>x.end_min)),lunch_start:null,lunch_end:null}]:[]}else{hours=await api(`business_hours?select=*&weekday=eq.${wd}`);const h=hours?.[0];dayRanges=h&&h.open_min!=null?(h.lunch_start!=null&&h.lunch_end!=null?[{start_min:h.open_min,end_min:h.lunch_start},{start_min:h.lunch_end,end_min:h.close_min}]:[{start_min:h.open_min,end_min:h.close_min}]):[]}const localStatuses=getLocalBookingStatuses();bookings=bookings.map(b=>localStatuses[String(b.id)]?{...b,status:localStatuses[String(b.id)]}:b);allBookings=bookings;allBlocks=blocks;shopRanges=dayRanges;shopHours=hours;applyAgendaBarber();renderAgenda()}catch(e){shell("Agenda",`<p class="error">${esc(e.message)}</p><button class="btn" id="retry">Tentar novamente</button>`)}}
+
+let agBarbers=[],allBookings=[],allBlocks=[],shopRanges=[],shopHours=null,agendaBarber="";
+try{agendaBarber=localStorage.getItem("bsjs_agenda_barber")||""}catch(e){}
+const agIntersect=(shop,mine)=>{const out=[];(shop||[]).forEach(a=>(mine||[]).forEach(m=>{const x=Math.max(Number(a.start_min),Number(m.start_min)),y=Math.min(Number(a.end_min),Number(m.end_min));if(y>x)out.push({start_min:x,end_min:y})}));return out};
+const barberRanges=(b,wd,shop)=>{if(!b||!b.schedule)return shop;const mine=normalizeSchedule(b.schedule)[wd];return agIntersect(shop,mine)};
+function applyAgendaBarber(){
+ const list=agBarbers||[];
+ if(agendaBarber!=="all"&&!list.some(b=>String(b.id)===String(agendaBarber)))agendaBarber=list.length>1?(window.__myBarberId&&list.some(b=>b.id===window.__myBarberId)?String(window.__myBarberId):String(list[0]?.id||"")):String(list[0]?.id||"");
+ if(agendaBarber==="all"){bookings=allBookings;blocks=allBlocks;dayRanges=shopRanges;hours=shopHours;return}
+ const b=list.find(x=>String(x.id)===String(agendaBarber));
+ bookings=allBookings.filter(x=>String(x.barber_id)===String(agendaBarber));
+ blocks=allBlocks.filter(x=>x.barber_id==null||String(x.barber_id)===String(agendaBarber));
+ dayRanges=barberRanges(b,day.getDay(),shopRanges);
+ hours=dayRanges.length?[{open_min:Math.min(...dayRanges.map(x=>x.start_min)),close_min:Math.max(...dayRanges.map(x=>x.end_min)),lunch_start:null,lunch_end:null}]:[];
+}
+function agendaChips(){
+ const list=agBarbers||[];if(list.length<2)return "";
+ return `<div class="agenda-pros">${list.map(b=>`<button type="button" class="ag-chip ${String(b.id)===String(agendaBarber)?"on":""}" data-ag-barber="${b.id}">${esc(String(b.name).split(" ")[0])}</button>`).join("")}<button type="button" class="ag-chip ${agendaBarber==="all"?"on":""}" data-ag-barber="all">Todos</button></div>`;
+}
+const apptCls=b=>{const k=String(b.id);return (pendingBal[k]>0&&!["finalized","no_show"].includes(statusClass(b.status))&&!["no_show","nao_compareceu","faltou"].includes(normalizedStatus(b.status)))?"status-partial-card":(paidAmt[k]>0&&["pending","confirmed"].includes(statusClass(b.status)))?"status-prepaid-card":appointmentCardStatus(b.status)};
+function renderAgendaColumns(nav){
+ const list=agBarbers||[],step=Math.max(5,Number(slotStep)||30),wd=day.getDay();
+ const rg=list.map(b=>barberRanges(b,wd,shopRanges));
+ const all=rg.flat();
+ if(!all.length){shell("Agenda",nav+agendaChips()+`<p class="notice">Estabelecimento fechado ou horário não configurado para este dia.</p>`);return}
+ const first=Math.min(...all.map(r=>r.start_min)),last=Math.max(...all.map(r=>r.end_min));
+ const set=new Set();for(let m=first;m<last;m+=step)set.add(m);
+ allBookings.forEach(b=>set.add(Number(b.start_min)));
+ const times=[...set].filter(m=>m>=0&&m<1440).sort((a,b)=>a-b);
+ const n=list.length;
+ let html=`<div class="ag-cols" style="grid-template-columns:44px repeat(${n},minmax(0,1fr))"><div></div>${list.map(b=>`<div class="ag-colh">${esc(String(b.name).split(" ")[0])}</div>`).join("")}`;
+ const busyAt=(bid,m)=>allBookings.find(x=>String(x.barber_id)===String(bid)&&Number(x.start_min)<=m&&Number(x.end_min)>m);
+ times.forEach((m,i)=>{
+  html+=`<div class="ag-time">${hm(m)}</div>`;
+  list.forEach((b,ci)=>{
+   const starting=allBookings.find(x=>String(x.barber_id)===String(b.id)&&Number(x.start_min)===m);
+   const occ=busyAt(b.id,m);
+   const blk=allBlocks.find(x=>(x.barber_id==null||String(x.barber_id)===String(b.id))&&Number(x.start_min)<=m&&Number(x.end_min)>m);
+   const inR=rg[ci].some(r=>m>=r.start_min&&m<r.end_min);
+   const pos=`grid-column:${ci+2};grid-row:${i+2}`;
+   if(starting){const span=Math.max(1,times.filter(t=>t>=Number(starting.start_min)&&t<Number(starting.end_min)).length);html+=`<button type="button" class="ag-appt ${apptCls(starting)}" data-open-booking="${esc(starting.id)}" style="${pos} / span ${span}"><b>${esc(starting.client_name)}</b></button>`}
+   else if(occ){}
+   else if(blk)html+=`<button type="button" class="ag-cell blk" data-open-block="${esc(blk.id)}" style="${pos}">Bloq.</button>`;
+   else if(!inR)html+=`<div class="ag-cell off" style="${pos}"></div>`;
+   else html+=`<button type="button" class="ag-cell" data-slot="${m}" data-slot-barber="${b.id}" style="${pos}" aria-label="Agendar ${hm(m)} com ${esc(b.name)}"></button>`;
+  });
+ });
+ html+=`</div>`;
+ const tot=allBookings.length;
+ shell("Agenda",nav+agendaChips()+`<div class="agenda-meta"><div>${tot} agendamento(s) · ${fm(allBookings.reduce((s,x)=>s+Number(x.total||0),0))}</div></div>`+html+`<button class="agenda-fab" id="agenda-new-booking" aria-label="Novo agendamento" title="Novo agendamento">＋</button>`);
+ agendaAfterRender();
+}
 let agendaScrollY=0,agendaDayKey=null;
 function agendaAfterRender(){const k=key(day);const y=agendaDayKey===k?agendaScrollY:0;agendaDayKey=k;requestAnimationFrame(()=>window.scrollTo(0,y))}
 window.addEventListener("scroll",()=>{if(document.querySelector(".agenda-grid")&&!document.body.classList.contains("sheet-open")&&!document.querySelector(".booking-screen,.client-picker-screen"))agendaScrollY=window.scrollY},{passive:true});
@@ -498,11 +558,13 @@ function renderAgenda(){
  let cfg=hours?.[0];
  const navFor=(sub)=>`<div class="agenda-head"><button class="agenda-arrow" data-day="-1" aria-label="Dia anterior">‹</button><button type="button" class="agenda-datebtn" id="open-date-picker" aria-label="Escolher outra data"><span class="agenda-dayname">${DW[day.getDay()]}, ${day.getDate()} de ${day.toLocaleDateString("pt-BR",{month:"long"})}${day.getFullYear()!==new Date().getFullYear()?" de "+day.getFullYear():""}</span></button><button class="agenda-arrow" data-day="1" aria-label="Próximo dia">›</button></div>`;
  let nav=navFor("");
+ if(agendaBarber==="all"){renderAgendaColumns(nav);return}
+ nav+=agendaChips();
  if(!cfg||cfg.open_min==null){shell("Agenda",nav+`<p class="notice">Estabelecimento fechado ou horário não configurado para este dia.</p>`);return}
  const step=Math.max(5,Number(slotStep)||30);
  let n=0;
  const validRanges=(dayRanges||[]).map(r=>({start_min:Number(r.start_min),end_min:Number(r.end_min)})).filter(r=>Number.isFinite(r.start_min)&&Number.isFinite(r.end_min)&&r.end_min>r.start_min).sort((a,b)=>a.start_min-b.start_min);
- if(!validRanges.length){shell("Agenda",nav+`<p class="notice">Estabelecimento fechado ou horário não configurado para este dia.</p>`);return}
+ if(!validRanges.length){shell("Agenda",nav+`<p class="notice">${(agBarbers||[]).length>1?"Este profissional não atende neste dia.":"Estabelecimento fechado ou horário não configurado para este dia."}</p>`);return}
  const firstStart=Math.min(...validRanges.map(r=>r.start_min));
  const lastEnd=Math.max(...validRanges.map(r=>r.end_min));
  const gridSet=new Set();
@@ -556,7 +618,7 @@ function renderAgenda(){
  const recv=bookings.reduce((sum,x)=>{const k=String(x.id),sc=statusClass(x.status);if(["no_show","nao_compareceu","faltou"].includes(normalizedStatus(x.status))||sc==="finalized")return sum;if(pendingBal[k]>0)return sum+pendingBal[k];return sum+(sc==="completed"?Number(x.total||0):0)},0);
  const paidSum=bookings.reduce((sum,x)=>sum+Number(paidAmt[String(x.id)]||0),0);
  const sumTxt=`<div>${n} agendamento(s) · ${fm(bookings.reduce((sum,x)=>sum+Number(x.total||0),0))}</div>${(recv>0||paidSum>0)?`<div class="agenda-meta2">${recv>0?`<b class="agenda-toreceive">A receber: ${fm(recv)}</b>`:""}${paidSum>0?`<b class="agenda-paid">Pago: ${fm(paidSum)}</b>`:""}</div>`:""}`;
- shell("Agenda",navFor("")+`<div class="agenda-meta">${sumTxt}</div><div class="agenda-legend"><span><i style="background:#FFF3CF;border:2px solid #E3B341"></i>Pendente</span><span><i style="background:#DCEBFA;border:2px solid #5B9BD5"></i>Confirmado</span><span><i style="background:#EADCF8;border:2px solid #9A6BD1"></i>Falta pagar</span><span><i style="background:#D9F1E2;border:2px solid #4DAA75"></i>Pago</span></div>`+out+`<div class="muted">Toque em um horário para agendar ou bloquear.</div>`);
+ shell("Agenda",nav+`<div class="agenda-meta">${sumTxt}</div><div class="agenda-legend"><span><i style="background:#FFF3CF;border:2px solid #E3B341"></i>Pendente</span><span><i style="background:#DCEBFA;border:2px solid #5B9BD5"></i>Confirmado</span><span><i style="background:#EADCF8;border:2px solid #9A6BD1"></i>Falta pagar</span><span><i style="background:#D9F1E2;border:2px solid #4DAA75"></i>Pago</span></div>`+out+`<div class="muted">Toque em um horário para agendar ou bloquear.</div>`);
  agendaAfterRender();
 }
 async function loadClients(){try{clients=await api("clients?select=*&order=name");shell("Clientes",`<div class="row between"><span class="muted">${clients.length} cadastro(s)</span><button class="btn primary" id="new-client" aria-label="Adicionar novo cliente" title="Adicionar novo cliente">＋</button></div><input id="client-search" placeholder="Buscar por nome ou telefone"><div id="client-list">${clientList(clients)}</div>`)}catch(e){shell("Clientes",`<p class="error">${esc(e.message)}</p>`)}}
@@ -657,9 +719,17 @@ async function showClientCard(phone){
   }catch(e){shell("Cliente",`<p class="error">${esc(e.message)}</p><button class="btn" id="back-clients">← Clientes</button>`);$("#back-clients").onclick=loadClients}
 }
 async function loadServices(){try{services=await api("services?select=*&order=sort");shell("Serviços",`<div class="row between"><span class="muted">${services.length} serviço(s)</span><button class="btn primary" id="new-service" aria-label="Adicionar serviço" title="Adicionar serviço">＋</button></div><div class="svc-list">`+services.map(s=>{const dm=Number(s.duration_min||0)||(s.is_cut?30:0);return `<div class="lrow ${s.active?"":"off"}"><div class="lav sq">${ICO.cut}</div><div class="lg"><b>${esc(s.name)}</b><div class="lsub">${fm(s.price)}${dm?" · "+dm+" min":""}${s.active?"":" · Inativo"}</div></div><button type="button" class="lic" data-edit-service="${s.id}" aria-label="Editar" title="Editar">${ICO.edit}</button></div>`}).join("")+`</div>`)}catch(e){shell("Serviços",`<p class="error">${esc(e.message)}</p>`)}}
-async function editService(id=null){editServiceId=id;let s=services.find(x=>x.id===id)||{name:"",description:"",price:0,is_cut:false,sort:services.length+1,active:true,duration_min:0,pricing_type:"fixed",cost:0,barber_id:barbers[0]?.id||"",visible_to_customers:true,bookable_by_customers:true,show_price_to_customers:true,anamnesis:""};try{barbers=await api("barbers?select=id,name&active=eq.true")}catch(e){}shell(id?"Editar serviço":"Novo serviço",`<form id="service-form"><div class="grid">${field("Nome do serviço","s-name",s.name)}${field("Preço (R$)","s-price",s.price,"number",'step="0.01" min="0"')}${field("Duração (minutos; 0 = padrão)","s-duration",s.duration_min||0,"number",'step="5" min="0"')}${field("Custo (R$)","s-cost",s.cost||0,"number",'step="0.01" min="0"')}${field("Ordem de exibição","s-sort",s.sort||1,"number",'min="0"')}</div>${area("Descrição","s-description",s.description||"")}<div class="field"><label>Tipo de preço</label><select id="s-pricing"><option value="fixed">Preço fixo</option><option value="variable">Preço variável</option></select></div><div class="field"><label>Profissional responsável</label><select id="s-barber"><option value="">Qualquer profissional</option>${optionList(barbers,"id","name")}</select></div>${area("Anamnese / observações necessárias","s-anamnesis",s.anamnesis||"")}<label><input style="width:auto" type="checkbox" id="s-cut"> É corte (30 minutos por unidade)</label><br><label><input style="width:auto" type="checkbox" id="s-active"> Serviço ativo</label><br><label><input style="width:auto" type="checkbox" id="s-visible"> Visível aos clientes</label><br><label><input style="width:auto" type="checkbox" id="s-bookable"> Clientes podem agendar</label><br><label><input style="width:auto" type="checkbox" id="s-showprice"> Mostrar preço aos clientes</label><div class="form-actions"><button class="btn primary">Salvar serviço</button><button type="button" class="btn" id="cancel-service">Voltar</button></div></form>`);
-$("#s-pricing").value=s.pricing_type||"fixed";$("#s-barber").value=s.barber_id||"";$("#s-cut").checked=!!s.is_cut;$("#s-active").checked=!!s.active;$("#s-visible").checked=s.visible_to_customers!==false;$("#s-bookable").checked=s.bookable_by_customers!==false;$("#s-showprice").checked=s.show_price_to_customers!==false;
-$("#service-form").onsubmit=async e=>{e.preventDefault();try{let data={name:val("s-name").trim(),description:val("s-description"),price:num("s-price"),duration_min:num("s-duration"),cost:num("s-cost"),sort:num("s-sort"),pricing_type:val("s-pricing"),barber_id:val("s-barber")?Number(val("s-barber")):null,is_cut:checked("s-cut"),active:checked("s-active"),visible_to_customers:checked("s-visible"),bookable_by_customers:checked("s-bookable"),show_price_to_customers:checked("s-showprice"),anamnesis:val("s-anamnesis")};if(!data.name)throw Error("Informe o nome do serviço.");if(id)await api(`services?id=eq.${id}`,{method:"PATCH",body:JSON.stringify(data)});else await api("services",{method:"POST",body:JSON.stringify(data)});await loadServices();notice="Serviço salvo.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};
+
+async function syncBarberServices(kind,id,otherIds){
+ const col=kind==="service"?"service_id":"barber_id",oth=kind==="service"?"barber_id":"service_id";
+ await api(`barber_services?${col}=eq.${id}`,{method:"DELETE"});
+ if(otherIds.length)await api("barber_services",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(otherIds.map(o=>({[col]:Number(id),[oth]:Number(o)})))});
+}
+const checkList=(items,sel,pfx)=>`<div class="chk-list">${items.map(i=>`<label class="chk-item"><input type="checkbox" data-${pfx}="${i.id}" ${sel.has(Number(i.id))?"checked":""}><span>${esc(i.name)}</span></label>`).join("")||'<p class="muted">Nenhum cadastrado ainda.</p>'}</div>`;
+const readChecks=pfx=>[...document.querySelectorAll(`[data-${pfx}]:checked`)].map(x=>Number(x.dataset[pfx]));
+async function editService(id=null){editServiceId=id;let s=services.find(x=>x.id===id)||{name:"",description:"",price:0,is_cut:false,sort:services.length+1,active:true,duration_min:0,pricing_type:"fixed",cost:0,barber_id:barbers[0]?.id||"",visible_to_customers:true,bookable_by_customers:true,show_price_to_customers:true,anamnesis:""};let sLinks=new Set();try{barbers=await api("barbers?select=id,name&active=eq.true&order=id");if(id){(await api(`barber_services?select=barber_id&service_id=eq.${id}`)).forEach(r=>sLinks.add(Number(r.barber_id)))}else barbers.forEach(b=>sLinks.add(Number(b.id)))}catch(e){}shell(id?"Editar serviço":"Novo serviço",`<form id="service-form"><div class="grid">${field("Nome do serviço","s-name",s.name)}${field("Preço (R$)","s-price",s.price,"number",'step="0.01" min="0"')}${field("Duração (minutos; 0 = padrão)","s-duration",s.duration_min||0,"number",'step="5" min="0"')}${field("Custo (R$)","s-cost",s.cost||0,"number",'step="0.01" min="0"')}${field("Ordem de exibição","s-sort",s.sort||1,"number",'min="0"')}</div>${area("Descrição","s-description",s.description||"")}<div class="field"><label>Tipo de preço</label><select id="s-pricing"><option value="fixed">Preço fixo</option><option value="variable">Preço variável</option></select></div><div class="field"><label>Profissionais que fazem este serviço</label>${checkList(barbers,sLinks,"sb")}</div>${area("Anamnese / observações necessárias","s-anamnesis",s.anamnesis||"")}<label><input style="width:auto" type="checkbox" id="s-cut"> É corte (30 minutos por unidade)</label><br><label><input style="width:auto" type="checkbox" id="s-active"> Serviço ativo</label><br><label><input style="width:auto" type="checkbox" id="s-visible"> Visível aos clientes</label><br><label><input style="width:auto" type="checkbox" id="s-bookable"> Clientes podem agendar</label><br><label><input style="width:auto" type="checkbox" id="s-showprice"> Mostrar preço aos clientes</label><div class="form-actions"><button class="btn primary">Salvar serviço</button><button type="button" class="btn" id="cancel-service">Voltar</button></div></form>`);
+$("#s-pricing").value=s.pricing_type||"fixed";$("#s-cut").checked=!!s.is_cut;$("#s-active").checked=!!s.active;$("#s-visible").checked=s.visible_to_customers!==false;$("#s-bookable").checked=s.bookable_by_customers!==false;$("#s-showprice").checked=s.show_price_to_customers!==false;
+$("#service-form").onsubmit=async e=>{e.preventDefault();try{let data={name:val("s-name").trim(),description:val("s-description"),price:num("s-price"),duration_min:num("s-duration"),cost:num("s-cost"),sort:num("s-sort"),pricing_type:val("s-pricing"),barber_id:null,is_cut:checked("s-cut"),active:checked("s-active"),visible_to_customers:checked("s-visible"),bookable_by_customers:checked("s-bookable"),show_price_to_customers:checked("s-showprice"),anamnesis:val("s-anamnesis")};if(!data.name)throw Error("Informe o nome do serviço.");let sid=id;if(id)await api(`services?id=eq.${id}`,{method:"PATCH",body:JSON.stringify(data)});else{const made=await api("services",{method:"POST",body:JSON.stringify(data)});sid=made?.[0]?.id}if(sid)await syncBarberServices("service",sid,readChecks("sb"));await loadServices();notice="Serviço salvo.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};
 $("#cancel-service").onclick=loadServices}
 let pdOpen=null,pdExtraCats=[],pdQuery="";
 const pdCat=p=>(p.category||"").trim();
@@ -1063,8 +1133,9 @@ async function savePeriod(){
 async function loadProfessionals(){
  try{
   barbers=await api("barbers?select=*&order=id");
+  try{psServices=await api("services?select=id,name&active=eq.true&order=sort");psLinks=await api("barber_services?select=barber_id,service_id")}catch(e){psServices=[];psLinks=[]}
   const rows=barbers.map(x=>`<div class="card professional-card">
-    <button type="button" class="professional-edit" data-edit-professional="${x.id}">${esc(x.name)}</button>
+    <button type="button" class="professional-edit" data-edit-professional="${x.id}">${esc(x.name)}<span class="ps-sub">${x.schedule?"Horário próprio":"Segue o horário da barbearia"}</span></button>
     <div class="professional-actions"><span class="pill">${x.active?"Ativo":"Inativo"}</span><button type="button" class="lic" data-edit-professional="${x.id}" aria-label="Editar" title="Editar">${ICO.edit}</button></div>
    </div>`).join("");
   shell("Profissionais",`<div class="settings-back-row"><button type="button" class="btn" id="settings-back">← Configurações</button></div>
@@ -1076,9 +1147,12 @@ async function loadProfessionals(){
   $("#app").querySelectorAll("[data-edit-professional]").forEach(b=>b.onclick=()=>openProfessionalForm(Number(b.dataset.editProfessional)));
  }catch(e){shell("Profissionais",`<div class="settings-back-row"><button type="button" class="btn" id="settings-back">← Configurações</button></div><p class="error">${esc(e.message)}</p>`);$("#settings-back").onclick=()=>navigate("settings")}
 }
+let psServices=[],psLinks=[];
+const PS_DAYS=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
 function openProfessionalForm(id){
  const x=barbers.find(b=>Number(b.id)===Number(id))||{id:null,name:"",active:true,role:"barber",phone:"",email:"",notes:""};
  const host=$("#professional-editor");
+ const psSch=x.schedule?normalizeSchedule(x.schedule):{};let psOwn=!!x.schedule;
  host.innerHTML=`<form id="professional-form" class="professional-form">
   <h3 style="margin:0 0 14px">${x.id?"Editar profissional":"Adicionar colaborador"}</h3>
   <div class="field"><label for="prof-name">Nome completo *</label><input id="prof-name" required maxlength="100" value="${esc(x.name)}"></div>
@@ -1086,6 +1160,9 @@ function openProfessionalForm(id){
   <div class="field"><label for="prof-phone">Telefone</label><input id="prof-phone" type="tel" value="${esc(x.phone||"")}"></div>
   <div class="field"><label for="prof-email">E-mail</label><input id="prof-email" type="email" value="${esc(x.email||"")}"></div>
   <div class="field"><label for="prof-notes">Informações adicionais</label><textarea id="prof-notes" rows="3">${esc(x.notes||"")}</textarea></div>
+  <div class="field"><label>Horário de atendimento</label><div class="ag-seg"><button type="button" data-sch="shop" class="${x.schedule?"":"on"}">Horário da barbearia</button><button type="button" data-sch="own" class="${x.schedule?"on":""}">Horário próprio</button></div><p class="muted" style="margin:6px 0 0;font-size:13px">O profissional só aparece para o cliente nos horários em que a barbearia também está aberta.</p></div>
+  <div id="prof-sched" class="${x.schedule?"":"hidden"}">${PS_DAYS.map((nm,d)=>{const iv=(psSch[d]||[]);const on=x.schedule?iv.length>0:(d>=1&&d<=6);const st=iv.length?Math.min(...iv.map(v=>v.start_min)):540,en=iv.length?Math.max(...iv.map(v=>v.end_min)):1080;return `<div class="ps-row"><label><input type="checkbox" id="ps-on-${d}" ${on?"checked":""} style="width:auto"> ${nm}</label><input type="time" id="ps-s-${d}" value="${hm(st)}" step="1800"><span>–</span><input type="time" id="ps-e-${d}" value="${hm(en)}" step="1800"></div>`}).join("")}</div>
+  <div class="field"><label>Serviços que este profissional faz</label>${checkList(psServices,new Set(x.id?psLinks.filter(l=>Number(l.barber_id)===Number(x.id)).map(l=>Number(l.service_id)):psServices.map(v=>Number(v.id))),"ps")}</div>
   <label style="display:flex;gap:8px;align-items:center;margin:12px 0"><input id="prof-active" type="checkbox" ${x.active?"checked":""} style="width:auto"> Profissional ativo</label>
   <div class="row professional-form-actions" style="display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:stretch">
    <button class="btn primary" type="submit">Salvar</button>
@@ -1094,6 +1171,7 @@ function openProfessionalForm(id){
   </div>
  </form>`;
  $("#cancel-professional").onclick=()=>host.innerHTML="";
+ host.querySelectorAll("[data-sch]").forEach(b=>b.onclick=()=>{psOwn=b.dataset.sch==="own";host.querySelectorAll("[data-sch]").forEach(z=>z.classList.toggle("on",z===b));$("#prof-sched").classList.toggle("hidden",!psOwn)});
  const deleteProfessional=$("#delete-professional");
  if(deleteProfessional)deleteProfessional.onclick=async()=>{
   if(!confirm(`Tem certeza que deseja excluir o profissional ${x.name}? Esta ação não poderá ser desfeita.`))return;
@@ -1111,9 +1189,11 @@ function openProfessionalForm(id){
   e.preventDefault();
   const data={name:$("#prof-name").value.trim(),role:$("#prof-role").value,phone:$("#prof-phone").value.trim(),email:$("#prof-email").value.trim(),notes:$("#prof-notes").value.trim(),active:$("#prof-active").checked};
   if(!data.name){alert("Informe o nome.");return}
+  if(psOwn){const sc={};for(let d=0;d<7;d++){if(!$("#ps-on-"+d).checked){sc[d]=[];continue}const a=mins("ps-s-"+d),b=mins("ps-e-"+d);if(a==null||b==null||b<=a){alert("Confira o horário de "+PS_DAYS[d]+": o fim deve ser depois do início.");return}sc[d]=[{start_min:a,end_min:b}]}data.schedule=sc}else data.schedule=null;
   try{
-   if(x.id) await api(`barbers?id=eq.${encodeURIComponent(x.id)}`,{method:"PATCH",body:JSON.stringify(data)});
-   else await api("barbers",{method:"POST",body:JSON.stringify(data)});
+   let bid=x.id;if(x.id) await api(`barbers?id=eq.${encodeURIComponent(x.id)}`,{method:"PATCH",body:JSON.stringify(data)});
+   else{const made=await api("barbers",{method:"POST",body:JSON.stringify(data)});bid=made?.[0]?.id}
+   if(bid)await syncBarberServices("barber",bid,readChecks("ps"));
    await loadProfessionals();
   }catch(err){alert("Não foi possível salvar. Confirme se a atualização SQL de profissionais foi executada. Detalhe: "+err.message)}
  };
@@ -1231,7 +1311,7 @@ async function showBookingDetail(id){
   bindSheetDrag($("#detail-sheet"),close);
  }catch(e){shell("Agendamento",`<p class="error">${esc(e.message)}</p><button class="btn" id="retry">Voltar</button>`)}
 }
-async function showBlockSheet(block){const id=block.id;document.body.classList.add("sheet-open");const scrollY=window.scrollY;app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="block-sheet"><section class="action-sheet" role="dialog" aria-modal="true" aria-label="Detalhes do bloqueio"><div class="sheet-grabber"></div><h2 class="section-title">Bloqueio de horário</h2><div class="sheet-detail"><b>${esc(block.date||key(day))}</b><div>${hm(block.start_min)}–${hm(block.end_min)}</div><div class="muted">Período bloqueado: ${hm(block.start_min)} até ${hm(block.end_min)}</div><div>${esc(block.reason||"Sem motivo informado")}</div></div><button class="sheet-action" id="block-edit"><span class="sheet-icon">✎</span><span>Editar bloqueio</span></button><button class="sheet-action cancel" id="block-cancel"><span class="sheet-icon">✕</span><span>Cancelar bloqueio</span></button><button class="btn sheet-close" id="block-close">Fechar</button></section></div>`);const close=()=>{const el=$("#block-sheet");if(el){el.remove();document.body.classList.remove("sheet-open");window.scrollTo(0,scrollY)}};$("#block-close").onclick=close;$("#block-sheet").addEventListener("click",e=>{if(e.target.id==="block-sheet")close()});$("#block-edit").onclick=()=>{close();openBooking(Number(block.start_min),"block",{date:block.date,start_min:block.start_min,end_min:block.end_min,reason:block.reason,blockId:block.id})};$("#block-cancel").onclick=async()=>{if(!confirm("Deseja realmente remover este bloqueio?"))return;await api(`blocked_slots?id=eq.${encodeURIComponent(id)}`,{method:"DELETE"});close();await loadAgenda()};bindSheetDrag($("#block-sheet"),close)}
+async function showBlockSheet(block){const id=block.id;document.body.classList.add("sheet-open");const scrollY=window.scrollY;app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="block-sheet"><section class="action-sheet" role="dialog" aria-modal="true" aria-label="Detalhes do bloqueio"><div class="sheet-grabber"></div><h2 class="section-title">Bloqueio de horário</h2><div class="sheet-detail"><b>${esc(block.date||key(day))}</b><div>${hm(block.start_min)}–${hm(block.end_min)}</div><div class="muted">Período bloqueado: ${hm(block.start_min)} até ${hm(block.end_min)}</div><div>${esc(block.reason||"Sem motivo informado")}</div></div><button class="sheet-action" id="block-edit"><span class="sheet-icon">✎</span><span>Editar bloqueio</span></button><button class="sheet-action cancel" id="block-cancel"><span class="sheet-icon">✕</span><span>Cancelar bloqueio</span></button><button class="btn sheet-close" id="block-close">Fechar</button></section></div>`);const close=()=>{const el=$("#block-sheet");if(el){el.remove();document.body.classList.remove("sheet-open");window.scrollTo(0,scrollY)}};$("#block-close").onclick=close;$("#block-sheet").addEventListener("click",e=>{if(e.target.id==="block-sheet")close()});$("#block-edit").onclick=()=>{close();openBooking(Number(block.start_min),"block",{barber_id:block.barber_id,date:block.date,start_min:block.start_min,end_min:block.end_min,reason:block.reason,blockId:block.id})};$("#block-cancel").onclick=async()=>{if(!confirm("Deseja realmente remover este bloqueio?"))return;await api(`blocked_slots?id=eq.${encodeURIComponent(id)}`,{method:"DELETE"});close();await loadAgenda()};bindSheetDrag($("#block-sheet"),close)}
 
 
 async function gotoBooking(id,date){
@@ -1343,8 +1423,10 @@ if(b.id==="goto"){if(val("goto-date"))day=new Date(val("goto-date")+"T12:00:00")
 if(b.id==="today"){day=new Date();await loadAgenda();return}
 if(b.dataset.openBooking){await showBookingDetail(b.dataset.openBooking);return}
 if(b.dataset.openBlock){const block=blocks.find(x=>String(x.id)===String(b.dataset.openBlock));if(block)await showBlockSheet(block);return}
+if(b.dataset.agBarber!=null){agendaBarber=b.dataset.agBarber;try{localStorage.setItem("bsjs_agenda_barber",agendaBarber)}catch(e){}applyAgendaBarber();renderAgenda();return}
 if(b.id==="agenda-new-booking"){await openBooking(null);return}
-if(b.dataset.slot!=null){await openBooking(Number(b.dataset.slot));return}
+if(b.dataset.slot!=null){window.__newBarber=b.dataset.slotBarber||null;await openBooking(Number(b.dataset.slot));return}
+if(b.dataset.blockScope){readBookingInputs();bookingDraft.blockAll=b.dataset.blockScope==="all";renderBookingScreen();return}
 if(b.id==="booking-back"){bookingDraft=null;await loadAgenda();return}
 if(b.id==="mode-book"||b.id==="mode-block"){readBookingInputs();bookingDraft.mode=b.id==="mode-book"?"book":"block";renderBookingScreen();return}
 if(b.id==="open-client-picker"){readBookingInputs();renderClientPicker();return}
@@ -1354,7 +1436,7 @@ if(b.id==="client-picker-back"){renderBookingScreen();return}
 if(b.id==="client-picker-add-new"){readBookingInputs();renderBookingClientRegistration();return}
 if(b.id==="client-picker-contacts"){await pickPhoneContact();return}
 if(b.id==="booking-save"){await saveBookingForm();return}
-if(b.id==="booking-save-block"){readBookingInputs();const d=bookingDraft;if(!$("#booking-start").value){const err=$("#booking-error");err.textContent="Escolha o horário de início do agendamento.";err.classList.remove("hidden");$("#booking-start").focus();return}const st=$("#booking-start").value.split(":").map(Number),en=$("#booking-end").value.split(":").map(Number);const start=st[0]*60+st[1],end=en[0]*60+en[1];if(end<=start)throw Error("O fim do bloqueio deve ser depois do início.");const barber=d.barbers[0];if(!barber)throw Error("Cadastre um profissional ativo.");const payload={barber_id:barber.id,date:key(d.date),start_min:start,end_min:end,reason:d.reason||""};if(d.editingBlockId){await api(`blocked_slots?id=eq.${encodeURIComponent(d.editingBlockId)}`,{method:"PATCH",body:JSON.stringify(payload)})}else{await api("blocked_slots",{method:"POST",body:JSON.stringify(payload)})}bookingDraft=null;await loadAgenda();return}
+if(b.id==="booking-save-block"){readBookingInputs();const d=bookingDraft;if(!$("#booking-start").value){const err=$("#booking-error");err.textContent="Escolha o horário de início do agendamento.";err.classList.remove("hidden");$("#booking-start").focus();return}const st=$("#booking-start").value.split(":").map(Number),en=$("#booking-end").value.split(":").map(Number);const start=st[0]*60+st[1],end=en[0]*60+en[1];if(end<=start)throw Error("O fim do bloqueio deve ser depois do início.");const barber=d.barbers.find(x=>Number(x.id)===Number(d.barberId))||d.barbers[0];if(!barber)throw Error("Cadastre um profissional ativo.");const payload={barber_id:d.blockAll?null:barber.id,date:key(d.date),start_min:start,end_min:end,reason:d.reason||""};if(d.editingBlockId){await api(`blocked_slots?id=eq.${encodeURIComponent(d.editingBlockId)}`,{method:"PATCH",body:JSON.stringify(payload)})}else{await api("blocked_slots",{method:"POST",body:JSON.stringify(payload)})}bookingDraft=null;await loadAgenda();return}
 if(b.dataset.cancel){let id=b.dataset.cancel;if(confirmCancel!==id){confirmCancel=id;renderAgenda();return}await api(`bookings?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});confirmCancel=null;await loadAgenda();return}
 if(b.id==="new-client"){editClient();return}
 if(b.dataset.editClient){clientBackTo=b.closest(".cc-head")?b.dataset.editClient:null;editClient(b.dataset.editClient);return}
@@ -1531,6 +1613,7 @@ function __renderBookingScreen(){
  app.innerHTML=`<section class="booking-screen">
  <div class="booking-head"><button class="btn form-back" id="booking-back" aria-label="Voltar à agenda" title="Voltar à agenda">←</button><button class="btn ${d.mode==='book'?'primary':''}" id="mode-book">AGENDAR</button><button class="btn ${d.mode==='block'?'primary':''}" id="mode-block">BLOQUEAR</button></div>
  <h2 class="section-title">${d.mode==='book'?'Novo agendamento':'Bloquear horário'}</h2>
+ ${(d.barbers&&d.barbers.length>1&&!(d.mode==='block'&&d.blockAll))?`<div class="field"><label>Profissional</label><select id="booking-barber">${d.barbers.map(b=>`<option value="${b.id}" ${Number(b.id)===Number(d.barberId)?'selected':''}>${esc(b.name)}</option>`).join('')}</select></div>`:''}
  ${d.mode==='book'?`
  <div class="card client-card-compact">
  <div id="booking-client-badge" class="cb-row"></div><button class="btn client-select-btn" id="open-client-picker" type="button">${d.selectedPhone?`<span class="client-selected-name">${esc((d.clients.find(c=>c.phone===d.selectedPhone)||{}).name||'Selecionado')}</span>`:'<span class="client-plus-mini">＋</span><span>Selecionar cliente</span>'}</button>
@@ -1547,6 +1630,7 @@ function __renderBookingScreen(){
  <div class="booking-range-label">Início</div><div class="field-line">${dateInput('booking-date','',d.date)}${timeInput('booking-start','',startMin)}</div>
  <div class="booking-range-label">Fim</div><div class="field-line">${dateInput('booking-end-date','',d.endDate||d.date)}${timeInput('booking-end','',Math.min(d.start+30,1439))}</div>
  <div class="field"><label>Motivo (opcional)</label><input id="booking-reason" placeholder="Ex.: compromisso pessoal" value="${esc(d.reason||'')}"></div>
+ ${(d.barbers&&d.barbers.length>1)?`<div class="field"><label>Bloquear para</label><div class="ag-seg"><button type="button" data-block-scope="one" class="${d.blockAll?'':'on'}">Só este profissional</button><button type="button" data-block-scope="all" class="${d.blockAll?'on':''}">Todos</button></div></div>`:''}
  `}
  <div id="booking-error" class="notice error hidden"></div>
  </section><div class="booking-savebar"><button class="btn primary" id="${d.mode==='book'?'booking-save':'booking-save-block'}" aria-label="Gravar" title="Gravar"><svg class="floppy-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h13l4 4v14H3V3h1zm2 2v5h10V5H6zm0 9v5h12v-5H6zm8-8h2v3h-2V6z"/></svg></button></div>`;
@@ -1556,7 +1640,7 @@ async function openBooking(start,mode='book',existing=null){
  try{
   if(!$(".booking-screen")){swipeBackSnapshot=app.innerHTML;swipeBackScrollY=window.scrollY}
   const [cs,ss,bs,cbs,cbi]=await Promise.all([api("clients?select=phone,name&order=name"),api("services?select=id,name,price,is_cut,duration_min,active&active=eq.true&order=sort"),api("barbers?select=id,name,active&active=eq.true&order=id"),api("service_combos?select=*&active=eq.true").catch(()=>[]),api("service_combo_items?select=*").catch(()=>[])]);const combosList=cbs.map(c=>({...c,items:cbi.filter(i=>String(i.combo_id)===String(c.id))}));
-  const ddate=existing?.date?new Date(existing.date+"T12:00:00"):new Date(day.getFullYear(),day.getMonth(),day.getDate());const savedServices=existing?.services||[];bookingDraft={mode,start:existing?.start_min!=null?Number(existing.start_min):(start==null?null:Number(start)),date:ddate,clients:cs,catalog:ss,barbers:bs,services:savedServices.map(x=>({...x,id:x.id??ss.find(y=>y.name===x.name)?.id})),query:'',newName:'',newPhone:'',selectedPhone:existing?.client_phone||null,addingClient:false,end:existing?.end_min!=null?Number(existing.end_min):(start==null?null:Number(start)+30),endDate:ddate,editingId:existing?.id||null,editingBlockId:existing?.blockId||null,reason:existing?.reason||'',existingStatus:existing?.status||"confirmed",endManuallyChanged:false,combos:combosList,discount:Number(existing?.discount||0),surcharge:Number(existing?.surcharge||0),comboOff:!!existing&&Number(existing?.combo_discount||0)===0&&savedServices.length>0&&!!(()=>{try{return bookingCombo({services:savedServices.map(x=>({id:x.id??ss.find(y=>y.name===x.name)?.id})),combos:combosList})}catch(e){return null}})()};
+  const ddate=existing?.date?new Date(existing.date+"T12:00:00"):new Date(day.getFullYear(),day.getMonth(),day.getDate());const savedServices=existing?.services||[];const __nb=window.__newBarber;window.__newBarber=null;bookingDraft={barberId:(existing?.barber_id!=null?Number(existing.barber_id):(__nb!=null?Number(__nb):(agendaBarber&&agendaBarber!=="all"?Number(agendaBarber):(bs[0]?.id||null)))),blockAll:existing?(existing.blockId?existing.barber_id==null:false):agendaBarber==="all",mode,start:existing?.start_min!=null?Number(existing.start_min):(start==null?null:Number(start)),date:ddate,clients:cs,catalog:ss,barbers:bs,services:savedServices.map(x=>({...x,id:x.id??ss.find(y=>y.name===x.name)?.id})),query:'',newName:'',newPhone:'',selectedPhone:existing?.client_phone||null,addingClient:false,end:existing?.end_min!=null?Number(existing.end_min):(start==null?null:Number(start)+30),endDate:ddate,editingId:existing?.id||null,editingBlockId:existing?.blockId||null,reason:existing?.reason||'',existingStatus:existing?.status||"confirmed",endManuallyChanged:false,combos:combosList,discount:Number(existing?.discount||0),surcharge:Number(existing?.surcharge||0),comboOff:!!existing&&Number(existing?.combo_discount||0)===0&&savedServices.length>0&&!!(()=>{try{return bookingCombo({services:savedServices.map(x=>({id:x.id??ss.find(y=>y.name===x.name)?.id})),combos:combosList})}catch(e){return null}})()};
   renderBookingScreen();
  }catch(e){alert("Não foi possível abrir o formulário: "+e.message)}
 }
@@ -1574,6 +1658,7 @@ function readBookingInputs(){
  if($("#booking-new-name"))bookingDraft.newName=$("#booking-new-name").value;
  if($("#booking-new-phone"))bookingDraft.newPhone=$("#booking-new-phone").value;
  bookingDraft.reason=$("#booking-reason")?.value||'';
+ if($("#booking-barber"))bookingDraft.barberId=Number($("#booking-barber").value);
  if($("#adj-discount"))bookingDraft.discount=Math.max(0,Number($("#adj-discount").value)||0);
  if($("#adj-surcharge"))bookingDraft.surcharge=Math.max(0,Number($("#adj-surcharge").value)||0);
 }
@@ -1635,7 +1720,7 @@ async function saveBookingForm(){
   if(newClientData){
     await api("clients?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify(newClientData)});
   }
-  const barber=d.barbers[0];if(!barber)throw Error("Cadastre um profissional ativo.");
+  const barber=d.barbers.find(x=>Number(x.id)===Number(d.barberId))||d.barbers[0];if(!barber)throw Error("Cadastre um profissional ativo.");
   const tt=bookingTotals(d);const total=tt.total;
   const payload={discount:tt.disc,surcharge:tt.sur,combo_discount:tt.comboVal,barber_id:barber.id,date:key(d.date),start_min:d.start,end_min:end,client_name:client.name,client_phone:client.phone,services:d.services.map(x=>({id:x.id,name:x.name,qty:Number(x.qty||1),price:Number(x.price||0)})),total,status:d.existingStatus||"confirmed"};if(d.editingId){await api(`bookings?id=eq.${encodeURIComponent(d.editingId)}`,{method:"PATCH",body:JSON.stringify(payload)});await syncClosureAfterEdit(d.editingId,payload)}else await api("bookings",{method:"POST",body:JSON.stringify(payload)});
   bookingDraft=null;day=d.date;await loadAgenda();
