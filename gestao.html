@@ -1486,14 +1486,14 @@ async function navigate(p){if(session&&!window.__me)await loadMe();if(window.__m
   under.style.cssText="position:fixed;left:0;right:0;top:0;bottom:0;z-index:1;pointer-events:none;overflow:hidden;background:linear-gradient(180deg,#F3F9FF 0%,#E2EFFC 100%)";
   const inner=document.createElement("div");
   const ar=a.getBoundingClientRect();inner.style.cssText=`position:absolute;left:${r.left}px;width:${r.width}px;top:${Math.max(0,ar.top+window.scrollY)}px;box-sizing:border-box;padding:0 ${cs.paddingRight} 0 ${cs.paddingLeft}`;
-  inner.innerHTML=snaps[tkey];under.appendChild(inner);
+  inner.innerHTML=snaps[tkey];inner.style.transform='translate3d(-28%,0,0)';inner.style.willChange='transform';under.appendChild(inner);const dim=document.createElement('div');dim.style.cssText='position:absolute;inset:0;background:#10304F;opacity:.16;pointer-events:none';under.appendChild(dim);under._in=inner;under._dim=dim;
   
   under.querySelectorAll("button,a,input,select,textarea").forEach(e=>{e.tabIndex=-1;e.disabled=true});
   document.body.appendChild(under);
   a.style.position="relative";a.style.zIndex="2";a.style.background="#EEF6FF";a.style.boxShadow="-10px 0 24px rgba(16,48,79,.16)";a.style.minHeight=Math.max(0,window.innerHeight-a.getBoundingClientRect().top)+"px";a.style.willChange="transform";
  };
  const clean=()=>{under?.remove();under=null;const a=el();if(!a)return;a.style.transition="";a.style.transform="";a.style.opacity="";a.style.position="";a.style.zIndex="";a.style.background="";a.style.boxShadow="";a.style.minHeight="";a.style.willChange=""};
- const reset=()=>{const a=el();if(!a)return;a.style.transition="transform .2s ease";a.style.transform="translateX(0)";setTimeout(clean,210)};
+ const reset=()=>{const a=el();if(!a)return;a.style.transition="transform .2s ease";a.style.transform="translateX(0)";if(under&&under._in){under._in.style.transition='transform .2s ease';under._in.style.transform='translate3d(-28%,0,0)';under._dim.style.transition='opacity .2s ease';under._dim.style.opacity='.16'}setTimeout(clean,210)};
  document.addEventListener("touchstart",e=>{
   tracking=false;moving=false;dxNow=0;
   if(e.touches.length!==1)return;
@@ -1510,6 +1510,7 @@ async function navigate(p){if(session&&!window.__me)await loadMe();if(window.__m
   dxNow=Math.max(0,dx);
   const a=el();if(!a)return;
   a.style.transition="none";a.style.transform=`translateX(${dxNow}px)`;
+  if(under&&under._in){const p=Math.min(1,dxNow/window.innerWidth);under._in.style.transition='none';under._in.style.transform=`translate3d(${-28*(1-p)}%,0,0)`;under._dim.style.transition='none';under._dim.style.opacity=String(.16*(1-p))}
  },{passive:true});
  document.addEventListener("touchend",e=>{
   if(!tracking)return;tracking=false;
@@ -1518,7 +1519,7 @@ async function navigate(p){if(session&&!window.__me)await loadMe();if(window.__m
   const commit=dxNow>Math.min(110,window.innerWidth*.28);
   const a=el();
   if(commit&&a){
-   a.style.transition="transform .2s ease";a.style.transform="translateX(100%)";
+   a.style.transition="transform .2s ease";a.style.transform="translateX(100%)";if(under&&under._in){under._in.style.transition='transform .2s ease';under._in.style.transform='translate3d(0,0,0)';under._dim.style.transition='opacity .2s ease';under._dim.style.opacity='0'}
    setTimeout(async()=>{try{await goBack()}finally{await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));clean()}},200);
   }else reset();
  },{passive:true});
