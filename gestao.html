@@ -697,6 +697,34 @@ function oweDialog(st,name,curId){
 async function fillClientBadge(phone,target,curId,name){
   try{const t=document.querySelector(target);if(!t||!phone)return;const st=await clientStats(phone);const t2=document.querySelector(target);if(t2){t2.innerHTML=badgePills(st);const ob=t2.querySelector("[data-owe]");if(ob)ob.onclick=e=>{e.stopPropagation();oweDialog(st,name,curId)}}}catch(e){}
 }
+function clientOptionsSheet(phone){
+ const c=(bookingDraft.clients||[]).find(x=>String(x.phone)===String(phone))||{name:"Cliente",phone};
+ document.body.classList.add("sheet-open");
+ app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="co-sheet"><section class="action-sheet" role="dialog" aria-modal="true"><div class="sheet-grabber"></div><h2 class="section-title">${esc(c.name)}</h2>
+  <button class="sheet-action" id="co-summary"><span class="sheet-icon">◉</span><span>Ver perfil do cliente</span></button>
+  <button class="sheet-action" id="co-full"><span class="sheet-icon">➜</span><span>Ir para o cadastro do cliente</span></button>
+  <button class="sheet-action" id="co-change"><span class="sheet-icon">⇄</span><span>Alterar cliente</span></button>
+  <button class="sheet-action cancel" id="co-close"><span class="sheet-icon">×</span><span>Fechar</span></button></section></div>`);
+ const close=()=>{$("#co-sheet")?.remove();document.body.classList.remove("sheet-open")};
+ $("#co-close").onclick=close;$("#co-sheet").addEventListener("click",e=>{if(e.target.id==="co-sheet")close()});bindSheetDrag($("#co-sheet"),close);
+ $("#co-change").onclick=()=>{close();renderClientPicker()};
+ $("#co-summary").onclick=()=>{close();clientSummarySheet(c)};
+ $("#co-full").onclick=async()=>{close();const keep=bookingDraft;await showClientCard(phone);bookingDraft=keep;const back=()=>renderBookingScreen();if($("#back-clients")){$("#back-clients").textContent="← Voltar ao agendamento";$("#back-clients").onclick=back}try{setSub(back,"agenda")}catch(e){}};
+}
+async function clientSummarySheet(c){
+ document.body.classList.add("sheet-open");
+ app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="cs-sheet"><section class="action-sheet" role="dialog" aria-modal="true"><div class="sheet-grabber"></div><h2 class="section-title">${esc(c.name)}</h2><div id="cs-body" class="muted">Carregando…</div><button class="sheet-action cancel" id="cs-close"><span class="sheet-icon">×</span><span>Fechar</span></button></section></div>`);
+ const close=()=>{$("#cs-sheet")?.remove();document.body.classList.remove("sheet-open")};
+ $("#cs-close").onclick=close;$("#cs-sheet").addEventListener("click",e=>{if(e.target.id==="cs-sheet")close()});bindSheetDrag($("#cs-sheet"),close);
+ try{
+  let full=c;try{full=(await api(`clients?select=*&phone=eq.${encodeURIComponent(c.phone)}`))[0]||c}catch(e){}
+  const st=await clientStats(c.phone);const nx=st.scheduled[0];
+  const body=$("#cs-body");if(!body)return;
+  body.innerHTML=`<div class="cc-sub" style="margin-bottom:8px">${esc(full.nickname?full.nickname+" · ":"")}${esc(full.phone||"")}${full.birth_date?" · 🎂 "+esc(birthBR(full.birth_date)):""}</div><div class="cb-row">${badgePills(st)}</div>
+  <div class="cc-stats" style="margin:8px 0"><div><b>${st.attended.length}</b><span>Atendimentos</span></div><div><b>${st.noshows.length}</b><span>Faltas</span></div><div><b>${fm(st.spent)}</b><span>Total pago</span></div></div>
+  ${nx?`<div class="muted">Próximo: ${esc(nx.date.split("-").reverse().join("/"))} às ${hm(nx.start_min)}</div>`:""}`;
+ }catch(e){const body=$("#cs-body");if(body)body.innerHTML=`<span class="error">${esc(e.message)}</span>`}
+}
 async function showClientCard(phone){
   try{
     let c=(await api(`clients?select=*&phone=eq.${encodeURIComponent(phone)}`))[0]||clients.find(x=>String(x.phone)===String(phone))||{name:"Cliente",phone};
@@ -1529,7 +1557,7 @@ if(b.dataset.slot!=null){window.__newBarber=b.dataset.slotBarber||null;await ope
 if(b.dataset.blockScope){readBookingInputs();bookingDraft.blockAll=b.dataset.blockScope==="all";renderBookingScreen();return}
 if(b.id==="booking-back"){bookingDraft=null;await loadAgenda();return}
 if(b.id==="mode-book"||b.id==="mode-block"){readBookingInputs();bookingDraft.mode=b.id==="mode-book"?"book":"block";renderBookingScreen();return}
-if(b.id==="open-client-picker"){readBookingInputs();renderClientPicker();return}
+if(b.id==="open-client-picker"){readBookingInputs();if(bookingDraft&&bookingDraft.selectedPhone){clientOptionsSheet(bookingDraft.selectedPhone);return}renderClientPicker();return}
 if(b.id==="booking-add-client"){readBookingInputs();bookingDraft.addingClient=true;bookingDraft.selectedPhone=null;renderBookingScreen();return}
 if(b.dataset.pickClient){readBookingInputs();bookingDraft.selectedPhone=b.dataset.pickClient;bookingDraft.newName="";bookingDraft.newPhone="";bookingDraft.addingClient=false;bookingDraft.query="";renderBookingScreen();return}
 if(b.id==="client-picker-back"){renderBookingScreen();return}
@@ -1716,9 +1744,10 @@ function __renderBookingScreen(){
  ${(d.barbers&&d.barbers.length>1&&!(d.mode==='block'&&d.blockAll))?`<div class="field"><label>Profissional</label><select id="booking-barber">${d.barbers.map(b=>`<option value="${b.id}" ${Number(b.id)===Number(d.barberId)?'selected':''}>${esc(b.name)}</option>`).join('')}</select></div>`:''}
  ${d.mode==='book'?`
  <div class="card client-card-compact">
- <div id="booking-client-badge" class="cb-row"></div><button class="btn client-select-btn" id="open-client-picker" type="button">${d.selectedPhone?`<span class="client-selected-name">${esc((d.clients.find(c=>c.phone===d.selectedPhone)||{}).name||'Selecionado')}</span>`:'<span class="client-plus-mini">＋</span><span>Selecionar cliente</span>'}</button>
+ <button class="btn client-select-btn" id="open-client-picker" type="button">${d.selectedPhone?`<span class="client-selected-name">${esc((d.clients.find(c=>c.phone===d.selectedPhone)||{}).name||'Selecionado')}</span>`:'<span class="client-plus-mini">＋</span><span>Selecionar cliente</span>'}</button>
  <div id="booking-new-client-panel" class="${d.addingClient?'':'hidden'}"><div class="field"><label>Nome completo</label><input id="booking-new-name" placeholder="Nome completo" value="${esc(d.newName||'')}"></div><div class="field"><label>Telefone com DDD</label><input id="booking-new-phone" placeholder="Telefone com DDD" inputmode="tel" value="${esc(d.newPhone||'')}"></div></div>
  </div>
+ <div id="booking-client-badge" class="cb-row booking-badge-out"></div>
  <div class="booking-range-label">Início</div><div class="booking-date-time-line"><div class="field"><input id="booking-date" type="date" aria-label="Data de início" title="${["dom","seg","ter","qua","qui","sex","sáb"][d.date.getDay()]}, ${d.date.toLocaleDateString("pt-BR")}" value="${key(d.date)}"></div><div class="field"><input id="booking-start" type="time" aria-label="Horário de início" value="${startMin==null?'':hm(startMin)}" step="1800"></div></div>
  <div class="section-title">Serviços</div>
  <div>${(d.catalog||[]).map(x=>{const chosen=selected.find(z=>String(z.id)===String(x.id));const price=chosen?Number(chosen.price):Number(x.price||0);return `<label class="service-choice${chosen?' on':''}"><input type="checkbox" data-service="${x.id}" ${chosen?'checked':''}><span class="grow"><b>${esc(x.name)}</b><span class="muted">${(()=>{const dm=Number(x.duration_min||0);return dm>0?dm+" min":(x.is_cut||serviceAddsDuration(x)?"30 min":"")})()}</span></span><span class="svc-price">${fm(price)}</span></label>`}).join('')}</div>
@@ -2602,4 +2631,7 @@ input.sw:checked{background:#2378d4}input.sw:checked::after{transform:translateX
 .acc-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.acc-actions .btn{height:40px;min-height:0;padding:0 8px;font-size:14px;border-radius:12px;font-weight:700;margin:0}
 .acc-actions .danger{background:#fff!important;color:#d23b3b!important;border:1.5px solid #f2b8b8!important}.acc-actions .primary{background:#2378d4!important;color:#fff!important;border-color:#2378d4!important}
 .field .perm-row,.professional-form .perm-row{display:flex!important;flex-direction:row!important;align-items:center;font-size:inherit;color:inherit}.field .perm-row b{display:block}
+
+.booking-screen .booking-badge-out{margin:-4px 4px 10px!important}
+.booking-screen .client-card-compact .client-select-btn.has-client:after{content:"›";margin-left:auto;font-size:20px;color:#8aa6c4;line-height:1}
 </style>
