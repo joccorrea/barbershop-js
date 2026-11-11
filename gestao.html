@@ -923,13 +923,44 @@ async function loadPackages(){
  }catch(e){shell("Pacotes",`<p class="error">${esc(e.message)}</p>`)}
 }
 async function editPackage(id=null){
- editPackageId=id;
- const p=packages.find(x=>String(x.id)===String(id))||{name:"",description:"",price:0,active:true,has_expiration:false,expiration_value:30,expiration_unit:"days",validity_start_mode:"purchase",items:[]};
+ editPackageId=id;window.scrollTo(0,0);
+ const p=packages.find(x=>String(x.id)===String(id))||{name:"",description:"",price:0,active:true,has_expiration:false,expiration_value:30,expiration_unit:"days",validity_start_mode:"first_use",items:[]};
  try{services=await api("services?select=*&order=sort")}catch(e){}
- shell(id?"Editar pacote":"Novo pacote",`<form id="package-form"><div class="grid">${field("Nome do pacote","pk-name",p.name)}${field("Preço (R$)","pk-price",p.price,"number",'step="0.01" min="0"')}</div>${area("Descrição","pk-description",p.description||"")}<div class="booking-range-label">Serviços incluídos</div>${(services||[]).filter(s=>s.active||p.items.some(i=>i.service_id===s.id)).map(s=>{const it=p.items.find(i=>i.service_id===s.id);return `<label class="card pk-line"><input type="checkbox" data-pk-service="${s.id}" ${it?"checked":""}><span class="grow"><b>${esc(s.name)}</b></span><span class="muted">Qtd.</span><input type="number" min="1" step="1" data-pk-qty="${s.id}" value="${it?it.quantity:1}"></label>`}).join("")}<label class="pk-opt"><input type="checkbox" id="pk-exp" ${p.has_expiration?"checked":""}> O pacote tem validade</label><div class="grid">${field("Validade (quantidade)","pk-expval",p.expiration_value||30,"number",'min="1"')}<div class="field"><label for="pk-expunit">Unidade</label><select id="pk-expunit"><option value="days">Dias</option><option value="weeks">Semanas</option></select></div></div><div class="field"><label for="pk-start">A validade começa</label><select id="pk-start"><option value="purchase">Na compra</option><option value="first_use">No primeiro uso</option></select></div><label class="pk-opt"><input type="checkbox" id="pk-active" ${p.active?"checked":""}> Pacote ativo</label><div class="form-actions std-actions"><button class="btn primary" type="submit">Salvar pacote</button><button class="btn" type="button" id="cancel-package">Voltar</button></div></form>`);
- $("#pk-expunit").value=p.expiration_unit||"days";$("#pk-start").value=p.validity_start_mode||"purchase";
+ const list=(services||[]).filter(s=>s.active||p.items.some(i=>i.service_id===s.id)).sort((a,b)=>String(a.name).localeCompare(String(b.name),"pt-BR"));
+ shell(id?"Editar pacote":"Novo pacote",`<form id="package-form">${field("Nome do pacote","pk-name",p.name)}${area("Descrição","pk-description",p.description||"")}
+ <div class="section-title">Serviços</div>
+ <div id="pk-svcs">${list.map(s=>{const it=p.items.find(i=>i.service_id===s.id);return `<div class="service-choice pk-sv${it?" on":""}" data-pk-row="${s.id}"><input type="checkbox" data-pk-service="${s.id}" ${it?"checked":""}><span class="grow"><b>${esc(s.name)}</b><span class="muted">${fm(s.price)}</span></span><span class="qty-st pk-q"><button type="button" data-bb="x" data-pkq="-1" aria-label="Menos">−</button><b data-pk-qty="${s.id}">${it?it.quantity:1}</b><button type="button" data-bb="x" data-pkq="1" aria-label="Mais">+</button></span></div>`}).join("")}</div>
+ <div class="section-title">Validade</div>
+ <label class="pk-opt"><input type="checkbox" id="pk-exp" ${p.has_expiration?"checked":""}> O pacote tem validade</label>
+ <div id="pk-validity" class="${p.has_expiration?"":"hidden"}"><div class="pk-inline"><input id="pk-expval" type="number" min="1" inputmode="numeric" value="${esc(p.expiration_value||30)}"><select id="pk-expunit"><option value="days">Dias</option><option value="weeks">Semanas</option></select></div><div class="field"><label for="pk-start">A validade começa</label><select id="pk-start"><option value="first_use">No primeiro uso</option><option value="purchase">Na compra</option></select></div></div>
+ <div class="section-title">Valor do pacote</div>
+ <div class="card pk-price-card">
+  <div class="pk-row"><span>Valor normal</span><b id="pk-normal">R$ 0,00</b></div>
+  <div class="pk-row"><span>Desconto</span><div class="pk-seg" id="pk-dtype"><button type="button" data-dt="amount" class="on">R$</button><button type="button" data-dt="percent">%</button></div><input id="pk-disc" type="number" step="0.01" min="0" inputmode="decimal" value="0"></div>
+  <div class="pk-row hidden" id="pk-roundrow"><span>Arredondar</span><select id="pk-round"><option value="none">Não</option><option value="up">Para cima</option><option value="down">Para baixo</option></select></div>
+  <div class="pk-row pk-total"><span>Valor do pacote</span><div class="pay-money"><i>R$</i><input id="pk-price" type="number" step="0.01" min="0" inputmode="decimal" value="${esc(Number(p.price||0).toFixed(2))}"></div></div>
+ </div>
+ <label class="pk-opt"><input type="checkbox" id="pk-active" ${p.active?"checked":""}> Pacote ativo</label><div class="form-actions std-actions"><button class="btn primary" type="submit">Salvar pacote</button><button class="btn" type="button" id="cancel-package">Voltar</button></div></form>`);
+ $("#pk-expunit").value=p.expiration_unit||"days";$("#pk-start").value=p.validity_start_mode||"first_use";
+ let dtype="amount";
+ const price=sid=>Number((services||[]).find(x=>x.id===sid)?.price||0);
+ const qtyOf=sid=>Number(app.querySelector(`[data-pk-qty="${sid}"]`)?.textContent||1);
+ const normal=()=>[...app.querySelectorAll("[data-pk-service]")].filter(c=>c.checked).reduce((a,c)=>{const sid=Number(c.dataset.pkService);return a+price(sid)*qtyOf(sid)},0);
+ const showNormal=()=>{$("#pk-normal").textContent=fm(normal())};
+ const calc=()=>{const n=normal(),d=Math.max(0,Number($("#pk-disc").value)||0);let f=dtype==="percent"?n*(1-Math.min(d,100)/100):n-d;if(dtype==="percent"){const r=$("#pk-round").value;if(r==="up")f=Math.ceil(f-1e-9);else if(r==="down")f=Math.floor(f+1e-9)}f=Math.max(0,Math.round(f*100)/100);$("#pk-price").value=f.toFixed(2);showNormal()};
+ showNormal();
+ if(id&&Number(p.price)<normal()-0.001){$("#pk-disc").value=(normal()-Number(p.price)).toFixed(2)}
+ app.querySelector("#pk-svcs").addEventListener("click",e=>{
+  const row=e.target.closest("[data-pk-row]");if(!row)return;
+  const cb=row.querySelector("[data-pk-service]"),qb=e.target.closest("[data-pkq]");
+  if(qb){const el=row.querySelector("[data-pk-qty]");el.textContent=Math.max(1,Math.min(99,Number(el.textContent)+Number(qb.dataset.pkq)));if(!cb.checked){cb.checked=true;row.classList.add("on")}calc();return}
+  cb.checked=!cb.checked;row.classList.toggle("on",cb.checked);calc();
+ });
+ $("#pk-exp").onchange=()=>$("#pk-validity").classList.toggle("hidden",!$("#pk-exp").checked);
+ $("#pk-dtype").onclick=e=>{const b=e.target.closest("[data-dt]");if(!b)return;dtype=b.dataset.dt;$("#pk-dtype").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));$("#pk-roundrow").classList.toggle("hidden",dtype!=="percent");calc()};
+ $("#pk-disc").oninput=calc;$("#pk-round").onchange=calc;
  $("#package-form").onsubmit=async e=>{e.preventDefault();try{
-  const chosen=[...app.querySelectorAll("[data-pk-service]")].filter(c=>c.checked).map(c=>{const sid=Number(c.dataset.pkService);const sv=(services||[]).find(x=>x.id===sid);return {service_id:sid,service_name:sv?.name||"",quantity:Math.max(1,Number(app.querySelector(`[data-pk-qty="${sid}"]`).value||1))}});
+  const chosen=[...app.querySelectorAll("[data-pk-service]")].filter(c=>c.checked).map(c=>{const sid=Number(c.dataset.pkService);const sv=(services||[]).find(x=>x.id===sid);return {service_id:sid,service_name:sv?.name||"",quantity:Math.max(1,qtyOf(sid))}});
   const exp=checked("pk-exp");
   const data={name:val("pk-name").trim(),description:val("pk-description"),price:num("pk-price"),active:checked("pk-active"),has_expiration:exp,expiration_value:exp?Math.max(1,num("pk-expval")):null,expiration_unit:val("pk-expunit"),validity_start_mode:val("pk-start")};
   if(!data.name)throw Error("Informe o nome do pacote.");
@@ -1515,7 +1546,7 @@ document.addEventListener("click",e=>{
  const h=e.target.closest(".hist-item");
  if(h&&!e.target.closest("a,button"))h.classList.toggle("open");
 });
-async function navigate(p){clientFromAgenda=false;if(session&&!window.__me)await loadMe();if(window.__me&&window.__me.has_access===false){setMenuOpen(false);app.innerHTML=`<div class="card"><div class="section-title">Sem acesso</div><p class="muted">Esta conta ainda não foi liberada pelo proprietário. Peça para ele criar o seu acesso em Configurações → Profissionais.</p></div>`;return}p=guardPage(p);page=p;ensurePM();$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p||(["settings-hours","settings-professionals","settings-messages","settings-payments","settings-roles","services","products","packages","combos"].includes(p)&&b.dataset.page==="settings")));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="packages")await loadPackages();else if(p==="combos")await loadCombos();else if(p==="settings-hours")await loadHours();else if(p==="settings-professionals")await loadProfessionals();else if(p==="settings-messages")loadMessageSettings();else if(p==="settings-payments")await loadPayMethods();else if(p==="settings-roles")await loadRoles();else if(p==="birthdays")await loadBirthdays()}
+async function navigate(p){clientFromAgenda=false;if(session&&!window.__me)await loadMe();if(window.__me&&window.__me.has_access===false){setMenuOpen(false);app.innerHTML=`<div class="card"><div class="section-title">Sem acesso</div><p class="muted">Esta conta ainda não foi liberada pelo proprietário. Peça para ele criar o seu acesso em Configurações → Profissionais.</p></div>`;return}p=guardPage(p);page=p;if(p!=="agenda")window.scrollTo(0,0);ensurePM();$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p||(["settings-hours","settings-professionals","settings-messages","settings-payments","settings-roles","services","products","packages","combos"].includes(p)&&b.dataset.page==="settings")));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="packages")await loadPackages();else if(p==="combos")await loadCombos();else if(p==="settings-hours")await loadHours();else if(p==="settings-professionals")await loadProfessionals();else if(p==="settings-messages")loadMessageSettings();else if(p==="settings-payments")await loadPayMethods();else if(p==="settings-roles")await loadRoles();else if(p==="birthdays")await loadBirthdays()}
 // Gesto lateral: arrastar da borda esquerda para a direita volta à tela anterior,
 // mostrando a tela de baixo (instantâneo da tela anterior) enquanto arrasta.
 (function(){
@@ -1762,7 +1793,7 @@ async function renderBookingClientRegistration(){
     await api("clients?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify({phone,name:state.name.trim(),nickname:state.nickname,birth_date:state.birth_date||null})});
     const profile={phone,street:state.street,number:state.number,complement:state.complement,neighborhood:state.neighborhood,city:state.city,state:state.state,postal_code:state.postal_code,notes:state.notes,updated_at:new Date().toISOString()};
     await api("client_profiles?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify(profile)});
-    const fresh=await api("clients?select=phone,name&order=name");d.clients=fresh;d.selectedPhone=phone;d.newName="";d.newPhone="";d.addingClient=false;d.query="";renderClientPicker();
+    const fresh=await api("clients?select=phone,name&order=name");d.clients=fresh;d.selectedPhone=phone;d.newName="";d.newPhone="";d.addingClient=false;d.query="";renderBookingScreen();
    }catch(err){const el=$("#reg-error");if(el)el.textContent=err.message}
   });
  };
@@ -2275,6 +2306,7 @@ async function sellPackageDialog(c,done){
   <label class="pay-optrow"><span>Quantidade de pacotes</span><div class="qty-st"><button type="button" data-q="-1">−</button><b id="sp-q">1</b><button type="button" data-q="1">+</button></div></label>
   <label class="pay-optrow" id="sp-seqrow" style="display:none"><span>Ativar em sequência<small>Cada pacote só é liberado quando o anterior terminar; a validade conta a partir do 1º uso</small></span><input type="checkbox" id="sp-seq"></label>
   <label class="pay-optrow"><span>Valor (R$)</span><div class="pay-money" style="width:130px"><i>R$</i><input id="sp-amt" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,00"></div></label>
+  <label class="pay-optrow"><span>Data do pagamento</span><input id="sp-date" type="date" value="${todayLocal()}" style="max-width:150px"></label>
   <h3 class="pay-h" style="margin:10px 0 0;font-size:15px">Como foi pago?</h3><div id="sp-split"></div>
   <div id="sp-err" class="pay-diff"></div>
   <div class="dlg-foot"><button type="button" data-ns="x">Voltar</button><button type="button" id="sp-ok" disabled>Confirmar venda</button></div></div>`;
@@ -2301,7 +2333,7 @@ async function sellPackageDialog(c,done){
           const cp=(await api("client_packages",{method:"POST",body:JSON.stringify({client_phone:c.phone,client_name:c.name||"",package_id:sel.id,package_name:sel.name,purchased_price:per,status:"active",purchased_at:now.toISOString(),starts_at:startAt?startAt.toISOString():null,expires_at:expires,validity_start_mode:(seq&&n>0)?"first_use":sel.validity_start_mode,first_used_at:null,services_snapshot:sel.items.map(i=>({service_id:i.service_id,service_name:i.service_name,quantity:i.quantity})),created_by:uid()})}))[0];
           for(const i of sel.items)await api("client_package_services",{method:"POST",body:JSON.stringify({client_package_id:cp.id,service_id:i.service_id,service_name:i.service_name,quantity_purchased:i.quantity,quantity_remaining:i.quantity})});
         }
-        if(paid>0)await saveSaleParts(sp.parts(),"Venda pacote "+sel.name+(qn>1?" ×"+qn:"")+" — "+(c.name||c.phone),"Venda de pacote");
+        if(paid>0)await saveSaleParts(sp.parts(),"Venda pacote "+sel.name+(qn>1?" ×"+qn:"")+" — "+(c.name||c.phone),"Venda de pacote",m.querySelector("#sp-date").value||todayLocal());
         m.remove();await done?.();
       }catch(err){m.querySelector("#sp-err").textContent="Não foi possível registrar: "+err.message;okb.disabled=false;okb.textContent="Confirmar venda"}
     }
@@ -3020,6 +3052,19 @@ html{touch-action:manipulation}
 .owe-row[data-oid]{cursor:pointer}.pop-scrim{z-index:7000!important}
 .mg-it{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid #C4DFF8;background:#F3F9FF;border-radius:14px;padding:11px 13px;margin-bottom:8px;color:#10304F}.mg-it span{font-size:13px;color:#5b7a99}
 #mg-list{max-height:40vh;overflow:auto}
+.pk-sv{cursor:pointer;display:flex!important;align-items:center;gap:12px!important;padding:8px 12px!important;margin:5px 0!important;min-height:0!important;border:1.5px solid #D5E6F7!important;border-radius:14px!important;background:#fff!important;box-shadow:var(--box-shadow)}
+.pk-sv input[type=checkbox]{-webkit-appearance:none;appearance:none;width:26px!important;height:26px!important;flex:0 0 26px;margin:0!important;border-radius:50%;border:2px solid #B5D2EE;background:#fff;pointer-events:none}
+.pk-sv input[type=checkbox]:checked{background:#4F94D8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center/15px no-repeat;border-color:#4F94D8}
+.pk-sv.on{background:#E6F0FB!important;border:2px solid #5B9BD5!important}
+.pk-sv .grow{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}.pk-sv .pk-q{margin-left:auto;display:none}.pk-sv.on .pk-q{display:flex}
+.pk-sv .muted{display:block}
+.pk-inline{display:flex;gap:10px;margin:0 0 10px}.pk-inline input{flex:1 1 0;min-width:0}.pk-inline select{flex:1 1 0;min-width:0}
+.pk-price-card{padding:10px 14px!important}
+.pk-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0}
+.pk-row input,.pk-row select{max-width:130px;min-width:0;text-align:right;flex:0 1 130px}
+.pk-row.hidden{display:none}
+.pk-total{border-top:1px solid #D5E6F7;margin-top:4px;padding-top:10px;font-weight:800}
+.pk-seg{flex:0 0 auto;display:flex;border:1px solid #B5D2EE;border-radius:999px;overflow:hidden;margin-left:auto}.pk-seg button{border:0!important;background:#fff!important;padding:0 14px!important;min-width:46px;font-weight:800;font-size:15px!important;color:#2378d4!important;min-height:0;height:34px!important;border-radius:0!important;box-shadow:none!important}.pk-seg button.on{color:#fff!important;background:linear-gradient(135deg,rgba(90,162,230,.95),rgba(35,120,212,.9))!important}
 /* g27 */
 .professional-actions .pill{font-weight:700}
 /* g26 */
