@@ -1176,9 +1176,9 @@ async function loadProfessionals(){
   barbers=await api("barbers?select=*&order=id");
   try{const rp=await api("role_permissions?select=role,perms");rolePerms={};rp.forEach(r=>rolePerms[r.role]=r.perms||{})}catch(e){}
   try{psServices=await api("services?select=id,name&active=eq.true&order=sort");psLinks=await api("barber_services?select=barber_id,service_id")}catch(e){psServices=[];psLinks=[]}
-  const rows=barbers.map(x=>`<div class="card professional-card">
-    <button type="button" class="professional-edit" data-edit-professional="${x.id}">${esc(x.name)}<span class="ps-sub">${esc(ROLE_LABEL[x.role]||"Barbeiro")} · ${x.user_id?"com login":"sem login"} · ${x.schedule?"horário próprio":"horário da barbearia"}</span></button>
-    <div class="professional-actions"><span class="pill">${x.active?"Ativo":"Inativo"}</span><button type="button" class="lic" data-edit-professional="${x.id}" aria-label="Editar" title="Editar">${ICO.edit}</button></div>
+  const rows=barbers.map(x=>`<div class="card professional-card" data-prof="${x.id}">
+    <button type="button" class="professional-edit">${esc(x.name)}<span class="ps-sub">${esc(ROLE_LABEL[x.role]||"Barbeiro")} · ${x.user_id?"com login":"sem login"} · ${x.schedule?"horário próprio":"horário da barbearia"}</span></button>
+    <div class="professional-actions"><span class="pill">${x.active?"Ativo":"Inativo"}</span></div>
    </div>`).join("");
   shell("Profissionais",`<div class="settings-back-row"><button type="button" class="btn" id="settings-back">← Configurações</button></div>
    ${rows||'<p class="muted">Nenhum profissional cadastrado.</p>'}
@@ -1186,7 +1186,7 @@ async function loadProfessionals(){
    <div id="professional-editor"></div>`);
   $("#settings-back").onclick=()=>navigate("settings");
   $("#add-professional").onclick=()=>openProfessionalForm(null);
-  $("#app").querySelectorAll("[data-edit-professional]").forEach(b=>b.onclick=()=>openProfessionalForm(Number(b.dataset.editProfessional)));
+  $("#app").querySelectorAll("[data-prof]").forEach(c=>c.onclick=()=>{const pid=Number(c.dataset.prof),x=barbers.find(z=>Number(z.id)===pid);if(!x)return;popMenu(c,[{icon:ICO.edit,title:"Editar",fn:()=>openProfessionalForm(pid)},{icon:x.active?'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></svg>':'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>',title:x.active?"Desativar":"Ativar",cls:x.active?"danger":"",fn:async()=>{try{await api(`barbers?id=eq.${pid}`,{method:"PATCH",body:JSON.stringify({active:!x.active})});await loadProfessionals()}catch(err){alert("Não foi possível alterar: "+err.message)}}}])});
  }catch(e){shell("Profissionais",`<div class="settings-back-row"><button type="button" class="btn" id="settings-back">← Configurações</button></div><p class="error">${esc(e.message)}</p>`);$("#settings-back").onclick=()=>navigate("settings")}
 }
 let psServices=[],psLinks=[];
@@ -2972,6 +2972,8 @@ html{touch-action:manipulation}
 .pkg-card{cursor:pointer}
 .allday-row{display:flex;align-items:center;gap:10px;margin:0 0 6px}
 
+/* g27 */
+.professional-actions .pill{font-weight:700}
 /* g26 */
 .settings-back-row{display:none!important}
 #save-period-slot{flex:0 0 auto!important;width:auto!important;border-radius:999px!important;background:linear-gradient(135deg,rgba(90,162,230,.95),rgba(35,120,212,.9))!important;border:1px solid rgba(255,255,255,.7)!important;color:#fff!important;box-shadow:0 4px 12px rgba(31,75,117,.25)!important}
