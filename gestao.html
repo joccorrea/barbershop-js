@@ -359,8 +359,8 @@ button.cb-pill{cursor:pointer;font-family:inherit}
 .pd-qty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:48px;padding:5px 4px;border-radius:12px;background:linear-gradient(135deg,#D6EAFC,#A9D0F5);color:#10304F;flex:none}.pd-qty b{font-size:19px;line-height:1.1}.pd-qty span{font-size:11px}.pd-qty.low{background:linear-gradient(135deg,#FFE9C7,#FFD08A);color:#7A4500}
 .pd-main{flex:1;min-width:0}.pd-main b{color:#10304F}.pd-pill{background:#FFE9C7;color:#7A4500;font-size:11px;font-weight:800;border-radius:999px;padding:3px 8px;white-space:nowrap}
 .pd-chips{display:flex;gap:8px;margin-top:8px;padding-top:8px;border-top:1px dashed #C4DFF8}.pd-chips button{height:32px;padding:0 14px;border-radius:999px;border:1.5px solid #4F94D8;background:#EAF4FF;color:#1F4B75;font-size:13px;font-weight:700}
-.pd-scrim{position:fixed;inset:0;z-index:6000;background:rgba(10,30,50,.5);display:flex;align-items:flex-end;justify-content:center}.pd-scrim.pd-top{z-index:6100;align-items:center;padding:18px}
-.pd-card{background:#fff;color:#10304F;border-radius:22px 22px 0 0;padding:16px 16px 20px;width:100%;max-width:460px;max-height:92vh;overflow:auto}.pd-card.pd-small{border-radius:20px;max-width:340px}.pd-card h3{margin:0 0 10px;font-size:18px;color:#10304F}
+.pd-scrim{position:fixed;inset:0;z-index:6000;background:rgba(10,30,50,.5);display:flex;align-items:center;justify-content:center;padding:18px;pointer-events:auto!important}.pd-scrim.pd-top{z-index:6100}.pd-sheet h3{margin:0 0 10px;font-size:18px;color:#10304F}.pd-sheet .action-sheet{padding-left:16px;padding-right:16px;max-width:460px}
+.pd-card{background:#fff;color:#10304F;border-radius:20px;padding:16px 16px 20px;width:100%;max-width:340px;max-height:92vh;overflow:auto}.pd-card h3{margin:0 0 10px;font-size:18px;color:#10304F}
 .pd-f{margin-bottom:10px;flex:1}.pd-f label{display:block;font-size:13px;font-weight:700;color:#4A6B8C;margin-bottom:4px}.pd-f input{width:100%;height:44px;border-radius:12px;border:1.5px solid #C4DFF8;background:#fff;color:#10304F;padding:0 12px;font-size:16px}.pd-row{display:flex;gap:10px}
 .pd-catbtn{width:100%;height:44px;border-radius:12px;border:1.5px solid #C4DFF8;background:#fff;color:#10304F;padding:0 12px;font-size:16px;display:flex;align-items:center;justify-content:space-between;text-align:left}.pd-catbtn i{font-style:normal;font-size:22px;color:#4F94D8}
 .pd-ok{width:100%;height:46px;border-radius:14px;border:0;background:#1F4B75;color:#fff;font-size:16px;font-weight:700;margin-top:4px}.pd-ok:disabled{opacity:.6}.pd-x{width:100%;height:40px;border:0;background:none;color:#4A6B8C;font-size:15px;margin-top:4px}.pd-del{width:100%;height:40px;border:0;background:none;color:#B3342B;font-size:14px;margin-top:2px}.pd-err{color:#B3342B;font-size:13px;min-height:18px;margin:2px 0}
@@ -690,11 +690,22 @@ async function loadProducts(){
 }
 function editProduct(id=null){pdForm(id)}
 function pdModal(html,top){
- document.querySelector(top?".pd-scrim.pd-top":".pd-scrim:not(.pd-top)")?.remove();
- const d=document.createElement("div");d.className="pd-scrim"+(top?" pd-top":"");d.innerHTML=`<div class="pd-card ${top?"pd-small":""}">${html}</div>`;
- document.body.appendChild(d);document.body.classList.add("sheet-open");return d;
+ if(top){
+  document.querySelector(".pd-scrim.pd-top")?.remove();
+  const d=document.createElement("div");d.className="pd-scrim pd-top";d.innerHTML=`<div class="pd-card pd-small">${html}</div>`;
+  document.body.appendChild(d);return d;
+ }
+ document.querySelector(".sheet-scrim.pd-sheet")?.remove();
+ const d=document.createElement("div");d.className="sheet-scrim pd-sheet";d.innerHTML=`<section class="action-sheet" role="dialog" aria-modal="true"><div class="sheet-grabber"></div>${html}</section>`;
+ document.body.appendChild(d);document.body.classList.add("sheet-open");
+ d._dismiss=null;bindSheetDrag(d,()=>pdClose(d));return d;
 }
-function pdClose(d){d.remove();if(!document.querySelector(".pd-scrim"))document.body.classList.remove("sheet-open")}
+function pdClose(d){
+ const sheet=d.classList.contains("pd-sheet");d.remove();
+ if(!document.querySelector(".sheet-scrim"))document.body.classList.remove("sheet-open");
+ if(sheet&&pdOpen!==null){pdOpen=null;pdRender()}
+}
+document.addEventListener("click",e=>{if(pdOpen!==null&&page==="products"&&!e.target.closest(".pd-item,.sheet-scrim,.pd-scrim")){pdOpen=null;pdRender()}});
 function pdForm(id){
  const p=id?products.find(x=>x.id===id):null;let cat=p?pdCat(p):"";
  const d=pdModal(`<h3>${p?"Editar produto":"Cadastrar produto"}</h3>
