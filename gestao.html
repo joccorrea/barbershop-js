@@ -886,7 +886,8 @@ async function loadPackages(){
  try{
   const [pk,items]=await Promise.all([api("service_packages?select=*&order=name"),api("service_package_items?select=*&order=id")]);
   packages=pk.map(p=>({...p,items:items.filter(i=>String(i.package_id)===String(p.id))}));
-  shell("Pacotes",`<div class="row between"><span class="muted">${packages.length} pacote(s)</span><button class="btn primary" id="new-package" aria-label="Adicionar pacote" title="Adicionar pacote">＋</button></div>`+(packages.map(p=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(p.name)}</b><div class="muted">${esc(p.description||"")}</div><div>${fm(p.price)}${p.active?"":" · Inativo"}</div><div class="muted">${p.items.map(i=>esc(i.service_name)+" x"+i.quantity).join(", ")}${p.has_expiration?` · validade: ${p.expiration_value} ${p.expiration_unit==="weeks"?"semana(s)":"dia(s)"}`:""}</div></div><button type="button" class="lic" data-edit-package="${p.id}" aria-label="Editar" title="Editar">${ICO.edit}</button></div></div>`).join("")||`<p class="muted">Nenhum pacote cadastrado ainda.</p>`));
+  shell("Pacotes",`<div class="row between"><span class="muted">${packages.length} pacote(s)</span><button class="btn primary" id="new-package" aria-label="Adicionar pacote" title="Adicionar pacote">＋</button></div>`+(packages.map(p=>`<div class="card pkg-card" data-pkg-card="${p.id}"><div class="row between"><div class="grow"><b>${esc(p.name)}</b><div class="muted">${esc(p.description||"")}</div><div>${fm(p.price)}${p.active?"":" · Inativo"}</div><div class="muted">${p.items.map(i=>esc(i.service_name)+" x"+i.quantity).join(", ")}${p.has_expiration?` · validade: ${p.expiration_value} ${p.expiration_unit==="weeks"?"semana(s)":"dia(s)"}`:""}</div></div></div></div>`).join("")||`<p class="muted">Nenhum pacote cadastrado ainda.</p>`));
+  app.querySelectorAll("[data-pkg-card]").forEach(c=>c.onclick=()=>{const pid=c.dataset.pkgCard;popMenu(c,[{icon:ICO.edit,title:"Editar",fn:()=>editPackage(pid)},{icon:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',title:"Excluir",cls:"danger",fn:()=>showAppConfirm("Excluir este pacote?",async()=>{try{await api(`service_package_items?package_id=eq.${encodeURIComponent(pid)}`,{method:"DELETE"});await api(`service_packages?id=eq.${encodeURIComponent(pid)}`,{method:"DELETE"});await loadPackages()}catch(err){alert("Não foi possível excluir. Se o pacote já foi vendido, desative-o em vez de excluir. Detalhe: "+err.message);await loadPackages()}})}])});
  }catch(e){shell("Pacotes",`<p class="error">${esc(e.message)}</p>`)}
 }
 async function editPackage(id=null){
@@ -1791,6 +1792,7 @@ function __renderBookingScreen(){
  <div class="card adj-card" id="adj-card">${adjustmentsHtml(d)}</div>
  
  `:`
+ <label class="chk-item allday-row"><input type="checkbox" id="booking-allday"><span>Dia todo</span></label>
  <div class="booking-range-label">Início</div><div class="field-line">${dateInput('booking-date','',d.date)}${timeInput('booking-start','',startMin)}</div>
  <div class="booking-range-label">Fim</div><div class="field-line">${dateInput('booking-end-date','',d.endDate||d.date)}${timeInput('booking-end','',Math.min(d.start+30,1439))}</div>
  <div class="field"><label>Motivo (opcional)</label><input id="booking-reason" placeholder="Ex.: compromisso pessoal" value="${esc(d.reason||'')}"></div>
@@ -1906,7 +1908,7 @@ function askSendCancelWhatsApp(url){
 function showAppConfirm(message,onOk){
   document.querySelector("#app-confirm-scrim")?.remove();
   const scrim=document.createElement("div");scrim.id="app-confirm-scrim";scrim.className="app-confirm-scrim";
-  scrim.innerHTML=`<section class="app-confirm" role="dialog" aria-modal="true"><p>${message}</p><button type="button" data-confirm-cancel>Cancelar</button><button type="button" data-confirm-ok>OK</button></section>`;
+  scrim.innerHTML=`<section class="app-confirm" role="dialog" aria-modal="true"><p>${message}</p><div class="bb-row"><button type="button" class="bb-btn bb-back" data-bb="back" data-confirm-cancel aria-label="Voltar" title="Voltar">Voltar</button><button type="button" class="bb-btn bb-ok" data-bb="ok" data-confirm-ok aria-label="Confirmar" title="Confirmar">OK</button></div></section>`;
   document.body.appendChild(scrim);
   scrim.addEventListener("click",async e=>{
     if(e.target===scrim||e.target.closest("[data-confirm-cancel]")){scrim.remove();return}
@@ -2262,12 +2264,12 @@ function openStatusPicker(id){
   closeStatusPicker();
   const scrim=document.createElement("div");scrim.className="status-picker-scrim";scrim.id="status-picker-scrim";
   scrim.innerHTML=`<section class="status-picker action-sheet" role="dialog" aria-modal="true"><div class="sheet-grabber"></div><h3>Status do atendimento</h3>
-  <button class="status-option-pending" data-set-status="pending">🟡 Pendente — aguarda confirmação</button>
-  <button class="status-option-confirmed" data-set-status="confirmed">🔵 Confirmado</button>
-  <button class="status-option-completed" data-set-status="completed">🟣 Atendido — falta pagar</button>
-  <button class="status-option-finalized" data-set-status="finalized">🟢 Pago — finalizado</button>
-  <button class="status-option-noshow" data-set-status="no_show">🔴 Não compareceu / faltou</button>
-  <button data-set-status="cancelled">Cancelar agendamento</button></section>`;
+  <button class="status-option-pending so" style="--c:#e99a2b" data-set-status="pending"><i></i>Pendente<small>aguarda confirmação</small></button>
+  <button class="status-option-confirmed so" style="--c:#3979d1" data-set-status="confirmed"><i></i>Confirmado</button>
+  <button class="status-option-completed so" style="--c:#8a63c7" data-set-status="completed"><i></i>Atendido<small>falta pagar</small></button>
+  <button class="status-option-finalized so" style="--c:#279653" data-set-status="finalized"><i></i>Pago<small>finalizado</small></button>
+  <button class="status-option-noshow so" style="--c:#d94b4b" data-set-status="no_show"><i></i>Não compareceu</button>
+  <button class="so cx" data-set-status="cancelled">Cancelar agendamento</button></section>`;
   document.body.appendChild(scrim);bindSheetDrag(scrim,closeStatusPicker);
   scrim.addEventListener("click",async e=>{
     if(e.target===scrim)return
@@ -2305,6 +2307,7 @@ function openStatusPicker(id){
 }
 let apptHoldT=null,apptSink=null,apptXY=null;
 const apptClear=()=>{clearTimeout(appointmentHoldTimer);clearTimeout(apptSink);apptSink=null;document.querySelectorAll(".holding").forEach(c=>c.classList.remove("holding"))};
+document.addEventListener("change",e=>{if(e.target.id!=="booking-allday")return;const on=e.target.checked,st=$("#booking-start"),en=$("#booking-end"),ed=$("#booking-end-date"),sd=$("#booking-date");if(!st||!en)return;if(on){e.target.dataset.s=st.value;e.target.dataset.e=en.value;st.value="00:00";en.value="23:59";if(sd&&ed)ed.value=sd.value}else{if(e.target.dataset.s!==undefined)st.value=e.target.dataset.s;if(e.target.dataset.e!==undefined)en.value=e.target.dataset.e}[st,en].forEach(x=>{const f=x.closest(".field");if(f)f.style.display=on?"none":""});const bl=[...document.querySelectorAll(".booking-range-label")];bl.forEach(l=>{if(/^(Início|Fim)$/.test(l.textContent.trim())&&l.nextElementSibling&&l.nextElementSibling.querySelector("#booking-start,#booking-end"))l.nextElementSibling.querySelectorAll(".field").forEach(()=>{})})});
 document.addEventListener("pointerdown",e=>{
   const card=e.target.closest(".agenda-appointment[data-open-booking],.ag-appt[data-open-booking]");if(!card)return;
   appointmentHoldTriggered=false;appointmentHoldTarget=card;apptXY=[e.clientX,e.clientY];
@@ -2430,15 +2433,15 @@ if(session){const pendingReview=new URLSearchParams(location.search).get("bookin
 <script>["gesturestart","gesturechange","gestureend"].forEach(function(t){document.addEventListener(t,function(e){e.preventDefault()},{passive:false})});document.addEventListener("touchmove",function(e){if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});</script>
 <script>
 (function(){
- var RB=/^(voltar|cancelar|fechar|voltar à agenda)$/i,RS=/^(salvar\b.*|gravar|confirmar venda.*)$/i,RD=/^excluir$/i;
- function cls(b){if(b.dataset.bb||b.classList.contains("mini")||b.closest(".pay-foot,.pay-head"))return null;var t=(b.textContent||"").trim();if(!t||t.length>40)return null;return RS.test(t)?"save":RB.test(t)?"back":RD.test(t)?"del":null}
+ var RB=/^(voltar|cancelar|fechar|voltar à agenda)$/i,RS=/^(salvar\b.*|gravar|confirmar venda.*)$/i,RD=/^excluir$/i,RP=/^[＋+]$/;
+ function cls(b){if(b.dataset.bb||b.classList.contains("mini")||b.closest(".pay-foot,.pay-head,.pay-picker"))return null;var t=(b.textContent||"").trim();if(!t||t.length>40)return null;if(RP.test(t)&&(b.getAttribute("aria-label")||b.title))return"plus";return RS.test(t)?"save":RB.test(t)?"back":RD.test(t)?"del":null}
  function run(){
-  var all=[].slice.call(document.querySelectorAll("button:not([data-bb])")),hit=[];
-  all.forEach(function(b){var k=cls(b);if(k){b.dataset.bb=k;b.classList.add("bb-btn","bb-"+k);var t=(b.textContent||"").trim();b.setAttribute("aria-label",t);b.title=t;hit.push(b)}});
+  var hit=[];
+  [].slice.call(document.querySelectorAll("button:not([data-bb])")).forEach(function(b){var k=cls(b);if(k){b.dataset.bb=k;b.classList.add("bb-btn","bb-"+k);if(k!=="plus"){var t=(b.textContent||"").trim();b.setAttribute("aria-label",t);b.title=t;hit.push(b)}}});
   hit.forEach(function(b){
    if(b.parentElement&&b.parentElement.classList.contains("bb-row"))return;
    var P=b.parentElement,row=document.createElement("div");row.className="bb-row";P.insertBefore(row,b);
-   var n=b;while(n){var nx=n.nextElementSibling;if(n.dataset&&n.dataset.bb&&n.tagName==="BUTTON"){row.appendChild(n);n=nx}else break}
+   var n=b;while(n){var nx=n.nextElementSibling;if(n.dataset&&n.dataset.bb&&n.dataset.bb!=="plus"&&n.tagName==="BUTTON"){row.appendChild(n);n=nx}else break}
   });
  }
  var q=0;function sched(){if(q)return;q=requestAnimationFrame(function(){q=0;run()})}
@@ -2899,15 +2902,35 @@ html{touch-action:manipulation}
 
 /* bolhas de ação */
 .bb-row{display:flex!important;align-items:center;justify-content:space-between;gap:14px;margin:16px 0 6px!important;width:100%;grid-column:1/-1;background:none!important;border:0!important;box-shadow:none!important;padding:0!important}
-.bb-back{order:0}.bb-del{order:1}.bb-save{order:2;margin-left:auto}
-button.bb-btn.bb-btn{flex:none!important;width:54px!important;min-width:54px!important;max-width:54px!important;height:54px!important;min-height:54px!important;padding:0!important;margin:0!important;border-radius:50%!important;display:grid!important;place-items:center;font-size:0!important;line-height:0!important;color:#10304F!important;border:1px solid rgba(255,255,255,.9)!important;background:linear-gradient(135deg,rgba(255,255,255,.82),rgba(190,220,250,.55))!important;-webkit-backdrop-filter:blur(14px) saturate(1.7);backdrop-filter:blur(14px) saturate(1.7);box-shadow:0 8px 20px rgba(31,100,180,.24),inset 0 1px 0 rgba(255,255,255,.95),inset 0 -6px 12px rgba(111,168,220,.16)!important;transition:transform .15s ease,opacity .15s}
-button.bb-btn::before{content:"";display:block;width:26px;height:26px;background:currentColor;-webkit-mask:var(--bbi) center/contain no-repeat;mask:var(--bbi) center/contain no-repeat}
-button.bb-btn.bb-save.bb-save{margin-left:auto!important}
-button.bb-btn:active{transform:scale(.92)}
-button.bb-btn:disabled{opacity:.45}
-button.bb-back{--bbi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 5l-7 7 7 7'/%3E%3C/svg%3E")}
-button.bb-save{--bbi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 3h13l4 4v14H3V3h1zm2 2v5h10V5H6zm0 9v5h12v-5H6zm8-8h2v3h-2V6z'/%3E%3C/svg%3E")}
-button.bb-btn.bb-save{color:#fff!important;background:linear-gradient(135deg,rgba(90,162,230,.95),rgba(35,120,212,.88))!important;border-color:rgba(255,255,255,.7)!important}
-button.bb-del{--bbi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3'/%3E%3C/svg%3E")}
-button.bb-btn.bb-del{color:#c0392b!important}
+.bb-row:has(.sheet-close){justify-content:center}
+.bb-back{order:0}.bb-del{order:1}.bb-save,.bb-ok{order:2}
+:is(html,#app) button.bb-btn.bb-btn{flex:none!important;width:52px!important;min-width:52px!important;max-width:52px!important;height:52px!important;min-height:52px!important;padding:0!important;border-radius:50%!important;font-size:0!important;line-height:0!important;color:transparent!important;border:1px solid rgba(255,255,255,.9)!important;background:var(--bbi) center/24px 24px no-repeat,linear-gradient(135deg,rgba(255,255,255,.82),rgba(190,220,250,.55))!important;-webkit-backdrop-filter:blur(14px) saturate(1.7);backdrop-filter:blur(14px) saturate(1.7);box-shadow:0 8px 20px rgba(31,100,180,.24),inset 0 1px 0 rgba(255,255,255,.95),inset 0 -6px 12px rgba(111,168,220,.16)!important;transition:transform .15s ease,opacity .15s;-webkit-tap-highlight-color:transparent}
+:is(html,#app) button.bb-back,:is(html,#app) button.bb-save,:is(html,#app) button.bb-del,:is(html,#app) button.bb-ok{display:block!important;margin:0!important}
+:is(html,#app) button.bb-btn.bb-save.bb-save,:is(html,#app) button.bb-btn.bb-ok.bb-ok,:is(html,#app) button.bb-btn.bb-plus.bb-plus{background:var(--bbi) center/24px 24px no-repeat,linear-gradient(135deg,rgba(90,162,230,.95),rgba(35,120,212,.88))!important;border-color:rgba(255,255,255,.7)!important}
+:is(html,#app) button.bb-btn.bb-save.bb-save,:is(html,#app) button.bb-btn.bb-ok.bb-ok{margin-left:auto!important}
+:is(html,#app) button.bb-btn.bb-plus.bb-plus{width:56px!important;min-width:56px!important;max-width:56px!important;height:56px!important;min-height:56px!important;box-shadow:0 10px 24px rgba(31,100,180,.32),inset 0 1px 0 rgba(255,255,255,.7)!important}
+:is(html,#app) button.bb-btn:active{transform:scale(.92)}
+:is(html,#app) button.bb-btn:disabled{opacity:.45}
+:is(html,#app) button.bb-back{--bbi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310304F' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15.5 5l-7 7 7 7'/%3E%3C/svg%3E")}button.bb-save{--bbi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'%3E%3Cpath d='M4 3h13l4 4v14H3V3h1zm2 2v5h10V5H6zm0 9v5h12v-5H6zm8-8h2v3h-2V6z'/%3E%3C/svg%3E")}button.bb-ok{--bbi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")}button.bb-del{--bbi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c0392b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3'/%3E%3C/svg%3E")}button.bb-plus{--bbi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E")}
+.agenda-fab.bb-plus,.stk-fab.bb-plus{transform:none}.stk-fab.fab-c.bb-plus{transform:translateX(-50%)}
+
+
+/* g23 */
+.agenda-fab{background:var(--bbi) center/26px 26px no-repeat,linear-gradient(135deg,rgba(90,162,230,.95),rgba(35,120,212,.88))!important;border:1px solid rgba(255,255,255,.7)!important;-webkit-backdrop-filter:blur(14px) saturate(1.7);backdrop-filter:blur(14px) saturate(1.7);box-shadow:0 10px 24px rgba(31,100,180,.32),inset 0 1px 0 rgba(255,255,255,.7)!important;font-size:0!important}
+.dp2{padding:6px 8px!important}
+.dp2-dbtn{height:42px}
+.dp2-r1 .dp2-t{flex-direction:row!important;gap:6px!important;min-height:42px!important;min-width:0!important;padding:0 12px!important;font-size:14px!important;font-weight:800!important}
+.status-picker{background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(230,242,255,.96))!important;padding:6px 16px max(18px,env(safe-area-inset-bottom))!important;border-radius:28px 28px 0 0!important}
+.status-picker h3{font-size:16px!important;margin:2px 0 8px!important;color:#10304F}
+.status-picker button.so{display:flex;align-items:center;gap:11px;height:46px;padding:0 14px!important;margin:7px 0!important;border-radius:15px!important;background:rgba(255,255,255,.8)!important;border:1px solid rgba(255,255,255,.95)!important;box-shadow:var(--box-shadow);font-size:15px;font-weight:700;color:#10304F!important}
+.status-picker button.so i{width:12px;height:12px;border-radius:50%;background:var(--c);box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 18%,transparent);flex:none}
+.status-picker button.so small{margin-left:auto;font-weight:500;color:#5b7a99;font-size:12px}
+.status-picker button.so.cx{justify-content:center;color:#c0392b!important;border-color:rgba(217,75,75,.35)!important;background:rgba(255,235,235,.7)!important}
+.app-confirm-scrim{background:rgba(16,48,79,.38)!important;backdrop-filter:blur(6px)!important}
+.app-confirm{width:min(100%,320px)!important;padding:22px 20px 18px!important;border-radius:30px!important;background:linear-gradient(135deg,rgba(255,255,255,.92),rgba(214,232,250,.86))!important;border:1px solid rgba(255,255,255,.95)!important;box-shadow:0 22px 50px rgba(31,100,180,.30),inset 0 1px 0 #fff!important}
+.app-confirm p{font-size:18px!important;font-weight:700!important;color:#10304F;margin:0 0 6px!important}
+.app-confirm .bb-row{margin:14px 0 0!important}
+.sheet-close{margin:0!important}
+.pkg-card{cursor:pointer}
+.allday-row{display:flex;align-items:center;gap:10px;margin:0 0 6px}
 </style>
