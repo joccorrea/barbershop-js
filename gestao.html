@@ -2654,4 +2654,12 @@ input.sw:checked{background:#2378d4}input.sw:checked::after{transform:translateX
 .booking-screen .client-selected-wrap{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;min-width:0}
 .booking-screen .client-selected-phone{font-size:12px;font-weight:500;color:#6A87A6;margin-top:2px}
 .booking-screen .client-card-compact .client-select-btn{min-height:44px}
+
+/* sombra padrão em todas as caixas (g14) */
+:root{--box-shadow:0 4px 12px rgba(35,120,212,.14),0 1px 3px rgba(31,75,117,.14)}
+#app .card,#app .lrow,#app .hrow,#app .pay-optrow,#app .service-choice,#app .settings-menu-button,#app .professional-card,#app .chk-item,#app .tr-item,#app .appointment-card,#app .cc-credit,#app .cc-stats>div,#app .cc-badge,#app .agenda-time-cell,#app .agenda-slot,#app .agenda-appointment,#app .ag-appt,#app .ag-cell,#app .pd-item,#app .notice,.booking-screen .card,.booking-screen .service-choice,.pay-body .card,.pay-body .pay-optrow,.sheet-scrim .tr-item{box-shadow:var(--box-shadow)!important}
+#app .card .card,#app .card .lrow,#app .card .chk-item,#app .card .service-choice,#app .card .cc-stats>div,#app .card .appointment-card,.booking-screen .card .card,.pay-body .card .pay-optrow{box-shadow:none!important}
+#app input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not(.sw),#app select,#app textarea,.booking-screen input:not([type=checkbox]):not([type=radio]):not(.sw):not(.dt-box input),.booking-screen select,.booking-screen textarea,.pay-body input:not([type=checkbox]):not([type=radio]),.pay-body select,.pay-body textarea,.sheet-scrim input:not([type=checkbox]):not([type=radio]):not(.sw),.sheet-scrim select,.sheet-scrim textarea,#login-card input{box-shadow:var(--box-shadow)!important}
+.std-actions .btn:not(.primary){box-shadow:var(--box-shadow)!important}
+.dt-box,.booking-screen .client-card-compact{box-shadow:var(--box-shadow)!important}
 </style>
