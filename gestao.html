@@ -277,7 +277,16 @@ input:focus,select:focus,textarea:focus{outline:2px solid #2378d42a;border-color
 .pay-diff{font-weight:700;color:#c0392b;padding:4px 2px}.pay-diff.ok{color:#1f8a4c}
 .pay-foot{padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #C4DFF8}
 .pay-confirm{width:100%;height:50px;font-size:17px;border-radius:14px}.pay-confirm:disabled{opacity:.45}
-.slot.lunch{cursor:pointer}.pay-mini{margin-top:6px;padding-top:6px}.pay-mini b{font-size:16px}.pay-diff.warn{color:#C2700A}.agenda-appointment.status-partial-card{background:#FFE9C7!important;border:2px solid #F0A030!important;color:#7A4300!important}.agenda-appointment.status-partial-card .agenda-sub{font-weight:700}
+.slot.lunch{cursor:pointer}.slot-h{font-size:15px!important;margin:10px 2px 6px!important}
+.slot-card{padding:10px 12px!important;border-radius:14px!important}
+.slot-compact{display:flex!important;flex-wrap:wrap!important;justify-content:space-between;align-items:center!important;gap:8px!important}
+.slot-compact>.field:first-child{display:flex!important;align-items:center;gap:8px;flex:1 1 0;min-width:0;margin:0!important;flex-wrap:nowrap}
+.slot-compact label{margin:0!important;font-size:14px!important;font-weight:700;color:#1F4B75;white-space:nowrap}
+.slot-compact select,.slot-compact input{height:38px!important;min-height:0!important;padding:0 8px!important;font-size:16px!important;border-radius:10px!important;border:1px solid #C4DFF8!important;background:#fff!important;width:auto;min-width:0;flex:1 1 90px;max-width:none}
+.slot-compact .btn{height:38px!important;min-height:0!important;padding:0 14px!important;border-radius:10px!important;font-size:15px!important}
+.slot-compact #period-slot-custom-wrap{flex:1 1 100%;display:flex;align-items:center;gap:8px}
+.agenda-paid{color:#1f8a4c}.agenda-meta{flex-wrap:wrap}
+.pay-mini{margin-top:6px;padding-top:6px}.pay-mini b{font-size:16px}.pay-diff.warn{color:#C2700A}.agenda-appointment.status-partial-card{background:#FFE9C7!important;border:2px solid #F0A030!important;color:#7A4300!important}.agenda-appointment.status-partial-card .agenda-sub{font-weight:700}
 .sheet-action.pay{background:#EAF8EF!important;border-color:#8fd3a8!important}
 </style>
 </head>
@@ -389,12 +398,12 @@ function showError(e){notice=e?.message||"Ocorreu um erro.";renderNotice("error"
 function getLocalBookingStatuses(){try{return JSON.parse(localStorage.getItem("barberShopJSBookingStatuses")||"{}")}catch(_){return {}}}
 function setLocalBookingStatus(id,status){const all=getLocalBookingStatuses();all[String(id)]=status;localStorage.setItem("barberShopJSBookingStatuses",JSON.stringify(all))}
 async function loadAgenda(){const date=key(day),wd=day.getDay();try{[bookings,hourPeriods,blocks]=await Promise.all([api(`bookings?select=*&date=eq.${date}&status=not.in.(cancelled,cancelado,canceled)&order=start_min`),api("business_hour_periods?select=id,start_date,end_date,active,schedule&active=eq.true"),api(`blocked_slots?select=*&date=eq.${date}&order=start_min`)]);
- try{pendingBal={};const pids=(bookings||[]).map(x=>x.id);if(pids.length)(await api(`finance_booking_closures?select=booking_id,balance_due&balance_due=gt.0&booking_id=in.(${pids.join(",")})`)).forEach(c=>{pendingBal[String(c.booking_id)]=Number(c.balance_due)})}catch(e){}
+ try{pendingBal={};paidAmt={};const pids=(bookings||[]).map(x=>x.id);if(pids.length)(await api(`finance_booking_closures?select=booking_id,amount_paid,balance_due&booking_id=in.(${pids.join(",")})`)).forEach(c=>{const k=String(c.booking_id);paidAmt[k]=Number(c.amount_paid||0);if(Number(c.balance_due)>0)pendingBal[k]=Number(c.balance_due)})}catch(e){}
 const setting=(await api("business_hour_settings?select=slot_step_minutes&id=eq.true"))[0];slotStep=Number(setting?.slot_step_minutes||30);slotStepDraft=slotStep;const selected=hourPeriods.filter(p=>p.start_date<=date&&(!p.end_date||p.end_date>=date)).sort((a,b)=>b.start_date.localeCompare(a.start_date)||b.id-a.id)[0];if(selected){dayRanges=normalizeSchedule(selected.schedule)[wd];hours=dayRanges.length?[{open_min:Math.min(...dayRanges.map(x=>x.start_min)),close_min:Math.max(...dayRanges.map(x=>x.end_min)),lunch_start:null,lunch_end:null}]:[]}else{hours=await api(`business_hours?select=*&weekday=eq.${wd}`);const h=hours?.[0];dayRanges=h&&h.open_min!=null?(h.lunch_start!=null&&h.lunch_end!=null?[{start_min:h.open_min,end_min:h.lunch_start},{start_min:h.lunch_end,end_min:h.close_min}]:[{start_min:h.open_min,end_min:h.close_min}]):[]}const localStatuses=getLocalBookingStatuses();bookings=bookings.map(b=>localStatuses[String(b.id)]?{...b,status:localStatuses[String(b.id)]}:b);renderAgenda()}catch(e){shell("Agenda",`<p class="error">${esc(e.message)}</p><button class="btn" id="retry">Tentar novamente</button>`)}}
 let agendaScrollY=0,agendaDayKey=null;
 function agendaAfterRender(){const k=key(day);const y=agendaDayKey===k?agendaScrollY:0;agendaDayKey=k;requestAnimationFrame(()=>window.scrollTo(0,y))}
 window.addEventListener("scroll",()=>{if(document.querySelector(".agenda-grid")&&!document.body.classList.contains("sheet-open")&&!document.querySelector(".booking-screen,.client-picker-screen"))agendaScrollY=window.scrollY},{passive:true});
-let pendingBal={};
+let pendingBal={},paidAmt={};
 function renderAgenda(){
  let cfg=hours?.[0];
  const navFor=(sub)=>`<div class="agenda-head"><button class="agenda-arrow" data-day="-1" aria-label="Dia anterior">‹</button><button type="button" class="agenda-datebtn" id="open-date-picker" aria-label="Escolher outra data"><span class="agenda-dayname">${DW[day.getDay()]}, ${day.getDate()} de ${day.toLocaleDateString("pt-BR",{month:"long"})}${day.getFullYear()!==new Date().getFullYear()?" de "+day.getFullYear():""}</span></button><button class="agenda-arrow" data-day="1" aria-label="Próximo dia">›</button></div>`;
@@ -454,8 +463,9 @@ function renderAgenda(){
   }
  }
  const out=`<div class="agenda-grid" style="--agenda-step:${step/30}">${times.join("")}${right.join("")}</div><button class="agenda-fab" id="agenda-new-booking" aria-label="Novo agendamento" title="Novo agendamento">＋</button>`;
- const recv=bookings.filter(x=>statusClass(x.status)==="completed").reduce((sum,x)=>sum+Number(x.total||0),0);
- const sumTxt=`${n} agendamento(s) · ${fm(bookings.reduce((sum,x)=>sum+Number(x.total||0),0))}${recv>0?` · <b class="agenda-toreceive">A receber: ${fm(recv)}</b>`:""}`;
+ const recv=bookings.filter(x=>statusClass(x.status)==="completed").reduce((sum,x)=>sum+(pendingBal[String(x.id)]>0?pendingBal[String(x.id)]:Number(x.total||0)),0);
+ const paidSum=bookings.reduce((sum,x)=>sum+Number(paidAmt[String(x.id)]||0),0);
+ const sumTxt=`${n} agendamento(s) · ${fm(bookings.reduce((sum,x)=>sum+Number(x.total||0),0))}${recv>0?` · <b class="agenda-toreceive">A receber: ${fm(recv)}</b>`:""}${paidSum>0?` · <b class="agenda-paid">Pago: ${fm(paidSum)}</b>`:""}`;
  shell("Agenda",navFor("")+`<div class="agenda-meta">${sumTxt}</div><div class="agenda-legend"><span><i style="background:#FFF3CF;border:2px solid #E3B341"></i>Pendente</span><span><i style="background:#DCEBFA;border:2px solid #5B9BD5"></i>Confirmado</span><span><i style="background:#EADCF8;border:2px solid #9A6BD1"></i>Falta pagar</span><span><i style="background:#D9F1E2;border:2px solid #4DAA75"></i>Pago</span></div>`+out+`<div class="muted">Toque em um horário para agendar ou bloquear.</div>`);
  agendaAfterRender();
 }
@@ -633,7 +643,7 @@ async function loadHours(){
    return `<article class="period-card"><div class="period-head"><div class="period-date">${fmtPeriodDate(p.start_date)}${p.end_date?" – "+fmtPeriodDate(p.end_date):" em diante"}</div><span class="pill ${p.active?"success":""}">${p.active?"Ativo":"Inativo"}</span><div class="period-actions"><button type="button" title="Duplicar período" aria-label="Duplicar período" data-duplicate-period="${p.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="13" height="15" rx="1"/><path d="M5 7v14h13"/></svg></button><button type="button" title="Editar período" aria-label="Editar período" data-edit-period="${p.id}"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.8 9.95l-3.75-3.75L3 17.25zM20.7 7.05a1 1 0 0 0 0-1.4l-2.35-2.35a1 1 0 0 0-1.4 0l-1.8 1.8 3.75 3.75 1.8-1.8z"/></svg></button><button type="button" class="delete" title="Excluir período" aria-label="Excluir período" data-delete-period="${p.id}"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 7h12l-1 14H7L6 7zm2-4h8l1 2h4v2H3V5h4l1-2z"/></svg></button></div></div><div class="period-details">${details}</div></article>`;
   }).join("");
   shell("Horários",`<div class="settings-back-row"><button type="button" class="btn" id="settings-back">← Configurações</button></div>
-   <h3>Configuração de exibição de horários</h3><div class="card"><div class="slot-setting"><div class="field"><label for="period-slot-step">Intervalo entre horários disponíveis</label><select id="period-slot-step"><option value="15" ${slotStep===15?"selected":""}>15 minutos</option><option value="30" ${slotStep===30?"selected":""}>30 minutos</option><option value="45" ${slotStep===45?"selected":""}>45 minutos</option><option value="60" ${slotStep===60?"selected":""}>1 hora</option><option value="custom" ${![15,30,45,60].includes(slotStep)?"selected":""}>Outro valor</option></select></div><div class="field" id="period-slot-custom-wrap" style="${![15,30,45,60].includes(slotStep)?"":"display:none"}"><label for="period-slot-custom">Outro valor (minutos)</label><input id="period-slot-custom" type="number" min="5" max="180" step="1" value="${![15,30,45,60].includes(slotStep)?slotStep:15}"></div><button type="button" class="btn primary" id="save-period-slot">Gravar</button></div></div>
+   <h3 class="slot-h">Exibição de horários</h3><div class="card slot-card"><div class="slot-setting slot-compact"><div class="field"><label for="period-slot-step">Intervalo</label><select id="period-slot-step"><option value="15" ${slotStep===15?"selected":""}>15 minutos</option><option value="30" ${slotStep===30?"selected":""}>30 minutos</option><option value="45" ${slotStep===45?"selected":""}>45 minutos</option><option value="60" ${slotStep===60?"selected":""}>1 hora</option><option value="custom" ${![15,30,45,60].includes(slotStep)?"selected":""}>Outro valor</option></select></div><div class="field" id="period-slot-custom-wrap" style="${![15,30,45,60].includes(slotStep)?"":"display:none"}"><label for="period-slot-custom">Outro valor (minutos)</label><input id="period-slot-custom" type="number" min="5" max="180" step="1" value="${![15,30,45,60].includes(slotStep)?slotStep:15}"></div><button type="button" class="btn primary" id="save-period-slot">Gravar</button></div></div>
    <div class="period-toolbar"><h2 style="margin:0">Horários</h2><button type="button" class="btn primary" id="new-period">＋ Novo período</button></div>
    ${rows||'<div class="card muted">Nenhum período cadastrado.</div>'}`);
   $("#settings-back").onclick=()=>navigate("settings");
@@ -858,7 +868,7 @@ async function showBookingDetail(id){
   const waBtn=`<a class="sheet-action" target="_blank" rel="noopener" href="https://wa.me/${phone}?text=${encodeURIComponent("Olá "+(b.client_name||"")+", seu agendamento na Barber Shop JS para "+dateLabel+" às "+hm(b.start_min)+" está confirmado.")}"><span class="sheet-icon whatsapp-icon" aria-hidden="true">●</span><span>Enviar confirmação</span></a>`;
   const cancelBtn=`<div class="sheet-divider"></div><button class="sheet-action cancel" id="detail-cancel"><span class="sheet-icon">✕</span><span>Cancelar agendamento</span></button>`;
   let regularActions;
-  if(st==="confirmed")regularActions=editBtn+waBtn+`<button class="sheet-action" id="detail-attended"><span class="sheet-icon">✂</span><span>Atendido</span></button><button class="sheet-action" id="detail-noshow"><span class="sheet-icon">⊘</span><span>Não compareceu / faltou</span></button>`+cancelBtn;
+  if(st==="confirmed")regularActions=editBtn+waBtn+`<button class="sheet-action" id="detail-attended"><span class="sheet-icon">✂</span><span>Atendido</span></button><button class="sheet-action pay" id="detail-pay-c"><span class="sheet-icon">$</span><span>Pagar / finalizar</span></button><button class="sheet-action" id="detail-noshow"><span class="sheet-icon">⊘</span><span>Não compareceu / faltou</span></button>`+cancelBtn;
   else if(st==="completed")regularActions=editBtn+`<button class="sheet-action pay" id="detail-pay"><span class="sheet-icon">$</span><span>Pagar / finalizar</span></button>`+cancelBtn;
   else if(st==="finalized")regularActions=editBtn;
   else regularActions=editBtn+cancelBtn;
@@ -894,6 +904,7 @@ async function showBookingDetail(id){
    $("#detail-attended")&&($("#detail-attended").onclick=()=>quick("completed"));
    $("#detail-noshow")&&($("#detail-noshow").onclick=()=>quick("no_show","Marcar que o cliente não compareceu?"));
    $("#detail-pay")&&($("#detail-pay").onclick=()=>{close();openPaymentScreen(b)});
+   $("#detail-pay-c")&&($("#detail-pay-c").onclick=()=>{close();openPaymentScreen(b)});
   }
   bindSheetDrag($("#detail-sheet"),close);
  }catch(e){shell("Agendamento",`<p class="error">${esc(e.message)}</p><button class="btn" id="retry">Voltar</button>`)}
@@ -1383,6 +1394,12 @@ async function openPaymentScreen(b){
   };
   draw();
 }
+async function undoPayment(id){
+  const cl=(await api(`finance_booking_closures?select=id&booking_id=eq.${encodeURIComponent(id)}`));
+  const cats=encodeURIComponent('("Atendimento","Retirada do proprietário","Taxas de cartão","Contas a receber","Caixinha")');
+  await api(`finance_movements?booking_id=eq.${encodeURIComponent(id)}&status=in.(paid,pending)&category=in.${cats}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});
+  for(const c of cl){await api(`finance_booking_closures?id=eq.${c.id}`,{method:"DELETE"});api("finance_audit_log",{method:"POST",body:JSON.stringify({table_name:"finance_booking_closures",record_id:String(c.id),action:"payment_cancelled",new_data:{booking_id:id},changed_by:uid()})}).catch(()=>null)}
+}
 async function saveAppointmentStatus(id,status){
   const dbStatusMap={pending:"pending",confirmed:"confirmed",completed:"completed",finalized:"finalized",no_show:"no_show",cancelled:"cancelled"};
   const dbStatus=dbStatusMap[status]||status;
@@ -1405,12 +1422,21 @@ function openStatusPicker(id){
   scrim.addEventListener("click",async e=>{
     if(e.target===scrim||e.target.closest("[data-close-status]")){closeStatusPicker();return}
     const b=e.target.closest("[data-set-status]");if(!b)return;
+    const target=b.dataset.setStatus;
+    if(target!=="finalized"){
+      let paidBefore=0;try{paidBefore=Number((await api(`finance_booking_closures?select=amount_paid&booking_id=eq.${encodeURIComponent(id)}`))[0]?.amount_paid||0)}catch(err){}
+      if(paidBefore>0){
+        closeStatusPicker();
+        showAppConfirm("Esse atendimento já foi pago. Tem certeza que deseja cancelar o pagamento?",async()=>{try{await undoPayment(id);await saveAppointmentStatus(id,target)}catch(err){alert("Não foi possível cancelar o pagamento: "+(err.message||err))}});
+        return;
+      }
+    }
     if(b.dataset.setStatus==="cancelled"){
       closeStatusPicker();
       showAppConfirm("Deseja cancelar o atendimento?",()=>saveAppointmentStatus(id,"cancelled").catch(err=>alert("Não foi possível cancelar: "+(err.message||err))));
       return;
     }
-    if(b.dataset.setStatus==="finalized"){closeStatusPicker();try{const bk=(await api(`bookings?select=*&id=eq.${encodeURIComponent(id)}`))[0];openPaymentScreen(bk)}catch(err){alert("Não foi possível abrir o pagamento: "+err.message)}return}
+    if(b.dataset.setStatus==="finalized"){closeStatusPicker();try{const bk=(await api(`bookings?select=*&id=eq.${encodeURIComponent(id)}`))[0];if(normalizedStatus(bk.status)==="finalized"){alert("Esse atendimento já está pago e finalizado.");return}openPaymentScreen(bk)}catch(err){alert("Não foi possível abrir o pagamento: "+err.message)}return}
     try{await saveAppointmentStatus(id,b.dataset.setStatus)}catch(err){alert("Não foi possível atualizar o status: "+(err.message||err))}
   });
 }
