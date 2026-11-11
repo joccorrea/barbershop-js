@@ -725,6 +725,13 @@ async function clientSummarySheet(c){
   ${nx?`<div class="muted">Próximo: ${esc(nx.date.split("-").reverse().join("/"))} às ${hm(nx.start_min)}</div>`:""}`;
  }catch(e){const body=$("#cs-body");if(body)body.innerHTML=`<span class="error">${esc(e.message)}</span>`}
 }
+function fmtPhoneBR(p){let d=String(p||"").replace(/\D/g,"");if((d.length===12||d.length===13)&&d.startsWith("55"))d=d.slice(2);if(d.length===11)return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;if(d.length===10)return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;return String(p||"")}
+const DT_WD=["dom","seg","ter","qua","qui","sex","sáb"];
+const DT_ICON={date:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>',time:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>'};
+function dtLabel(inp){const v=inp.value;if(!v)return inp.type==="date"?"Escolher data":"--:--";if(inp.type==="date"){const [y,m,d]=v.split("-").map(Number);const w=DT_WD[new Date(y,m-1,d).getDay()];return `${w}, ${String(d).padStart(2,"0")}/${String(m).padStart(2,"0")}/${y}`}return v.slice(0,5)}
+function dtUpdate(inp){const t=inp.parentElement&&inp.parentElement.querySelector(".dt-text");if(t)t.textContent=dtLabel(inp)}
+function prettyDateTime(){document.querySelectorAll('.booking-screen input[type="date"],.booking-screen input[type="time"]').forEach(inp=>{if(inp.parentElement&&inp.parentElement.classList.contains("dt-box"))return;const w=document.createElement("div");w.className="dt-box dt-"+inp.type;w.innerHTML=`<span class="dt-ic">${DT_ICON[inp.type]}</span><span class="dt-text"></span>`;inp.parentNode.insertBefore(w,inp);w.appendChild(inp);const vd=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value");Object.defineProperty(inp,"value",{get(){return vd.get.call(this)},set(v){vd.set.call(this,v);dtUpdate(this)},configurable:true});dtUpdate(inp)})}
+["input","change"].forEach(ev=>document.addEventListener(ev,e=>{const t=e.target;if(t&&t.matches&&t.matches(".dt-box input"))dtUpdate(t)},true));
 async function showClientCard(phone){
   try{
     let c=(await api(`clients?select=*&phone=eq.${encodeURIComponent(phone)}`))[0]||clients.find(x=>String(x.phone)===String(phone))||{name:"Cliente",phone};
@@ -1607,7 +1614,7 @@ app.addEventListener("change",e=>{
   readBookingInputs();refreshBookingTotals(true);
  }
  if(e.target.id==="adj-combo-on"&&bookingDraft){bookingDraft.comboOff=!e.target.checked;refreshBookingTotals()}
- if((e.target.id==="booking-date"||e.target.id==="booking-end-date")&&bookingDraft){readBookingInputs();renderBookingScreen()}
+ if((e.target.id==="booking-date"||e.target.id==="booking-end-date")&&bookingDraft){readBookingInputs();if(e.target.id==="booking-date"){const dd=bookingDraft.date;bookingDraft.endDate=new Date(dd.getFullYear(),dd.getMonth(),dd.getDate()+Math.floor((Number(bookingDraft.end)||0)/1440))}renderBookingScreen()}
 });
 app.addEventListener("input",e=>{
  if(e.target.matches("[data-service-price]")&&bookingDraft){
@@ -1728,7 +1735,7 @@ function refreshBookingTotals(rebuildCombo=false){
  if(rebuildCombo){const box=$("#adj-card");if(box){box.innerHTML=adjustmentsHtml(d);return}}
  const t=bookingTotals(d);const a=$("#adj-sub"),b=$("#adj-total");if(a)a.textContent=fm(t.sub);if(b)b.textContent=fm(t.total);
 }
-function renderBookingScreen(){const __r=__renderBookingScreen();try{if(bookingDraft?.selectedPhone)fillClientBadge(bookingDraft.selectedPhone,"#booking-client-badge",null,(bookingDraft.clients||[]).find(c=>c.phone===bookingDraft.selectedPhone)?.name)}catch(e){}return __r}
+function renderBookingScreen(){const __r=__renderBookingScreen();try{prettyDateTime()}catch(e){}try{if(bookingDraft?.selectedPhone)fillClientBadge(bookingDraft.selectedPhone,"#booking-client-badge",null,(bookingDraft.clients||[]).find(c=>c.phone===bookingDraft.selectedPhone)?.name)}catch(e){}return __r}
 function __renderBookingScreen(){
  const d=bookingDraft;
  const selected=d.services;
@@ -1744,7 +1751,7 @@ function __renderBookingScreen(){
  ${(d.barbers&&d.barbers.length>1&&!(d.mode==='block'&&d.blockAll))?`<div class="field"><label>Profissional</label><select id="booking-barber">${d.barbers.map(b=>`<option value="${b.id}" ${Number(b.id)===Number(d.barberId)?'selected':''}>${esc(b.name)}</option>`).join('')}</select></div>`:''}
  ${d.mode==='book'?`
  <div class="card client-card-compact">
- <button class="btn client-select-btn" id="open-client-picker" type="button">${d.selectedPhone?`<span class="client-selected-name">${esc((d.clients.find(c=>c.phone===d.selectedPhone)||{}).name||'Selecionado')}</span>`:'<span class="client-plus-mini">＋</span><span>Selecionar cliente</span>'}</button>
+ <button class="btn client-select-btn" id="open-client-picker" type="button">${d.selectedPhone?`<span class="client-selected-wrap"><span class="client-selected-name">${esc((d.clients.find(c=>c.phone===d.selectedPhone)||{}).name||'Selecionado')}</span><span class="client-selected-phone">${esc(fmtPhoneBR(d.selectedPhone))}</span></span>`:'<span class="client-plus-mini">＋</span><span>Selecionar cliente</span>'}</button>
  <div id="booking-new-client-panel" class="${d.addingClient?'':'hidden'}"><div class="field"><label>Nome completo</label><input id="booking-new-name" placeholder="Nome completo" value="${esc(d.newName||'')}"></div><div class="field"><label>Telefone com DDD</label><input id="booking-new-phone" placeholder="Telefone com DDD" inputmode="tel" value="${esc(d.newPhone||'')}"></div></div>
  </div>
  <div id="booking-client-badge" class="cb-row booking-badge-out"></div>
@@ -2634,4 +2641,17 @@ input.sw:checked{background:#2378d4}input.sw:checked::after{transform:translateX
 
 .booking-screen .booking-badge-out{margin:-4px 4px 10px!important}
 .booking-screen .client-card-compact .client-select-btn.has-client:after{content:"›";margin-left:auto;font-size:20px;color:#8aa6c4;line-height:1}
+
+/* data/hora e cartão do cliente: visual com sombra */
+.dt-box{position:relative;display:flex;align-items:center;gap:9px;height:48px;padding:0 13px;background:#fff;border:1.5px solid #CFE3F7;border-radius:14px;box-shadow:0 4px 12px #2378d422,0 1px 3px #1f4b7522;color:#10304F;overflow:hidden}
+.dt-box .dt-ic{display:grid;place-items:center;color:#2378d4;flex:none}
+.dt-box .dt-text{font-size:16px;font-weight:700;letter-spacing:.2px;font-variant-numeric:tabular-nums;color:#10304F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dt-box input{position:absolute!important;inset:0;width:100%!important;height:100%!important;opacity:0!important;margin:0!important;padding:0!important;border:0!important;font-size:16px!important;-webkit-appearance:none;appearance:none;background:transparent!important}
+.dt-box:active{box-shadow:0 2px 6px #2378d430;transform:translateY(1px)}
+.booking-screen .booking-date-time-line{grid-template-columns:minmax(0,1.55fr) minmax(92px,.8fr)!important}
+.booking-screen .field-line{grid-template-columns:minmax(0,1.55fr) minmax(92px,.8fr)!important}
+.booking-screen .client-card-compact{box-shadow:0 4px 12px #2378d422,0 1px 3px #1f4b7522!important;border:1.5px solid #CFE3F7!important}
+.booking-screen .client-selected-wrap{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;min-width:0}
+.booking-screen .client-selected-phone{font-size:12px;font-weight:500;color:#6A87A6;margin-top:2px}
+.booking-screen .client-card-compact .client-select-btn{min-height:44px}
 </style>
