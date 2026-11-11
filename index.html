@@ -93,7 +93,7 @@ const dur=()=>30*Math.max(1,cuts());
 let CB=[];
 const gross=()=>SV.reduce((a,s,i)=>a+s.price*q[i],0);
 const camt=c=>Math.max(0,Math.min(gross(),c.discount_type=="percent"?Math.round(gross()*Math.min(Number(c.discount),100))/100:Number(c.discount)));
-const combo=()=>{const ids=SV.filter((s,i)=>q[i]).map(s=>s.id);let b=null;CB.forEach(c=>{if(c.groups.length&&c.groups.every(g=>g.some(i=>ids.includes(i)))&&(!b||camt(c)>camt(b)))b=c});return b};
+const combo=()=>{const cc=pcov(),ids=SV.filter((s,i)=>q[i]-cc[i]>0).map(s=>s.id);let b=null;CB.forEach(c=>{if(c.groups.length&&c.groups.every(g=>g.some(i=>ids.includes(i)))&&(!b||camt(c)>camt(b)))b=c});return b};
 let PK={p:null,list:[],sel:null};
 const pkg=()=>PK.list.find(x=>x.id===PK.sel)||null;
 const pcov=()=>{const g=pkg();return SV.map((s,i)=>{if(!g||!q[i])return 0;const it=g.items.find(x=>x.service_id===s.id);return it?Math.min(q[i],it.rem):0})};
