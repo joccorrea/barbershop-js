@@ -54,7 +54,11 @@ let SV=[],H=[],LEGACY={},BR={id:1,name:"Josué"},q=[],st=0,date=null,time=null,b
 const fm=n=>"R$ "+Number(n).toFixed(2).replace(".",",");
 const cuts=()=>SV.reduce((a,s,i)=>a+(s.is_cut?q[i]:0),0);
 const dur=()=>30*Math.max(1,cuts());
-const total=()=>SV.reduce((a,s,i)=>a+s.price*q[i],0);
+let CB=[];
+const gross=()=>SV.reduce((a,s,i)=>a+s.price*q[i],0);
+const combo=()=>{const ids=SV.filter((s,i)=>q[i]).map(s=>s.id);let b=null;CB.forEach(c=>{if(c.groups.length&&c.groups.every(g=>g.some(i=>ids.includes(i)))&&(!b||c.discount>b.discount))b=c});return b};
+const cdisc=()=>{const c=combo();return c?Math.min(gross(),Number(c.discount)):0};
+const total=()=>Math.max(0,gross()-cdisc());
 const items=()=>q.reduce((a,b)=>a+b,0);
 const hm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
 const key=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
@@ -80,7 +84,7 @@ else if(st==3){const kn=who.kn&&who.knp===who.p?who.kn:null;a.innerHTML=`<button
 <div id=nw style="${kn?"display:none":""}"><input id=nm placeholder="Nome e sobrenome" value="${esc(kn?"":(who.n||""))}" autocomplete=name></div>
 <div id=bw style="${kn?"display:none":""}"><p class=mu style="margin-top:8px">Data de nascimento (só no primeiro agendamento)</p><input id=bd type=date value="${esc(who.b||"")}" max="${key(new Date())}"></div>
 <p class=mu>Usamos seus dados só para agendamento e mensagens da barbearia.</p><p id=er class=er></p>
-<div class=sum><b>${lab(date)} às ${hm(time)}</b> · com ${esc(BR.name)}<br>${SV.map((s,i)=>q[i]?s.name+" x"+q[i]:"").filter(Boolean).map(esc).join(", ")}<br><b>Total: ${fm(total())}</b></div>
+<div class=sum><b>${lab(date)} às ${hm(time)}</b> · com ${esc(BR.name)}<br>${SV.map((s,i)=>q[i]?s.name+" x"+q[i]:"").filter(Boolean).map(esc).join(", ")}${cdisc()?`<br>Combo ${esc(combo().name)}: − ${fm(cdisc())}`:""}<br><b>Total: ${fm(total())}</b></div>
 <div class=bar><div></div><button class=go id=n3>Confirmar agendamento</button></div>`}
 else if(st==4){const ph=who.p.length>=12?who.p:"55"+who.p,tx=`Barbershop Js: pedido de horário enviado (aguardando confirmação), ${lab(date)} às ${hm(time)}. Para cancelar, use o código ${res.code} (até 2h antes).`;
 a.innerHTML=`<span class=pill>Aguardando confirmação do Josué</span><h2 style="margin-top:12px">Pedido enviado!</h2><div class=sum><b>${esc(who.n)}</b>, seu horário está reservado para <b>${lab(date)} às ${hm(time)}</b>, com ${esc(BR.name)}.<br>Total: ${fm(res.total)}<br>Av. Alto da Serra, 604, Monte Sião – MG<p class=mu style="margin-top:12px">Seu código de cancelamento:</p><div class=code>${esc(res.code)}</div><p class=mu>Guarde este código. Você vai precisar dele para cancelar.</p></div>
@@ -118,5 +122,5 @@ else if(t.id=="find"){await find();return}
 else if(t.dataset.c){await cancel();return}
 else return;
 render();if(p!==st)window.scrollTo(0,0)});
-(async()=>{try{const[s,h,b,setting]=await Promise.all([get("services?select=id,name,price,is_cut&active=eq.true&order=sort"),get("business_hour_periods?select=id,start_date,end_date,active,schedule&active=eq.true&order=start_date.desc"),get("barbers?select=id,name&active=eq.true&order=id&limit=1"),get("business_hour_settings?select=slot_step_minutes&id=eq.true")]);SV=s;q=s.map(()=>0);H=h;slotStep=Math.max(5,Number(setting?.[0]?.slot_step_minutes||30));try{const old=await get("business_hours?select=*");old.forEach(x=>LEGACY[x.weekday]=x)}catch(_){}if(b[0])BR=b[0];st=1}catch(e){msg="Não foi possível carregar. Tente novamente em instantes."}render()})();
+(async()=>{try{const[s,h,b,setting]=await Promise.all([get("services?select=id,name,price,is_cut&active=eq.true&order=sort"),get("business_hour_periods?select=id,start_date,end_date,active,schedule&active=eq.true&order=start_date.desc"),get("barbers?select=id,name&active=eq.true&order=id&limit=1"),get("business_hour_settings?select=slot_step_minutes&id=eq.true")]);SV=s;q=s.map(()=>0);H=h;slotStep=Math.max(5,Number(setting?.[0]?.slot_step_minutes||30));try{CB=await rpc("public_combos",{})}catch(_){CB=[]}try{const old=await get("business_hours?select=*");old.forEach(x=>LEGACY[x.weekday]=x)}catch(_){}if(b[0])BR=b[0];st=1}catch(e){msg="Não foi possível carregar. Tente novamente em instantes."}render()})();
 </script></body></html>
