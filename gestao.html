@@ -65,7 +65,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #2378d42a;border-color
 
 
 /* Native-feeling bottom action sheets */
-.sheet-scrim{position:fixed;inset:0;z-index:3000;background:#11182780;display:flex;align-items:flex-end;justify-content:center;overscroll-behavior:contain;touch-action:pan-y}.sheet-scrim~*{pointer-events:none}body.sheet-open{overflow:hidden;position:fixed;width:100%;inset:0}
+.sheet-scrim{position:fixed;inset:0;z-index:3000;background:#11182780;display:flex;align-items:flex-end;justify-content:center;overscroll-behavior:contain;touch-action:pan-y}.sheet-scrim~*{pointer-events:none}body.sheet-open{overflow:hidden;position:fixed;width:100%;left:0;right:0}
 .action-sheet{width:100%;max-width:820px;max-height:82dvh;overflow:auto;background:#fff;color:#25282d;border-radius:28px 28px 0 0;padding:10px 20px max(24px,env(safe-area-inset-bottom));box-shadow:0 -12px 40px #1020302b;animation:sheet-up .22s ease-out}
 .sheet-grabber{width:56px;height:20px;position:relative;border-radius:99px;margin:0 auto 8px;cursor:grab;touch-action:none;display:block}.sheet-grabber:after{content:"";position:absolute;width:48px;height:5px;left:4px;top:7px;border-radius:99px;background:#aeb3ba}.sheet-action{padding:3px 2px!important;gap:10px;min-height:40px}.sheet-action .sheet-icon{width:30px;height:30px}.action-sheet{padding-top:8px}
 .sheet-action{display:flex;align-items:center;gap:10px;width:100%;padding:2px 2px!important;min-height:38px;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;text-align:left;font-size:17px!important}
@@ -340,6 +340,10 @@ input[type=date]{display:flex;align-items:center}input[type=date]::-webkit-date-
 #client-form .cf-actions{display:flex!important;gap:10px!important;margin-top:16px}
 #client-form .cf-save{flex:1;height:48px!important;border-radius:14px!important;border:0!important;background:linear-gradient(#5AA2E6,#3F86D0)!important;color:#fff!important;font-weight:800;font-size:16px;box-shadow:0 4px 12px #3F86D055}
 #client-form .cf-del{flex:0 0 48px;width:48px;height:48px;border-radius:14px;border:1.5px solid #F0B8B0;background:#FFF1EF;color:#c0392b;display:grid;place-items:center;padding:0}
+.owe-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #F0C070;background:#FFF8EA;border-radius:12px;padding:9px 12px;margin-bottom:6px;color:#5a3a00}.owe-row>b{font-size:15px;white-space:nowrap}.owe-row>div{min-width:0}.owe-row span,.owe-row small{display:block;font-size:13px;color:#7A4300}.owe-row small{font-size:12px;opacity:.85}
+button.cb-pill{cursor:pointer;font-family:inherit}
+.pay-incl{margin-top:12px;background:#FFF8EA;border:1px solid #F0C070;border-radius:14px;padding:10px 12px}.pay-incl-h{font-weight:800;color:#7A4300;font-size:14.5px;margin-bottom:6px}.pay-incl-h small{display:block;font-weight:500;font-size:12px}
+.pay-inclrow{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px dashed #F0C070;color:#5a3a00}.pay-inclrow span{flex:1;min-width:0}.pay-inclrow small{display:block;font-size:12px;color:#7A4300}.pay-inclrow input{width:22px;height:22px;accent-color:#E08A00}
 .slot.lunch{cursor:pointer}.slot-h{font-size:15px!important;margin:10px 2px 6px!important}
 .slot-card{padding:10px 12px!important;border-radius:14px!important}
 .slot-compact{display:flex!important;flex-wrap:wrap!important;justify-content:space-between;align-items:center!important;gap:8px!important}
@@ -595,9 +599,18 @@ async function clientStats(phone){
   else badge={cls:"bad",t:"⛔ Cliente não confiável",s:`Faltou ${noshows.length} de ${base} agendamento(s).`};
   return {bks,live,attended,noshows,scheduled,owing,owed,spent,badge,cancelledN:bks.length-live.length};
 }
-const badgePills=st=>`<span class="cb-pill ${st.badge.cls}">${st.badge.t}${st.noshows.length?` · ${st.noshows.length} falta(s)`:""}</span>${st.owed>0?`<span class="cb-pill owe">💰 Deve ${fm(st.owed)}</span>`:""}`;
-async function fillClientBadge(phone,target){
-  try{const t=document.querySelector(target);if(!t||!phone)return;const st=await clientStats(phone);const t2=document.querySelector(target);if(t2)t2.innerHTML=badgePills(st)}catch(e){}
+const badgePills=st=>`<span class="cb-pill ${st.badge.cls}">${st.badge.t}${st.noshows.length?` · ${st.noshows.length} falta(s)`:""}</span>${st.owed>0?`<button type="button" class="cb-pill owe" data-owe="1">💰 Deve ${fm(st.owed)} ›</button>`:""}`;
+function oweDialog(st,name,curId){
+  document.querySelector(".nsm")?.remove();
+  const m=document.createElement("div");m.className="nsm";
+  m.innerHTML=`<div class="nsm-card"><h3>Valores pendentes</h3><p>${esc(name||"Cliente")} deve ${fm(st.owed)} no total:</p>
+  ${st.owing.map(o=>{const b=o.b,svc=(b.services||[]).map(x=>x.name).join(", ")||"Agendamento";const partial=o.v<Number(b.total||0)-0.001;return `<div class="owe-row"><div><b>${esc(b.date.split("-").reverse().join("/"))} · ${hm(b.start_min)}</b><span>${esc(svc)}</span><small>${String(b.id)===String(curId)?"Este agendamento · ":""}${partial?"pagamento parcial (total "+fm(b.total)+")":"atendido, ainda não pago"}</small></div><b>${fm(o.v)}</b></div>`}).join("")}
+  <button type="button" class="ns-x" data-ns="x">Fechar</button></div>`;
+  document.body.appendChild(m);
+  m.addEventListener("click",e=>{if(e.target===m||e.target.closest("[data-ns=x]"))m.remove()});
+}
+async function fillClientBadge(phone,target,curId,name){
+  try{const t=document.querySelector(target);if(!t||!phone)return;const st=await clientStats(phone);const t2=document.querySelector(target);if(t2){t2.innerHTML=badgePills(st);const ob=t2.querySelector("[data-owe]");if(ob)ob.onclick=e=>{e.stopPropagation();oweDialog(st,name,curId)}}}catch(e){}
 }
 async function showClientCard(phone){
   try{
@@ -1006,7 +1019,7 @@ async function showBookingDetail(id){
   const scrollY=window.scrollY;
   app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="detail-sheet"><section class="action-sheet" role="dialog" aria-modal="true" aria-label="Detalhes do agendamento"><div class="sheet-grabber"></div><h2 class="section-title">${isPending?"Agendamento pendente":"Agendamento"}</h2>${details}${isPending?pendingActions:regularActions}<button class="btn sheet-close" id="detail-close">Fechar</button></section></div>`);
   const close=()=>{const el=$("#detail-sheet");if(el){el.remove();document.body.classList.remove("sheet-open");window.scrollTo(0,scrollY)}};
-  fillClientBadge(b.client_phone,"#detail-badge");
+  fillClientBadge(b.client_phone,"#detail-badge",b.id,b.client_name);
   $("#detail-close").onclick=close;
   $("#detail-sheet").addEventListener("click",e=>{if(e.target.id==="detail-sheet")close()});
   $("#detail-edit")?.addEventListener("click",()=>{close();openBooking(Number(b.start_min),"book",b)});
@@ -1329,7 +1342,7 @@ function refreshBookingTotals(rebuildCombo=false){
  if(rebuildCombo){const box=$("#adj-card");if(box){box.innerHTML=adjustmentsHtml(d);return}}
  const t=bookingTotals(d);const a=$("#adj-sub"),b=$("#adj-total");if(a)a.textContent=fm(t.sub);if(b)b.textContent=fm(t.total);
 }
-function renderBookingScreen(){const __r=__renderBookingScreen();try{if(bookingDraft?.selectedPhone)fillClientBadge(bookingDraft.selectedPhone,"#booking-client-badge")}catch(e){}return __r}
+function renderBookingScreen(){const __r=__renderBookingScreen();try{if(bookingDraft?.selectedPhone)fillClientBadge(bookingDraft.selectedPhone,"#booking-client-badge",null,(bookingDraft.clients||[]).find(c=>c.phone===bookingDraft.selectedPhone)?.name)}catch(e){}return __r}
 function __renderBookingScreen(){
  const d=bookingDraft;
  const selected=d.services;
@@ -1466,6 +1479,7 @@ function showAppConfirm(message,onOk){
 function uid(){try{return session?.user?.id||JSON.parse(atob(session.access_token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).sub||null}catch{return null}}
 const PAY_METHODS=[["cash","Dinheiro","💵"],["card","Cartão","💳"],["pix","Pix","⚡"],["other","Outro","•••"]];
 const payName=m=>(PAY_METHODS.find(x=>x[0]===m)||[0,m])[1];
+(function(){let y=0,lastY=window.scrollY,locked=false;window.addEventListener("scroll",()=>{if(!locked)lastY=window.scrollY},{passive:true});new MutationObserver(()=>{const on=document.body.classList.contains("sheet-open");if(on&&!locked){locked=true;y=lastY;document.body.style.top=(-y)+"px"}else if(!on&&locked){locked=false;document.body.style.top="";window.scrollTo(0,y)}}).observe(document.body,{attributes:true,attributeFilter:["class"]})})();
 const todayLocal=()=>{const t=new Date();return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0")};
 async function openPaymentScreen(b,opts={}){
   document.querySelector(".pay-screen")?.remove();
@@ -1474,6 +1488,8 @@ async function openPaymentScreen(b,opts={}){
   let catalog=[];try{catalog=await api("finance_products?select=*&active=eq.true&order=name")}catch(e){}
   let credits=[];try{if(b.client_phone)credits=await api(`client_credits?select=*&client_phone=eq.${encodeURIComponent(b.client_phone)}&status=eq.available&remaining_amount=gt.0&order=created_at`)}catch(e){}
   const creditAvail=Math.round(credits.reduce((a,c)=>a+Number(c.remaining_amount||0),0)*100)/100;
+  let others=[];try{if(b.client_phone){const cs=await clientStats(b.client_phone);others=cs.owing.filter(o=>String(o.b.id)!==String(b.id))}}catch(e){}
+  const incl=new Set();
   const methods=[...PAY_METHODS,...(creditAvail>0?[["credit","Crédito","🎁"]]:[])];
   const already=ex?Math.round(Number(ex.amount_paid||0)*100)/100:0;
   const baseRemaining=ex?Math.round(Number(ex.balance_due||0)*100)/100:total;
@@ -1487,7 +1503,9 @@ async function openPaymentScreen(b,opts={}){
   const close=()=>{el.remove();document.body.classList.remove("sheet-open")};
   const paid=()=>Math.round(parts.reduce((a,p)=>a+Number(p.amount||0),0)*100)/100;
   const pTotal=()=>Math.round(prods.reduce((a,p)=>a+p.quantity*p.unit_price,0)*100)/100;
-  const remaining=()=>Math.round((baseRemaining+pTotal())*100)/100;
+  const curRemaining=()=>Math.round((baseRemaining+pTotal())*100)/100;
+  const inclSum=()=>others.filter(o=>incl.has(String(o.b.id))).reduce((a,o)=>a+o.v,0);
+  const remaining=()=>Math.round((curRemaining()+inclSum())*100)/100;
   const has=m=>parts.find(p=>p.method===m);
   const statusInfo=()=>{
     const rem=remaining(),diff=Math.round((rem-paid())*100)/100,pt=pTotal();
@@ -1509,6 +1527,7 @@ async function openPaymentScreen(b,opts={}){
     ${already>0?`<div class="pay-total pay-mini"><span>Já recebido</span><b style="color:#1f8a4c">${fm(already)}</b></div>`:""}
     <div class="pay-total"><span>${settled?"Situação":already>0?"Falta receber":"Total a receber"}</span><b>${settled?"Pago ✓":fm(rem)}</b></div></div>
     ${already>0?`<div class="pay-actions"><button type="button" class="pay-sm" id="pay-alter">✎ Alterar valor pago</button><button type="button" class="pay-sm danger" id="pay-cancel">Cancelar pagamento</button></div>`:""}
+    ${others.length?`<div class="pay-incl"><div class="pay-incl-h">Incluir agendamentos anteriores <small>este cliente tem ${fm(others.reduce((a,o)=>a+o.v,0))} pendente</small></div>${others.map(o=>`<label class="pay-inclrow"><input type="checkbox" data-incl="${o.b.id}" ${incl.has(String(o.b.id))?"checked":""}><span><b>${esc(o.b.date.split("-").reverse().join("/"))} · ${esc((o.b.services||[]).map(x=>x.name).join(", ")||"Agendamento")}</b><small>${o.v<Number(o.b.total||0)-0.001?"pagamento parcial":"atendido, não pago"}</small></span><b>${fm(o.v)}</b></label>`).join("")}</div>`:""}
     <h3 class="pay-h">Produtos</h3>
     ${prods.length?`<div class="pay-prods">${prods.map((p,i)=>`<div class="pay-prod"><div class="pp-n"><b>${esc(p.name)}</b><span>${fm(p.unit_price)} cada</span></div><div class="pp-q"><button type="button" data-pq="-1" data-i="${i}">−</button><b>${p.quantity}</b><button type="button" data-pq="1" data-i="${i}">+</button></div><div class="pp-t">${fm(p.quantity*p.unit_price)}</div><button type="button" class="pay-x" data-prd="${i}" aria-label="Remover">✕</button></div>`).join("")}</div>`:""}
     <button type="button" class="pay-link" id="pay-addprod">＋ Adicionar produto</button>
@@ -1524,6 +1543,7 @@ async function openPaymentScreen(b,opts={}){
     q("#pay-back").onclick=close;
     qa("[data-pick]").forEach(x=>x.onclick=()=>{const m=x.dataset.pick;const i=parts.findIndex(p=>p.method===m);if(i>=0){parts.splice(i,1)}else{let amt=parts.length?Math.max(0,Math.round((remaining()-paid())*100)/100):remaining();if(m==="credit")amt=Math.min(amt,creditAvail);parts.push({method:m,amount:amt})}draw(m)});
     if(focusMethod&&parts.length>1){const ix=parts.findIndex(p=>p.method===focusMethod);const inp=q(`[data-pa="${ix}"]`);if(inp){inp.focus();inp.select()}}
+    qa("[data-incl]").forEach(x=>x.onchange=()=>{if(x.checked)incl.add(x.dataset.incl);else incl.delete(x.dataset.incl);resync();draw()});
     qa("[data-pa]").forEach(x=>x.oninput=()=>{parts[+x.dataset.pa].amount=Math.round(Number(x.value||0)*100)/100;refresh()});
     q("#pay-date")?.addEventListener("change",x=>{payDate=x.target.value||todayLocal()});
     q("#pay-done")?.addEventListener("change",x=>{serviceDone=x.target.checked;const sm=x.target.parentElement.querySelector("small");if(sm)sm.textContent=serviceDone?"O agendamento ficará concluído":"Fica marcado como pago, falta atender"});
@@ -1544,40 +1564,63 @@ async function openPaymentScreen(b,opts={}){
       for(const p of prods){const c=catalog.find(z=>z.id===p.product_id);if(!c||p.quantity>Number(c.stock_quantity))throw Error("Estoque insuficiente para "+p.name+".")}
       if(parts.some(p=>p.method==="credit")&&!b.client_phone)throw Error("O agendamento precisa ter telefone para usar crédito.");
       const ds=payDate||todayLocal();
-      const p0=paid(),pt=pTotal(),newBal=Math.round((remaining()-p0)*100)/100;
+      const p0=paid(),pt=pTotal(),curDue=curRemaining();
+      const inclList=others.filter(o=>incl.has(String(o.b.id)));
       const cfg=(await api("finance_settings?select=card_fee_percent&limit=1").catch(()=>[]))[0];
       const fee=Number(cfg?.card_fee_percent||0);
-      let closureId=ex?.id;
-      const pending=(amount)=>api("finance_movements",{method:"POST",body:JSON.stringify({kind:"income",movement_date:ds,description:`Saldo a receber — ${b.client_name} (${formatBookingDateBR(b.date)})`,category:"Contas a receber",amount,payment_method:"other",status:"pending",booking_id:b.id,created_by:uid()})});
-      if(!ex){
-        const disc=Number(b.discount||0)+Number(b.combo_discount||0),sur=Number(b.surcharge||0);
-        const closure=(await api("finance_booking_closures",{method:"POST",body:JSON.stringify({booking_id:b.id,service_total:Math.round((total+disc-sur)*100)/100,product_total:pt,discount:disc,surcharge:sur,grand_total:Math.round((total+pt)*100)/100,amount_paid:p0,balance_due:newBal,product_items:prods,payment_parts:parts.map(p=>({...p,date:ds})),no_show_fee:0,notes:"",closed_by:uid()})}))[0];
-        closureId=closure?.id;
-        if(newBal>0)await pending(newBal);
-      }else{
-        await api(`finance_booking_closures?id=eq.${ex.id}`,{method:"PATCH",body:JSON.stringify({product_total:Math.round((Number(ex.product_total||0)+pt)*100)/100,grand_total:Math.round((Number(ex.grand_total)+pt)*100)/100,product_items:[...(Array.isArray(ex.product_items)?ex.product_items:[]),...prods],amount_paid:Math.round((already+p0)*100)/100,balance_due:newBal,payment_parts:[...(Array.isArray(ex.payment_parts)?ex.payment_parts:[]),...parts.map(p=>({...p,date:ds}))]})});
-        const pend=(await api(`finance_movements?select=id&booking_id=eq.${encodeURIComponent(b.id)}&category=eq.Contas a receber&status=eq.pending`).catch(()=>[]))[0];
-        if(pend)await api(`finance_movements?id=eq.${pend.id}`,{method:"PATCH",body:JSON.stringify(newBal>0?{amount:newBal}:{status:"cancelled"})});
-        else if(newBal>0)await pending(newBal);
-      }
-      for(const p of parts){
-        if(p.method==="credit"){
-          let need=p.amount;
-          for(const cr of credits){if(need<=0)break;const av=Number(cr.remaining_amount||0),use=Math.min(av,need);if(use<=0)continue;const left=Math.round((av-use)*100)/100;await api(`client_credits?id=eq.${cr.id}`,{method:"PATCH",body:JSON.stringify({remaining_amount:left,status:left>0?"available":"used"})});need=Math.round((need-use)*100)/100}
-          continue;
+      const queue=parts.map(p=>({...p}));
+      const take=amt=>{const out=[];let need=Math.round(amt*100)/100;for(const q of queue){if(need<=0.0049)break;const u=Math.min(q.amount,need);if(u<=0)continue;out.push({method:q.method,amount:Math.round(u*100)/100});q.amount=Math.round((q.amount-u)*100)/100;need=Math.round((need-u)*100)/100}return out};
+      const sum=l=>Math.round(l.reduce((a,p)=>a+Number(p.amount||0),0)*100)/100;
+      const pendingFor=(bk,amount)=>api("finance_movements",{method:"POST",body:JSON.stringify({kind:"income",movement_date:ds,description:`Saldo a receber — ${bk.client_name} (${formatBookingDateBR(bk.date)})`,category:"Contas a receber",amount,payment_method:"other",status:"pending",booking_id:bk.id,created_by:uid()})});
+      const moves=async(bk,alloc)=>{
+        for(const p of alloc){
+          if(p.method==="credit"){
+            let need=p.amount;
+            for(const cr of credits){if(need<=0)break;const av=Number(cr.remaining_amount||0),use=Math.min(av,need);if(use<=0)continue;const left=Math.round((av-use)*100)/100;await api(`client_credits?id=eq.${cr.id}`,{method:"PATCH",body:JSON.stringify({remaining_amount:left,status:left>0?"available":"used"})});cr.remaining_amount=left;need=Math.round((need-use)*100)/100}
+            continue;
+          }
+          const mv={movement_date:ds,payment_method:p.method,status:"paid",booking_id:bk.id,created_by:uid()};
+          await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"income",description:`Atendimento ${bk.client_name} (${payName(p.method)})`,category:"Atendimento",amount:p.amount})});
+          if(p.method==="cash"||p.method==="card")await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"pro_labore",description:`Retirada automática sobre atendimento ${bk.client_name} (${payName(p.method)})`,category:"Retirada do proprietário",amount:p.amount})});
+          if(p.method==="card"&&fee>0)await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"expense",description:`Taxa cartão atendimento ${bk.client_name}`,category:"Taxas de cartão",amount:Math.round(p.amount*fee)/100})});
         }
-        const mv={movement_date:ds,payment_method:p.method,status:"paid",booking_id:b.id,created_by:uid()};
-        await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"income",description:`Atendimento ${b.client_name} (${payName(p.method)})`,category:"Atendimento",amount:p.amount})});
-        if(p.method==="cash"||p.method==="card")await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"pro_labore",description:`Retirada automática sobre atendimento ${b.client_name} (${payName(p.method)})`,category:"Retirada do proprietário",amount:p.amount})});
-        if(p.method==="card"&&fee>0)await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"expense",description:`Taxa cartão atendimento ${b.client_name}`,category:"Taxas de cartão",amount:Math.round(p.amount*fee)/100})});
-      }
+      };
+      const settle=async(bk,exb,due,alloc,products)=>{
+        const pa=sum(alloc),nb=Math.round((due-pa)*100)/100,ppt=products.reduce((a,p)=>a+p.quantity*p.unit_price,0);
+        const tot=Math.round(Number(bk.total||0)*100)/100;
+        let cid=exb?.id;
+        if(!exb){
+          const disc=Number(bk.discount||0)+Number(bk.combo_discount||0),sur=Number(bk.surcharge||0);
+          const c=(await api("finance_booking_closures",{method:"POST",body:JSON.stringify({booking_id:bk.id,service_total:Math.round((tot+disc-sur)*100)/100,product_total:ppt,discount:disc,surcharge:sur,grand_total:Math.round((tot+ppt)*100)/100,amount_paid:pa,balance_due:nb,product_items:products,payment_parts:alloc.map(p=>({...p,date:ds})),no_show_fee:0,notes:"",closed_by:uid()})}))[0];
+          cid=c?.id;
+          if(nb>0)await pendingFor(bk,nb);
+        }else{
+          await api(`finance_booking_closures?id=eq.${exb.id}`,{method:"PATCH",body:JSON.stringify({product_total:Math.round((Number(exb.product_total||0)+ppt)*100)/100,grand_total:Math.round((Number(exb.grand_total)+ppt)*100)/100,product_items:[...(Array.isArray(exb.product_items)?exb.product_items:[]),...products],amount_paid:Math.round((Number(exb.amount_paid||0)+pa)*100)/100,balance_due:nb,payment_parts:[...(Array.isArray(exb.payment_parts)?exb.payment_parts:[]),...alloc.map(p=>({...p,date:ds}))]})});
+          const pend=(await api(`finance_movements?select=id&booking_id=eq.${encodeURIComponent(bk.id)}&category=eq.Contas a receber&status=eq.pending`).catch(()=>[]))[0];
+          if(pend)await api(`finance_movements?id=eq.${pend.id}`,{method:"PATCH",body:JSON.stringify(nb>0?{amount:nb}:{status:"cancelled"})});
+          else if(nb>0)await pendingFor(bk,nb);
+        }
+        await moves(bk,alloc);
+        api("finance_audit_log",{method:"POST",body:JSON.stringify({table_name:"finance_booking_closures",record_id:String(cid??""),action:exb?"updated":"created",new_data:{booking_id:bk.id,amount_paid:pa,balance_due:nb,products:products.length,payment_date:ds},changed_by:uid()})}).catch(()=>null);
+        return nb;
+      };
+      // atendimento atual
+      const curAlloc=take(Math.min(p0,curDue));
+      const newBal=await settle(b,ex,curDue,curAlloc,prods);
       for(const p of prods){const c=catalog.find(z=>z.id===p.product_id);await api(`finance_products?id=eq.${p.product_id}`,{method:"PATCH",body:JSON.stringify({stock_quantity:Number(c.stock_quantity)-p.quantity,updated_at:new Date().toISOString()})});await api("finance_stock_movements",{method:"POST",body:JSON.stringify({product_id:p.product_id,movement_type:"sale",quantity:p.quantity,unit_cost:p.unit_cost||0,description:`Venda no atendimento ${b.client_name}`,movement_date:ds,created_by:uid()})})}
-      api("finance_audit_log",{method:"POST",body:JSON.stringify({table_name:"finance_booking_closures",record_id:String(closureId??""),action:ex?"updated":"created",new_data:{booking_id:b.id,amount_paid:p0,balance_due:newBal,products:prods.length,payment_date:ds},changed_by:uid()})}).catch(()=>null);
       let st;
       if(!needsDoneToggle)st=newBal>0?"completed":"finalized";
       else if(serviceDone)st=newBal>0?"completed":"finalized";
       else st=b.status;
       if(st!==b.status)await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:st})});
+      // agendamentos anteriores incluídos
+      for(const o of inclList){
+        const al=take(o.v);if(!al.length)continue;
+        const bk=(await api(`bookings?select=*&id=eq.${encodeURIComponent(o.b.id)}`))[0]||o.b;
+        const exo=(await api(`finance_booking_closures?select=*&booking_id=eq.${encodeURIComponent(o.b.id)}`).catch(()=>[]))[0]||null;
+        const nb=await settle(bk,exo,o.v,al,[]);
+        await api(`bookings?id=eq.${encodeURIComponent(o.b.id)}`,{method:"PATCH",body:JSON.stringify({status:nb>0?"completed":"finalized"})});
+      }
       close();await loadAgenda();
     }catch(err){alert("Não foi possível registrar o pagamento: "+err.message);btn.disabled=false;btn.textContent="Confirmar pagamento"}
   };
