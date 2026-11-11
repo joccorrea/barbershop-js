@@ -36,6 +36,8 @@ input,select,textarea{background:#fff;border:1px solid #dfe3e8;color:#25282d;bor
 input:focus,select:focus,textarea:focus{outline:2px solid #2378d42a;border-color:#2378d4}
 .field label{font-size:13px;font-weight:600}
 .slot{background:#fff;border-color:#e5e8ec;border-radius:14px;min-height:54px;padding:12px 14px;box-shadow:0 3px 9px #17233308}
+.agenda-blockcard{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;height:auto!important;min-height:0;border:2px solid #A9B7C6!important;border-radius:14px}
+.agenda-blockcard b{font-size:16px}.agenda-blockcard span{font-size:14px}.agenda-blockcard small{font-size:12px;opacity:.8}
 .slot.blocked{background:#e4e6e9;border-color:#e0e2e5;color:#9ba0a7;opacity:1}
 .slot.lunch{background:#f0f1f3;border-color:#e4e6e9;color:#92969d}
 .slot.booked{background:#eaf3ff;border-color:#c6defb;color:#1f5f9f}
@@ -563,6 +565,10 @@ let agendaScrollY=0,agendaDayKey=null;
 function agendaAfterRender(){const k=key(day);const y=agendaDayKey===k?agendaScrollY:0;agendaDayKey=k;requestAnimationFrame(()=>window.scrollTo(0,y))}
 window.addEventListener("scroll",()=>{if(document.querySelector(".agenda-grid")&&!document.body.classList.contains("sheet-open")&&!document.querySelector(".booking-screen,.client-picker-screen"))agendaScrollY=window.scrollY},{passive:true});
 let pendingBal={},paidAmt={};
+(()=>{let sx=0,sy=0,st=0,ok=false;
+ document.addEventListener("touchstart",e=>{ok=false;if(e.touches.length!==1)return;const t=e.target;if(!document.querySelector(".agenda-head")||document.body.classList.contains("sheet-open")||document.querySelector(".booking-screen,.client-picker-screen,.nsm,.pop-scrim,.app-confirm-scrim,.pay-screen"))return;if(t.closest&&t.closest("input,textarea,select"))return;sx=e.touches[0].clientX;sy=e.touches[0].clientY;st=Date.now();ok=true},{passive:true});
+ document.addEventListener("touchend",e=>{if(!ok)return;ok=false;const c=e.changedTouches[0],dx=c.clientX-sx,dy=c.clientY-sy;if(Date.now()-st>700||Math.abs(dx)<70||Math.abs(dx)<Math.abs(dy)*1.8)return;const b=document.querySelector('.agenda-arrow[data-day="'+(dx<0?"1":"-1")+'"]');if(b)b.click()},{passive:true});
+})();
 function renderAgenda(){
  let cfg=hours?.[0];
  const navFor=(sub)=>`<div class="agenda-head"><button class="agenda-arrow" data-day="-1" aria-label="Dia anterior">‹</button><button type="button" class="agenda-datebtn" id="open-date-picker" aria-label="Escolher outra data"><span class="agenda-dayname">${DW[day.getDay()]}, ${day.getDate()} de ${day.toLocaleDateString("pt-BR",{month:"long"})}${day.getFullYear()!==new Date().getFullYear()?" de "+day.getFullYear():""}</span></button><button class="agenda-arrow" data-day="1" aria-label="Próximo dia">›</button></div>`;
@@ -599,6 +605,9 @@ function renderAgenda(){
   const starting=bookingsSorted.filter(x=>Number(x.start_min)===m);
   const occupying=bookings.find(x=>Number(x.start_min)<m&&Number(x.end_min)>m);
   const block=blocks.find(x=>Number(x.start_min)<=m&&Number(x.end_min)>m);
+  const blkStart=blocks.find(x=>Number(x.start_min)===m);
+  if(blkStart){const bs=Number(blkStart.start_min),be=Number(blkStart.end_min),sp=Math.max(1,gridTimes.filter(t=>t>=bs&&t<be).length);
+   right.push(`<button type="button" class="btn slot agenda-slot blocked agenda-blockcard" data-open-block="${esc(blkStart.id)}" style="grid-column:2;grid-row:${row} / span ${sp};z-index:2"><b>Bloqueado</b>${blkStart.reason?`<span>${esc(blkStart.reason)}</span>`:""}<small>${hm(bs)} – ${hm(be)}</small></button>`)}
   const inRange=validRanges.some(r=>m>=r.start_min&&m<r.end_min);
   const outside=m<firstStart||m>=lastEnd;
   const lunch=!inRange&&!outside;
@@ -614,7 +623,7 @@ function renderAgenda(){
    });
   }else if(occupying){
   }else if(block){
-   right.push(`<button class="btn slot agenda-slot blocked" data-open-block="${esc(block.id)}" style="grid-column:2;grid-row:${row}"><span class="desc">Bloqueado${block.reason?" · "+esc(block.reason):""}</span><span class="pill">Opções</span></button>`);
+   /* coberto pelo cartão único do bloqueio */
   }else if(outside){
    right.push(`<button type="button" class="btn slot agenda-slot outside" data-slot="${m}" aria-label="Agendar manualmente às ${hm(m)} — fora do expediente" title="Agendar manualmente fora do expediente" style="grid-column:2;grid-row:${row}"></button>`);
   }else if(lunch){
@@ -2023,7 +2032,7 @@ function __renderBookingScreen(){
  `:`
  <label class="chk-item allday-row"><input type="checkbox" id="booking-allday"><span>Dia todo</span></label>
  <div class="booking-range-label">Início</div><div class="field-line">${dateInput('booking-date','',d.date)}${timeInput('booking-start','',startMin)}</div>
- <div class="booking-range-label">Fim</div><div class="field-line">${dateInput('booking-end-date','',d.endDate||d.date)}${timeInput('booking-end','',Math.min(d.start+30,1439))}</div>
+ <div class="booking-range-label">Fim</div><div class="field-line">${dateInput('booking-end-date','',d.endDate||d.date)}${timeInput('booking-end','',Math.min(Number.isFinite(Number(d.end))&&Number(d.end)>d.start?Number(d.end):d.start+30,1439))}</div>
  <div class="field"><label>Motivo (opcional)</label><input id="booking-reason" placeholder="Ex.: compromisso pessoal" value="${esc(d.reason||'')}"></div>
  ${(d.barbers&&d.barbers.length>1)?`<div class="field"><label>Bloquear para</label><div class="ag-seg"><button type="button" data-block-scope="one" class="${d.blockAll?'':'on'}">Só este profissional</button><button type="button" data-block-scope="all" class="${d.blockAll?'on':''}">Todos</button></div></div>`:''}
  `}
