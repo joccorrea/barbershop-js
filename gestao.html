@@ -1175,12 +1175,12 @@ async function loadProfessionals(){
   try{const rp=await api("role_permissions?select=role,perms");rolePerms={};rp.forEach(r=>rolePerms[r.role]=r.perms||{})}catch(e){}
   try{psServices=await api("services?select=id,name&active=eq.true&order=sort");psLinks=await api("barber_services?select=barber_id,service_id")}catch(e){psServices=[];psLinks=[]}
   const rows=barbers.map(x=>`<div class="card professional-card">
-    <button type="button" class="professional-edit" data-edit-professional="${x.id}">${esc(x.name)}<span class="ps-sub">${esc(ROLE_LABEL[x.role]||"Colaborador")} · ${x.user_id?"com login":"sem login"} · ${x.schedule?"horário próprio":"horário da barbearia"}</span></button>
+    <button type="button" class="professional-edit" data-edit-professional="${x.id}">${esc(x.name)}<span class="ps-sub">${esc(ROLE_LABEL[x.role]||"Barbeiro")} · ${x.user_id?"com login":"sem login"} · ${x.schedule?"horário próprio":"horário da barbearia"}</span></button>
     <div class="professional-actions"><span class="pill">${x.active?"Ativo":"Inativo"}</span><button type="button" class="lic" data-edit-professional="${x.id}" aria-label="Editar" title="Editar">${ICO.edit}</button></div>
    </div>`).join("");
   shell("Profissionais",`<div class="settings-back-row"><button type="button" class="btn" id="settings-back">← Configurações</button></div>
    ${rows||'<p class="muted">Nenhum profissional cadastrado.</p>'}
-   <button type="button" class="btn primary" id="add-professional" style="width:100%;margin-top:8px" aria-label="Adicionar colaborador" title="Adicionar colaborador">＋</button>
+   <button type="button" class="btn primary" id="add-professional" style="width:100%;margin-top:8px" aria-label="Adicionar profissional" title="Adicionar profissional">＋</button>
    <div id="professional-editor"></div>`);
   $("#settings-back").onclick=()=>navigate("settings");
   $("#add-professional").onclick=()=>openProfessionalForm(null);
@@ -1191,12 +1191,13 @@ let psServices=[],psLinks=[];
 const PS_DAYS=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
 function openProfessionalForm(id){
  const x=barbers.find(b=>Number(b.id)===Number(id))||{id:null,name:"",active:true,role:"barber",phone:"",email:"",notes:""};
+ shell(x.id?"Editar profissional":"Novo profissional",`<div class="settings-back-row"><button type="button" class="btn" id="prof-back">← Profissionais</button></div><div id="professional-editor"></div>`);$("#prof-back").onclick=loadProfessionals;window.scrollTo(0,0);
  const host=$("#professional-editor");
  const psSch=x.schedule?normalizeSchedule(x.schedule):{};let psOwn=!!x.schedule;
  host.innerHTML=`<form id="professional-form" class="professional-form">
-  <h3 style="margin:0 0 14px">${x.id?"Editar profissional":"Adicionar colaborador"}</h3>
+  
   <div class="field"><label for="prof-name">Nome completo *</label><input id="prof-name" required maxlength="100" value="${esc(x.name)}"></div>
-  <div class="field"><label for="prof-role">Função</label><select id="prof-role"><option value="owner" ${x.role==="owner"?"selected":""}>Proprietário</option><option value="manager" ${x.role==="manager"?"selected":""}>Gerente</option><option value="cashier" ${x.role==="cashier"?"selected":""}>Atendente (caixa)</option><option value="barber" ${(!x.role||x.role==="barber")?"selected":""}>Colaborador</option></select></div>
+  <div class="field"><label for="prof-role">Função</label><select id="prof-role"><option value="owner" ${x.role==="owner"?"selected":""}>Proprietário</option><option value="manager" ${x.role==="manager"?"selected":""}>Gerente</option><option value="cashier" ${x.role==="cashier"?"selected":""}>Atendente</option><option value="barber" ${(!x.role||x.role==="barber")?"selected":""}>Barbeiro</option></select></div>
   <div class="field"><label for="prof-phone">Telefone</label><input id="prof-phone" type="tel" value="${esc(x.phone||"")}"></div>
   <div class="field"><label for="prof-email">E-mail</label><input id="prof-email" type="email" value="${esc(x.email||"")}"></div>
   <div class="field"><label for="prof-notes">Informações adicionais</label><textarea id="prof-notes" rows="3">${esc(x.notes||"")}</textarea></div>
@@ -1265,7 +1266,7 @@ function openProfessionalForm(id){
 /* ===== acesso, perfis e permissões ===== */
 const PERM_DEFS=[["agenda_all","Ver a agenda de todos os profissionais","Desligado: vê só a própria agenda"],["booking_manage","Confirmar, cancelar e editar agendamentos",""],["booking_transfer","Alterar o barbeiro de um agendamento",""],["block_slots","Bloquear horários",""],["clients_view","Ver clientes","Lista, telefone e ficha"],["clients_edit","Cadastrar e editar clientes",""],["catalog_edit","Editar serviços, produtos e preços",""],["finance_view","Ver o Financeiro",""],["finance_edit","Receber pagamentos e lançar no Financeiro","Inclui o caixa"]];
 const DEFAULT_RP={manager:{agenda_all:true,booking_manage:true,booking_transfer:true,block_slots:true,clients_view:true,clients_edit:true,catalog_edit:false,finance_view:false,finance_edit:false},barber:{agenda_all:false,booking_manage:true,booking_transfer:true,block_slots:true,clients_view:false,clients_edit:false,catalog_edit:false,finance_view:false,finance_edit:false},cashier:{agenda_all:true,booking_manage:true,booking_transfer:true,block_slots:false,clients_view:true,clients_edit:true,catalog_edit:false,finance_view:true,finance_edit:true}};
-const ROLE_LABEL={owner:"Proprietário",manager:"Gerente",cashier:"Atendente (caixa)",barber:"Colaborador"};
+const ROLE_LABEL={owner:"Proprietário",manager:"Gerente",cashier:"Atendente",barber:"Barbeiro"};
 let rolePerms={};
 const roleKey=r=>(r==="barber"||r==="cashier")?r:"manager";
 const rpBase=r=>({...DEFAULT_RP[roleKey(r)],...(rolePerms[roleKey(r)]||{})});
@@ -1287,7 +1288,7 @@ async function loadRoles(){
   const who=people.filter(p=>roleKey(p.role)===tab&&p.role!=="owner");
   shell("Permissões e acessos",`<div class="settings-back-row"><button type="button" class="btn" id="roles-back">← Configurações</button></div>
   <p class="muted" style="margin:0 0 10px">Defina o que cada função pode fazer. Vale para todos com essa função; dentro do cadastro de cada profissional você ainda pode ajustar uma pessoa só.</p>
-  <div class="ag-seg" id="role-seg" style="margin-bottom:10px">${["manager","cashier","barber"].map(r=>`<button type="button" data-role-tab="${r}" class="${r===tab?"on":""}">${r==="manager"?"Gerente":r==="cashier"?"Atendente":"Colaborador"}</button>`).join("")}</div>
+  <div class="ag-seg" id="role-seg" style="margin-bottom:10px">${["manager","cashier","barber"].map(r=>`<button type="button" data-role-tab="${r}" class="${r===tab?"on":""}">${r==="manager"?"Gerente":r==="cashier"?"Atendente":"Barbeiro"}</button>`).join("")}</div>
   <div class="card" style="margin:0"><b>${ROLE_LABEL[tab]}</b><div class="muted" style="margin:2px 0 6px">${DESC[tab]}</div><div id="role-switches">${permSwitches(cur,"rp")}</div>
   <p class="muted" style="margin:10px 0 0;font-size:12.5px">Quem tem esta função: ${who.length?who.map(w=>esc(w.name.split(" ")[0])+(w.user_id?"":" (sem login)")).join(", "):"ninguém ainda"}.</p></div>
   <p class="muted" style="margin:10px 2px 0;font-size:12.5px">Só o proprietário acessa: Configurações, horários da barbearia, profissionais, formas de pagamento e criação de logins.</p>
@@ -1570,7 +1571,7 @@ app.addEventListener("click",async e=>{let b=e.target.closest("button");if(!b)re
 try{
 if(b.id==="do-login"){try{await auth({email:val("email").trim(),password:val("password")});notice="";renderLoginOrPage()}catch(err){session=null;saveSession();$("#login-error").textContent=err.message}return}
 if(b.id==="retry"){loadAgenda();return}
-if(b.id==="open-date-picker"){document.querySelector("#dp-scrim")?.remove();const sc=document.createElement("div");sc.id="dp-scrim";sc.className="app-confirm-scrim";sc.innerHTML=`<section class="app-confirm dp-panel" role="dialog" aria-modal="true" aria-label="Escolher data"><h3 style="margin:0 0 10px">Ir para a data</h3><input type="date" id="dp-date" value="${key(day)}"><button type="button" data-dp-go class="dp-primary">Ir para esta data</button><button type="button" data-dp-today>Ir para hoje</button><button type="button" data-dp-close>Fechar</button></section>`;document.body.appendChild(sc);sc.addEventListener("click",async ev=>{if(ev.target===sc||ev.target.closest("[data-dp-close]")){sc.remove();return}if(ev.target.closest("[data-dp-today]")){sc.remove();day=new Date();await loadAgenda();return}if(ev.target.closest("[data-dp-go]")){const v=sc.querySelector("#dp-date").value;sc.remove();if(v){day=new Date(v+"T12:00:00");await loadAgenda()}}});return}
+if(b.id==="open-date-picker"){document.querySelector("#dp-scrim")?.remove();const r=b.getBoundingClientRect();const sc=document.createElement("div");sc.id="dp-scrim";sc.className="dp2-scrim";sc.innerHTML=`<section class="dp2" role="dialog" aria-modal="true" aria-label="Escolher data" style="top:${Math.round(r.bottom+8)}px"><button type="button" class="dp2-x" data-dp-close aria-label="Fechar" title="Fechar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div class="dp2-row"><input type="date" id="dp-date" value="${key(day)}"><button type="button" class="dp2-go" data-dp-go>Ir para esta data <span>➜</span></button></div><button type="button" class="dp2-today" data-dp-today>Hoje</button></section>`;document.body.appendChild(sc);sc.addEventListener("click",async ev=>{if(ev.target===sc||ev.target.closest("[data-dp-close]")){sc.remove();return}if(ev.target.closest("[data-dp-today]")){sc.remove();day=new Date();await loadAgenda();return}if(ev.target.closest("[data-dp-go]")){const v=sc.querySelector("#dp-date").value;sc.remove();if(v){day=new Date(v+"T12:00:00");await loadAgenda()}}});return}
 if(b.dataset.day){day=new Date(day.getFullYear(),day.getMonth(),day.getDate()+Number(b.dataset.day));await loadAgenda();return}
 if(b.id==="toggle-goto"){$("#goto-panel")?.classList.toggle("open");return}
 if(b.id==="goto"){if(val("goto-date"))day=new Date(val("goto-date")+"T12:00:00");await loadAgenda();return}
@@ -2778,4 +2779,14 @@ body{animation:pg-in .3s ease backwards}
 #app .settings-menu-button b{grid-column:2;font-size:16px;font-weight:700;color:#10304F}
 #app .settings-menu-button .muted{grid-column:2;font-size:12.5px}
 #app .settings-menu-button:after{content:"›";grid-column:3;grid-row:1/3;font-size:22px;color:#8FB6E0;line-height:1}
+
+/* g19 */
+.dp2-scrim{position:fixed;inset:0;z-index:7000;background:rgba(16,48,79,.16)}
+.dp2{position:fixed;left:50%;transform:translateX(-50%);width:min(92vw,380px);padding:34px 12px 12px;border-radius:30px;background:linear-gradient(135deg,rgba(255,255,255,.7),rgba(200,226,250,.5));backdrop-filter:blur(22px) saturate(1.9);-webkit-backdrop-filter:blur(22px) saturate(1.9);border:1px solid rgba(255,255,255,.85);box-shadow:0 20px 44px rgba(31,100,180,.30),inset 0 1px 0 rgba(255,255,255,.95),inset 0 -10px 20px rgba(111,168,220,.18);animation:pop-bub .3s cubic-bezier(.25,1.6,.45,1);transform-origin:50% 0}
+.dp2:after{content:"";position:absolute;top:5px;left:26px;width:34%;height:10px;border-radius:50%;background:linear-gradient(rgba(255,255,255,.9),rgba(255,255,255,0));pointer-events:none}
+.dp2-x{position:absolute;top:8px;right:10px;width:30px!important;height:30px;min-width:0;padding:0!important;border-radius:50%!important;display:grid;place-items:center;background:rgba(255,255,255,.75)!important;color:#10304F!important;border:1px solid rgba(255,255,255,.9)!important;box-shadow:0 2px 8px rgba(31,100,180,.18)!important}
+.dp2-row{display:flex;gap:8px;align-items:stretch}
+.dp2 input[type=date]{flex:1;min-width:0;height:46px;border-radius:18px;border:1px solid rgba(255,255,255,.9);background:rgba(255,255,255,.8);color:#10304F;font-size:16px;font-weight:700;padding:0 12px;box-shadow:0 3px 10px rgba(35,120,212,.12)}
+.dp2-go{flex:none;height:46px;padding:0 16px!important;border-radius:18px!important;background:#2F73C9!important;color:#fff!important;border:0!important;font-weight:800;font-size:14px;white-space:nowrap;box-shadow:0 6px 14px rgba(47,115,201,.35)!important;display:flex;align-items:center;gap:6px}
+.dp2-today{width:100%;height:42px;margin-top:8px;border-radius:18px!important;background:rgba(255,255,255,.75)!important;color:#10304F!important;border:1px solid rgba(255,255,255,.9)!important;font-weight:800;font-size:15px;box-shadow:0 3px 10px rgba(35,120,212,.12)!important}
 </style>
