@@ -278,8 +278,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid #2378d42a;border-color
 .pay-foot{padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #C4DFF8}
 .pay-confirm{width:100%;height:50px;font-size:17px;border-radius:14px}.pay-confirm:disabled{opacity:.45}
 .agenda-meta2{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:2px}.agenda-meta2 .agenda-toreceive{color:#C2700A}
-#new-client,#new-service,#new-product,#new-package,#new-combo,#new-period,#add-professional{position:fixed!important;right:max(20px,calc((100vw - 730px)/2 + 20px));bottom:28px;top:auto!important;left:auto!important;z-index:1500;width:58px!important;height:58px!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:50%!important;background:#4F94D8!important;color:#fff!important;font-size:0!important;box-shadow:0 8px 20px #1F4B7555!important;display:grid!important;place-items:center}
-#new-client::before,#new-service::before,#new-product::before,#new-package::before,#new-combo::before,#new-period::before,#add-professional::before{content:"+";font-size:36px;line-height:1;font-weight:400}
+#new-client,#new-service,#new-product,#new-package,#new-combo,#new-period,#add-professional,#add-paymethod{position:fixed!important;right:max(20px,calc((100vw - 730px)/2 + 20px));bottom:28px;top:auto!important;left:auto!important;z-index:1500;width:58px!important;height:58px!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;border-radius:50%!important;background:#4F94D8!important;color:#fff!important;font-size:0!important;box-shadow:0 8px 20px #1F4B7555!important;display:grid!important;place-items:center}
+#new-client::before,#new-service::before,#new-product::before,#new-package::before,#new-combo::before,#new-period::before,#add-professional::before,#add-paymethod::before{content:"+";font-size:36px;line-height:1;font-weight:400}
 main{padding-bottom:110px!important}
 .lgbtn{background:none!important;border:0!important;text-align:left;padding:0!important;color:inherit;font:inherit;min-width:0;cursor:pointer;box-shadow:none!important}.lgbtn b{display:block}
 .pay-body{padding-bottom:40px!important}.cc-head{margin:10px 0 8px;background:#fff;border:1px solid #C4DFF8;border-radius:16px;padding:14px;position:relative}
@@ -350,6 +350,9 @@ button.cb-pill{cursor:pointer;font-family:inherit}
 .pay-money{margin-left:auto;width:auto!important;min-width:0;padding:0 4px 0 8px!important;background:transparent!important;border:0!important}
 .pay-money input{width:96px!important;flex:none;text-align:right!important;background:#F3F9FF!important;border:1px solid #C4DFF8!important;border-radius:10px!important;padding:0 10px!important;height:42px!important}
 .pay-amt{padding-right:6px!important}
+.pay-tile:disabled{opacity:.45}.pay-tile-credit{font-size:14px}.pay-tile-credit small{font-size:11px}
+.pm-icons{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 12px}.pm-icons button{width:42px;height:42px;border-radius:12px;border:1.5px solid #C4DFF8;background:#fff;font-size:20px}.pm-icons button.on{border-color:#4F94D8;background:#EAF4FF;box-shadow:0 0 0 2px #4F94D8 inset}
+.pm-kinds{display:grid;gap:6px;margin:6px 0 12px}.pm-kinds button{text-align:left;border:1.5px solid #C4DFF8;background:#fff;border-radius:12px;padding:8px 11px;color:#10304F}.pm-kinds button b{display:block;font-size:14px}.pm-kinds button span{font-size:12px;color:#5b7a99}.pm-kinds button.on{border-color:#4F94D8;background:#EAF4FF;box-shadow:0 0 0 2px #4F94D8 inset}
 .slot.lunch{cursor:pointer}.slot-h{font-size:15px!important;margin:10px 2px 6px!important}
 .slot-card{padding:10px 12px!important;border-radius:14px!important}
 .slot-compact{display:flex!important;flex-wrap:wrap!important;justify-content:space-between;align-items:center!important;gap:8px!important}
@@ -717,14 +720,57 @@ async function editCombo(id=null){
  $("#cancel-combo").onclick=loadCombos;
 }
 async function loadSettings(){
- shell("Configurações",`<div class="notice">Escolha o que deseja configurar.</div><div class="settings-menu-grid"><button type="button" class="card settings-menu-button" id="open-hours"><span class="settings-menu-icon">◷</span><b>Horários</b><span class="muted">Funcionamento</span></button><button type="button" class="card settings-menu-button" id="open-professionals"><span class="settings-menu-icon">♧</span><b>Profissionais</b><span class="muted">Equipe cadastrada</span></button><button type="button" class="card settings-menu-button" id="open-messages"><span class="settings-menu-icon">✉︎</span><b>Mensagens</b><span class="muted">Confirmação e cancelamento</span></button><button type="button" class="card settings-menu-button" id="open-services"><span class="settings-menu-icon">✂︎</span><b>Serviços</b><span class="muted">Valores e tempos</span></button><button type="button" class="card settings-menu-button" id="open-products"><span class="settings-menu-icon">▣</span><b>Produtos</b><span class="muted">Estoque e preços</span></button><button type="button" class="card settings-menu-button" id="open-packages"><span class="settings-menu-icon">❖</span><b>Pacotes</b><span class="muted">Pacotes de serviços</span></button><button type="button" class="card settings-menu-button" id="open-combos"><span class="settings-menu-icon">✦</span><b>Combos</b><span class="muted">Descontos por conjunto</span></button></div>`);
+ shell("Configurações",`<div class="notice">Escolha o que deseja configurar.</div><div class="settings-menu-grid"><button type="button" class="card settings-menu-button" id="open-hours"><span class="settings-menu-icon">◷</span><b>Horários</b><span class="muted">Funcionamento</span></button><button type="button" class="card settings-menu-button" id="open-professionals"><span class="settings-menu-icon">♧</span><b>Profissionais</b><span class="muted">Equipe cadastrada</span></button><button type="button" class="card settings-menu-button" id="open-messages"><span class="settings-menu-icon">✉︎</span><b>Mensagens</b><span class="muted">Confirmação e cancelamento</span></button><button type="button" class="card settings-menu-button" id="open-services"><span class="settings-menu-icon">✂︎</span><b>Serviços</b><span class="muted">Valores e tempos</span></button><button type="button" class="card settings-menu-button" id="open-products"><span class="settings-menu-icon">▣</span><b>Produtos</b><span class="muted">Estoque e preços</span></button><button type="button" class="card settings-menu-button" id="open-paymethods"><span class="settings-menu-icon">＄</span><b>Formas de pagamento</b><span class="muted">Dinheiro, Pix, cartão…</span></button><button type="button" class="card settings-menu-button" id="open-packages"><span class="settings-menu-icon">❖</span><b>Pacotes</b><span class="muted">Pacotes de serviços</span></button><button type="button" class="card settings-menu-button" id="open-combos"><span class="settings-menu-icon">✦</span><b>Combos</b><span class="muted">Descontos por conjunto</span></button></div>`);
  $("#open-hours").onclick=()=>navigate("settings-hours");
  $("#open-professionals").onclick=()=>navigate("settings-professionals");
  $("#open-messages").onclick=()=>navigate("settings-messages");
  $("#open-services").onclick=()=>navigate("services");
  $("#open-products").onclick=()=>navigate("products");
  $("#open-packages").onclick=()=>navigate("packages");
+ $("#open-paymethods").onclick=()=>navigate("settings-payments");
  $("#open-combos").onclick=()=>navigate("combos");
+}
+
+const PM_ICONS=["💵","💳","⚡","🏦","🧾","🎁","📱","💰"];
+const PM_KINDS=[["cash","Dinheiro","Entra como retirada do proprietário"],["card","Cartão","Aplica a taxa de cartão"],["pix","Pix","Fica no caixa da barbearia"],["transfer","Transferência","Fica no caixa da barbearia"],["other","Outro","Fica no caixa da barbearia"]];
+async function loadPayMethods(){
+ await ensurePM(true);
+ const list=__pm;
+ shell("Formas de pagamento",`<div class="settings-back-row"><button type="button" class="btn" id="pm-back">← Configurações</button></div>
+ <div class="muted" style="margin-bottom:8px">Estas formas aparecem no Pagamento da agenda e no Financeiro.</div>`+
+ list.map(m=>`<div class="lrow ${m.active===false?"off":""}"><div class="lic" style="background:none;border:0;font-size:22px;width:34px">${m.icon||"💰"}</div><div class="lg"><b>${esc(m.name)}</b><div class="lsub">${m.built_in?"Padrão":esc((PM_KINDS.find(k=>k[0]===m.kind)||[])[1]||"")}${m.active===false?" · Inativa":""}</div></div><button type="button" class="lic" data-pm-edit="${m.id}" aria-label="Editar" title="Editar">${ICO.edit}</button></div>`).join("")+
+ `<button type="button" class="btn primary" id="add-paymethod" aria-label="Adicionar forma de pagamento" title="Adicionar forma de pagamento">＋</button>`);
+ $("#pm-back").onclick=()=>navigate("settings");
+ app.querySelectorAll("[data-pm-edit]").forEach(b=>b.onclick=()=>editPayMethod(list.find(x=>String(x.id)===b.dataset.pmEdit)));
+ $("#add-paymethod").onclick=()=>editPayMethod(null);
+}
+function editPayMethod(m){
+ document.querySelector(".nsm")?.remove();
+ const isNew=!m;let icon=m?.icon||"💰",kind=m?.kind||"other",active=m?m.active!==false:true;
+ const d=document.createElement("div");d.className="nsm";
+ const draw=()=>{d.innerHTML=`<div class="nsm-card"><h3>${isNew?"Nova forma de pagamento":"Editar forma de pagamento"}</h3>
+ <div class="field"><label>Nome</label><input id="pm-name" maxlength="30" placeholder="Ex.: Vale-presente" value="${esc(m?.name||"")}"></div>
+ <label style="font-size:13px;color:#5b7a99;font-weight:600">Ícone</label><div class="pm-icons">${PM_ICONS.map(i=>`<button type="button" data-pm-icon="${i}" class="${i===icon?"on":""}">${i}</button>`).join("")}</div>
+ ${m?.built_in?"":`<label style="font-size:13px;color:#5b7a99;font-weight:600">Como o sistema trata</label><div class="pm-kinds">${PM_KINDS.map(k=>`<button type="button" data-pm-kind="${k[0]}" class="${k[0]===kind?"on":""}"><b>${k[1]}</b><span>${k[2]}</span></button>`).join("")}</div>`}
+ ${isNew?"":`<label class="pay-optrow"><span>Ativa (aparece nas telas)</span><input type="checkbox" id="pm-active" ${active?"checked":""} style="width:auto"></label>`}
+ <div id="pm-err" class="pay-diff"></div>
+ <button type="button" class="btn primary" id="pm-ok" style="width:100%;height:46px;margin-top:6px">Salvar</button><button type="button" class="ns-x" data-ns="x">Voltar</button></div>`};
+ draw();document.body.appendChild(d);
+ d.addEventListener("click",async e=>{
+  if(e.target===d||e.target.closest("[data-ns=x]")){d.remove();return}
+  const i=e.target.closest("[data-pm-icon]");if(i){icon=i.dataset.pmIcon;d.querySelectorAll("[data-pm-icon]").forEach(x=>x.classList.toggle("on",x===i));return}
+  const k=e.target.closest("[data-pm-kind]");if(k){kind=k.dataset.pmKind;d.querySelectorAll("[data-pm-kind]").forEach(x=>x.classList.toggle("on",x===k));return}
+  if(e.target.closest("#pm-ok")){
+   const name=d.querySelector("#pm-name").value.trim();if(!name){d.querySelector("#pm-err").textContent="Informe o nome.";return}
+   const dup=(__pm||[]).find(x=>x.name.toLowerCase()===name.toLowerCase()&&x.id!==m?.id);if(dup){d.querySelector("#pm-err").textContent="Já existe uma forma com esse nome.";return}
+   const btn=e.target.closest("#pm-ok");btn.disabled=true;btn.textContent="Salvando…";
+   try{
+    if(isNew)await api("payment_methods",{method:"POST",body:JSON.stringify({name,kind,icon,active:true,sort_order:((__pm||[]).reduce((a,x)=>Math.max(a,x.sort_order||0),0))+1})});
+    else await api(`payment_methods?id=eq.${m.id}`,{method:"PATCH",body:JSON.stringify({name,icon,kind:m.built_in?m.kind:kind,active:d.querySelector("#pm-active")?.checked??true})});
+    d.remove();await loadPayMethods();
+   }catch(err){d.querySelector("#pm-err").textContent="Não foi possível salvar: "+err.message;btn.disabled=false;btn.textContent="Salvar"}
+  }
+ });
 }
 const DEFAULT_BOOKING_MESSAGES={
  confirmed:"Olá, {nome}! Seu agendamento na Barber Shop JS está confirmado para {dia}, às {hora}. Desde já, agradeço a preferência! Caso precise cancelar ou alterar seu horário, peço que me avise com pelo menos 2 horas de antecedência. Será um prazer atendê-lo!",
@@ -1075,7 +1121,7 @@ document.addEventListener("click",e=>{
  const h=e.target.closest(".hist-item");
  if(h&&!e.target.closest("a,button"))h.classList.toggle("open");
 });
-async function navigate(p){page=p;setMenuOpen(false);$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p||(["settings-hours","settings-professionals","settings-messages","services","products","packages","combos"].includes(p)&&b.dataset.page==="settings")));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="packages")await loadPackages();else if(p==="combos")await loadCombos();else if(p==="settings-hours")await loadHours();else if(p==="settings-professionals")await loadProfessionals();else if(p==="settings-messages")loadMessageSettings();else if(p==="birthdays")await loadBirthdays()}
+async function navigate(p){page=p;setMenuOpen(false);ensurePM();$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p||(["settings-hours","settings-professionals","settings-messages","settings-payments","services","products","packages","combos"].includes(p)&&b.dataset.page==="settings")));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="packages")await loadPackages();else if(p==="combos")await loadCombos();else if(p==="settings-hours")await loadHours();else if(p==="settings-professionals")await loadProfessionals();else if(p==="settings-messages")loadMessageSettings();else if(p==="settings-payments")await loadPayMethods();else if(p==="birthdays")await loadBirthdays()}
 // Gesto lateral: arrastar da borda esquerda para a direita volta à tela anterior,
 // mostrando a tela de baixo (instantâneo da tela anterior) enquanto arrasta.
 (function(){
@@ -1084,7 +1130,7 @@ async function navigate(p){page=p;setMenuOpen(false);$("#menu").querySelectorAll
  const LOADERS={loadAgenda:"agenda",loadClients:"clients",loadSettings:"settings",loadServices:"services",loadProducts:"products",loadPackages:"packages",loadCombos:"combos",loadHours:"settings-hours",loadProfessionals:"settings-professionals",loadBirthdays:"birthdays"};
  Object.entries(LOADERS).forEach(([fn,k])=>{const orig=window[fn];if(typeof orig!=="function")return;window[fn]=async function(...a){const r=await orig.apply(this,a);try{if(!document.querySelector(".booking-screen,.client-picker-screen"))snaps[k]=app.innerHTML}catch(e){}return r}});
  const el=()=>document.querySelector("#app");
- const parentPage=()=>["settings-hours","settings-professionals","settings-messages","services","products","packages","combos"].includes(page)?"settings":"agenda";
+ const parentPage=()=>["settings-hours","settings-professionals","settings-messages","settings-payments","services","products","packages","combos"].includes(page)?"settings":"agenda";
  const subCancel=()=>document.querySelector("#cancel-service,#cancel-product,#cancel-edit,#cancel-package,#cancel-combo");
  const targetKey=()=>{if($("#menu").classList.contains("open"))return null;if(window.__subBack){snaps.__sub=snaps[window.__subBack.key];if(snaps.__sub)return "__sub"}if(subCancel())return page;return page!=="agenda"?parentPage():null};
  const goBack=async()=>{
@@ -1496,8 +1542,16 @@ function showAppConfirm(message,onOk){
 }
 
 function uid(){try{return session?.user?.id||JSON.parse(atob(session.access_token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).sub||null}catch{return null}}
-const PAY_METHODS=[["cash","Dinheiro","💵"],["card","Cartão","💳"],["pix","Pix","⚡"],["other","Outro","•••"]];
-const payName=m=>(PAY_METHODS.find(x=>x[0]===m)||[0,m])[1];
+let __pm=null;
+const PM_DEFAULT=[{id:0,name:"Dinheiro",kind:"cash",icon:"💵",active:true,built_in:true},{id:0,name:"Cartão",kind:"card",icon:"💳",active:true,built_in:true},{id:0,name:"Pix",kind:"pix",icon:"⚡",active:true,built_in:true}];
+async function ensurePM(force){if(__pm&&!force)return __pm;try{const r=await api("payment_methods?select=*&order=sort_order,id");__pm=r.length?r:PM_DEFAULT}catch(e){__pm=PM_DEFAULT}return __pm}
+const pmKey=m=>(m.built_in||!m.id)?m.kind:"pm"+m.id;
+const payList=()=>(__pm||PM_DEFAULT).filter(m=>m.active!==false).map(m=>[pmKey(m),m.name,m.icon||"💰",m.kind]);
+const PM_LEGACY={cash:"Dinheiro",card:"Cartão",pix:"Pix",transfer:"Transferência",other:"Outro",credit:"Crédito do cliente"};
+const pmFind=k=>(__pm||PM_DEFAULT).find(m=>pmKey(m)===k);
+const payName=k=>pmFind(k)?.name||PM_LEGACY[k]||k;
+const payKind=k=>pmFind(k)?.kind||(["cash","card","pix","transfer","other"].includes(k)?k:"other");
+const payMv=k=>({payment_method:payKind(k),payment_method_name:payName(k)});
 (function(){let y=0,lastY=window.scrollY,locked=false;window.addEventListener("scroll",()=>{if(!locked)lastY=window.scrollY},{passive:true});new MutationObserver(()=>{const on=document.body.classList.contains("sheet-open");if(on&&!locked){locked=true;y=lastY;document.body.style.top=(-y)+"px"}else if(!on&&locked){locked=false;document.body.style.top="";window.scrollTo(0,y)}}).observe(document.body,{attributes:true,attributeFilter:["class"]})})();
 const todayLocal=()=>{const t=new Date();return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0")};
 async function openPaymentScreen(b,opts={}){
@@ -1509,12 +1563,13 @@ async function openPaymentScreen(b,opts={}){
   el.querySelector("#pay-back").onclick=close;
   const total=Math.round(Number(b.total||0)*100)/100;
   let ex=null;try{ex=(await api(`finance_booking_closures?select=*&booking_id=eq.${encodeURIComponent(b.id)}`))[0]||null}catch(e){}
+  await ensurePM();
   let catalog=[];try{catalog=await api("finance_products?select=*&active=eq.true&order=name")}catch(e){}
   let credits=[];try{if(b.client_phone)credits=await api(`client_credits?select=*&client_phone=eq.${encodeURIComponent(b.client_phone)}&status=eq.available&remaining_amount=gt.0&order=created_at`)}catch(e){}
   let creditAvail=Math.round(credits.reduce((a,c)=>a+Number(c.remaining_amount||0),0)*100)/100;
   let others=[];try{if(b.client_phone){const cs=await clientStats(b.client_phone);others=cs.owing.filter(o=>String(o.b.id)!==String(b.id))}}catch(e){}
   const incl=new Set();
-  const mkMethods=()=>[...PAY_METHODS,...(creditAvail>0?[["credit","Crédito","🎁"]]:[])];
+  const mkMethods=()=>[...payList(),["credit","Crédito do cliente","🎁"]];
   let methods=mkMethods();let editing=false;
   let already=ex?Math.round(Number(ex.amount_paid||0)*100)/100:0;
   let baseRemaining=ex?Math.max(0,Math.round((total+Number(ex.product_total||0)-Number(ex.amount_paid||0))*100)/100):total;
@@ -1536,7 +1591,7 @@ async function openPaymentScreen(b,opts={}){
     const dts=(Array.isArray(old.payment_parts)?old.payment_parts:[]).map(p=>p.date).filter(Boolean);if(dts.length)payDate=dts[0];
     prods=(Array.isArray(old.product_items)?old.product_items:[]).map(x=>({...x}));
     prods.forEach(p=>{const c=catalog.find(z=>z.id===p.product_id);if(c)c.stock_quantity=Number(c.stock_quantity)+Number(p.quantity)});
-    creditAvail=Math.round((creditAvail+(merged.credit||0))*100)/100;methods=mkMethods();
+    creditAvail=Math.round((creditAvail+(merged.credit||0))*100)/100;methods=mkMethods();parts.forEach(p=>{if(!methods.find(x=>x[0]===p.method))methods.push([p.method,payName(p.method),"💰",payKind(p.method)])});
     ex=null;already=0;baseRemaining=total;editing=true;draw();
   };
   const statusInfo=()=>{
@@ -1565,8 +1620,8 @@ async function openPaymentScreen(b,opts={}){
     ${prods.length?`<div class="pay-prods">${prods.map((p,i)=>`<div class="pay-prod"><div class="pp-n"><b>${esc(p.name)}</b><span>${fm(p.unit_price)} cada</span></div><div class="pp-q"><button type="button" data-pq="-1" data-i="${i}">−</button><b>${p.quantity}</b><button type="button" data-pq="1" data-i="${i}">+</button></div><div class="pp-t">${fm(p.quantity*p.unit_price)}</div><button type="button" class="pay-x" data-prd="${i}" aria-label="Remover">✕</button></div>`).join("")}</div>`:""}
     <button type="button" class="pay-addprod" id="pay-addprod">＋ Adicionar produto</button>
     ${settled&&pt<=0?`<div class="pay-diff ok" style="margin-top:6px">Atendimento totalmente pago ✓</div>`:`<h3 class="pay-h">Como foi pago?</h3>
-    <div class="pay-grid">${methods.map(m=>`<button type="button" class="pay-tile ${has(m[0])?"on":""}" data-pick="${m[0]}"><span>${m[2]}</span>${m[1]}${m[0]==="credit"?`<small>${fm(creditAvail)}</small>`:""}</button>`).join("")}</div>
-    ${parts.length?`<div class="pay-amts">${parts.map((p,i)=>{const mm=methods.find(x=>x[0]===p.method);return `<label class="pay-amt"><span>${mm[2]} ${mm[1]}</span><div class="pay-money"><i>R$</i><input data-pa="${i}" type="text" inputmode="decimal" autocomplete="off" value="${String(p.amount).replace(".",",")}"></div></label>`}).join("")}</div>`:`<p class="pay-hint">Toque na forma de pagamento. Para dividir, toque em mais de uma e informe o valor de cada.</p>`}
+    <div class="pay-grid">${methods.map(m=>`<button type="button" class="pay-tile ${has(m[0])?"on":""} ${m[0]==="credit"?"pay-tile-credit":""}" data-pick="${m[0]}" ${m[0]==="credit"&&creditAvail<=0&&!has("credit")?"disabled":""}><span>${m[2]}</span>${m[1]}${m[0]==="credit"?`<small>Saldo ${fm(creditAvail)}</small>`:""}</button>`).join("")}</div>
+    ${parts.length?`<div class="pay-amts">${parts.map((p,i)=>{const mm=methods.find(x=>x[0]===p.method)||[p.method,payName(p.method),"💰"];return `<label class="pay-amt"><span>${mm[2]} ${mm[1]}</span><div class="pay-money"><i>R$</i><input data-pa="${i}" type="text" inputmode="decimal" autocomplete="off" value="${String(p.amount).replace(".",",")}"></div></label>`}).join("")}</div>`:`<p class="pay-hint">Toque na forma de pagamento. Para dividir, toque em mais de uma e informe o valor de cada.</p>`}
     <div id="pay-diff" class="pay-diff ${info.cls}">${info.msg}</div>
     <div class="pay-opts"><label class="pay-optrow"><span>Data do pagamento</span><input type="date" id="pay-date" value="${payDate}"></label>
     ${needsDoneToggle?`<label class="pay-optrow"><span>Serviço já realizado?<small>${serviceDone?"O agendamento ficará concluído":"Fica marcado como pago, falta atender"}</small></span><input type="checkbox" id="pay-done" ${serviceDone?"checked":""}></label>`:""}</div>`}
@@ -1613,10 +1668,10 @@ async function openPaymentScreen(b,opts={}){
             for(const cr of credits){if(need<=0)break;const av=Number(cr.remaining_amount||0),use=Math.min(av,need);if(use<=0)continue;const left=Math.round((av-use)*100)/100;await api(`client_credits?id=eq.${cr.id}`,{method:"PATCH",body:JSON.stringify({remaining_amount:left,status:left>0?"available":"used"})});cr.remaining_amount=left;need=Math.round((need-use)*100)/100}
             continue;
           }
-          const mv={movement_date:ds,payment_method:p.method,status:"paid",booking_id:bk.id,created_by:uid()};
+          const mv={movement_date:ds,...payMv(p.method),status:"paid",booking_id:bk.id,created_by:uid()};
           await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"income",description:`Atendimento ${bk.client_name} (${payName(p.method)})`,category:"Atendimento",amount:p.amount})});
-          if(p.method==="cash"||p.method==="card")await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"pro_labore",description:`Retirada automática sobre atendimento ${bk.client_name} (${payName(p.method)})`,category:"Retirada do proprietário",amount:p.amount})});
-          if(p.method==="card"&&fee>0)await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"expense",description:`Taxa cartão atendimento ${bk.client_name}`,category:"Taxas de cartão",amount:Math.round(p.amount*fee)/100})});
+          if(["cash","card"].includes(payKind(p.method)))await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"pro_labore",description:`Retirada automática sobre atendimento ${bk.client_name} (${payName(p.method)})`,category:"Retirada do proprietário",amount:p.amount})});
+          if(payKind(p.method)==="card"&&fee>0)await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"expense",description:`Taxa cartão atendimento ${bk.client_name}`,category:"Taxas de cartão",amount:Math.round(p.amount*fee)/100})});
         }
       };
       const settle=async(bk,exb,due,alloc,products)=>{
@@ -1714,13 +1769,14 @@ function noShowPaidDialog(b,cl,done){
   });
 }
 // Venda de crédito ao cliente
-function sellCreditDialog(c,done){
+async function sellCreditDialog(c,done){
   document.querySelector(".nsm")?.remove();
-  let method="pix";
+  await ensurePM();
+  let method=(payList().find(x=>x[3]==="pix")||payList()[0]||["pix"])[0];
   const m=document.createElement("div");m.className="nsm";
   m.innerHTML=`<div class="nsm-card"><h3>Vender crédito</h3><p>${esc(c.name||"Cliente")} · o valor entra no caixa e fica disponível para abater em agendamentos.</p>
   <label class="pay-optrow"><span>Valor (R$)</span><div class="pay-money" style="width:130px"><i>R$</i><input id="sc-amt" type="number" inputmode="decimal" step="0.01" min="0" placeholder="100,00"></div></label>
-  <div class="pay-grid sc-grid">${PAY_METHODS.map(x=>`<button type="button" class="pay-tile ${x[0]===method?"on":""}" data-scm="${x[0]}"><span>${x[2]}</span>${x[1]}</button>`).join("")}</div>
+  <div class="pay-grid sc-grid">${payList().map(x=>`<button type="button" class="pay-tile ${x[0]===method?"on":""}" data-scm="${x[0]}"><span>${x[2]}</span>${x[1]}</button>`).join("")}</div>
   <label class="pay-optrow"><span>Data do pagamento</span><input type="date" id="sc-date" value="${todayLocal()}"></label>
   <div id="sc-err" class="pay-diff"></div>
   <button type="button" class="btn primary" id="sc-ok" style="width:100%;height:46px;margin-top:6px">Confirmar venda de crédito</button>
@@ -1735,9 +1791,9 @@ function sellCreditDialog(c,done){
       const btn=e.target.closest("#sc-ok");btn.disabled=true;btn.textContent="Salvando…";
       try{
         await api("client_credits",{method:"POST",body:JSON.stringify({client_phone:c.phone,client_name:c.name||"",amount,remaining_amount:amount,status:"available",description:"Venda de crédito",created_by:uid()})});
-        const mv={movement_date:ds,payment_method:method,status:"paid",created_by:uid()};
+        const mv={movement_date:ds,...payMv(method),status:"paid",created_by:uid()};
         await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"income",description:`Venda de crédito — ${c.name||c.phone} (${payName(method)})`,category:"Venda de crédito",amount})});
-        if(method==="cash"||method==="card")await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"pro_labore",description:`Retirada automática venda de crédito — ${c.name||c.phone}`,category:"Retirada do proprietário",amount})});
+        if(["cash","card"].includes(payKind(method)))await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"pro_labore",description:`Retirada automática venda de crédito — ${c.name||c.phone}`,category:"Retirada do proprietário",amount})});
         m.remove();await done?.();
       }catch(err){m.querySelector("#sc-err").textContent="Não foi possível registrar: "+err.message;btn.disabled=false;btn.textContent="Confirmar venda de crédito"}
     }
