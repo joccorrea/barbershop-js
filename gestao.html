@@ -991,7 +991,7 @@ async function showBookingDetail(id){
   const phone=whatsappBrazilNumber(b.client_phone);
   const isPending=normalizedStatus(b.status)==="pending";
   let cl=null;try{cl=(await api(`finance_booking_closures?select=*&booking_id=eq.${encodeURIComponent(b.id)}`))[0]||null}catch(e){}
-  const paidAmt0=Number(cl?.amount_paid||0),paidFull=!!cl&&paidAmt0>0&&Number(cl.balance_due||0)===0;
+  const paidAmt0=Number(cl?.amount_paid||0),paidFull=!!cl&&paidAmt0>0&&Math.round((Number(b.total||0)+Number(cl.product_total||0)-paidAmt0)*100)/100<=0;
   const payLabel=paidFull?"Ver / alterar pagamento":(cl&&paidAmt0>0)?"Receber o restante":"Pagar / finalizar";
   const dateLabel=formatBookingDateBR(b.date);
   const services=(b.services||[]).map(x=>x.name+(x.qty>1?" ×"+x.qty:"")).join(", ");
@@ -1401,6 +1401,19 @@ function readBookingInputs(){
  if($("#adj-discount"))bookingDraft.discount=Math.max(0,Number($("#adj-discount").value)||0);
  if($("#adj-surcharge"))bookingDraft.surcharge=Math.max(0,Number($("#adj-surcharge").value)||0);
 }
+async function syncClosureAfterEdit(id,p){
+  try{
+    const cl=(await api(`finance_booking_closures?select=*&booking_id=eq.${encodeURIComponent(id)}`))[0];if(!cl)return;
+    const r2=x=>Math.round(x*100)/100;
+    const prodT=Number(cl.product_total||0),disc=Number(p.discount||0)+Number(p.combo_discount||0),sur=Number(p.surcharge||0);
+    const grand=r2(Number(p.total||0)+prodT),paid=Number(cl.amount_paid||0),bal=Math.max(0,r2(grand-paid));
+    await api(`finance_booking_closures?id=eq.${cl.id}`,{method:"PATCH",body:JSON.stringify({service_total:r2(Number(p.total||0)+disc-sur),discount:disc,surcharge:sur,grand_total:grand,balance_due:bal})});
+    const pend=(await api(`finance_movements?select=id&booking_id=eq.${encodeURIComponent(id)}&category=eq.Contas a receber&status=eq.pending`).catch(()=>[]))[0];
+    if(pend)await api(`finance_movements?id=eq.${pend.id}`,{method:"PATCH",body:JSON.stringify(bal>0?{amount:bal}:{status:"cancelled"})});
+    else if(bal>0)await api("finance_movements",{method:"POST",body:JSON.stringify({kind:"income",movement_date:todayLocal(),description:`Saldo a receber — ${p.client_name} (${formatBookingDateBR(p.date)})`,category:"Contas a receber",amount:bal,payment_method:"other",status:"pending",booking_id:id,created_by:uid()})});
+    if(bal>0&&statusClass(p.status)==="finalized")await api(`bookings?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",body:JSON.stringify({status:"completed"})});
+  }catch(e){}
+}
 async function saveBookingForm(){
  readBookingInputs();const d=bookingDraft;const err=$("#booking-error");
  try{
@@ -1448,7 +1461,7 @@ async function saveBookingForm(){
   }
   const barber=d.barbers[0];if(!barber)throw Error("Cadastre um profissional ativo.");
   const tt=bookingTotals(d);const total=tt.total;
-  const payload={discount:tt.disc,surcharge:tt.sur,combo_discount:tt.comboVal,barber_id:barber.id,date:key(d.date),start_min:d.start,end_min:end,client_name:client.name,client_phone:client.phone,services:d.services.map(x=>({id:x.id,name:x.name,qty:Number(x.qty||1),price:Number(x.price||0)})),total,status:d.existingStatus||"confirmed"};if(d.editingId)await api(`bookings?id=eq.${encodeURIComponent(d.editingId)}`,{method:"PATCH",body:JSON.stringify(payload)});else await api("bookings",{method:"POST",body:JSON.stringify(payload)});
+  const payload={discount:tt.disc,surcharge:tt.sur,combo_discount:tt.comboVal,barber_id:barber.id,date:key(d.date),start_min:d.start,end_min:end,client_name:client.name,client_phone:client.phone,services:d.services.map(x=>({id:x.id,name:x.name,qty:Number(x.qty||1),price:Number(x.price||0)})),total,status:d.existingStatus||"confirmed"};if(d.editingId){await api(`bookings?id=eq.${encodeURIComponent(d.editingId)}`,{method:"PATCH",body:JSON.stringify(payload)});await syncClosureAfterEdit(d.editingId,payload)}else await api("bookings",{method:"POST",body:JSON.stringify(payload)});
   bookingDraft=null;day=d.date;await loadAgenda();
   }catch(e){let message=e.message||"Não foi possível salvar o agendamento.";if(message.includes("23P01")||message.includes("bookings_barber_id_date_int4range_excl")||message.includes("exclusion constraint"))message="O banco estava bloqueando horários sobrepostos. A restrição foi removida; atualize a página e tente novamente. Se persistir, confira se a versão publicada usa o projeto Supabase correto.";if(err){err.textContent=message;err.classList.remove('hidden')}else alert(message)}
 }
@@ -1492,7 +1505,7 @@ async function openPaymentScreen(b,opts={}){
   const incl=new Set();
   const methods=[...PAY_METHODS,...(creditAvail>0?[["credit","Crédito","🎁"]]:[])];
   const already=ex?Math.round(Number(ex.amount_paid||0)*100)/100:0;
-  const baseRemaining=ex?Math.round(Number(ex.balance_due||0)*100)/100:total;
+  const baseRemaining=ex?Math.max(0,Math.round((total+Number(ex.product_total||0)-Number(ex.amount_paid||0))*100)/100):total;
   const stNow=normalizedStatus(b.status);
   const needsDoneToggle=!["completed","finalized"].includes(statusClass(b.status))&&!["no_show"].includes(stNow);
   let serviceDone=!needsDoneToggle||String(b.date)<=todayLocal();
@@ -1522,7 +1535,7 @@ async function openPaymentScreen(b,opts={}){
     const info=statusInfo();
     el.innerHTML=`<header class="pay-head"><button type="button" class="pay-back" id="pay-back" aria-label="Voltar">‹</button><b>Pagamento</b></header>
     <div class="pay-body"><div class="pay-card"><div class="pay-client">${esc(b.client_name||"Cliente")}</div><div class="pay-sub">${esc(formatBookingDateBR(b.date))} · ${hm(b.start_min)}</div>
-    <div class="pay-total pay-mini"><span>Serviços</span><b>${fm(ex?Number(ex.grand_total)-Number(ex.product_total||0):total)}</b></div>
+    <div class="pay-total pay-mini"><span>Serviços</span><b>${fm(total)}</b></div>
     ${(ex&&Number(ex.product_total)>0)||pt>0?`<div class="pay-total pay-mini"><span>Produtos</span><b>${fm(Number(ex?.product_total||0)+pt)}</b></div>`:""}
     ${already>0?`<div class="pay-total pay-mini"><span>Já recebido</span><b style="color:#1f8a4c">${fm(already)}</b></div>`:""}
     <div class="pay-total"><span>${settled?"Situação":already>0?"Falta receber":"Total a receber"}</span><b>${settled?"Pago ✓":fm(rem)}</b></div></div>
@@ -1595,7 +1608,7 @@ async function openPaymentScreen(b,opts={}){
           cid=c?.id;
           if(nb>0)await pendingFor(bk,nb);
         }else{
-          await api(`finance_booking_closures?id=eq.${exb.id}`,{method:"PATCH",body:JSON.stringify({product_total:Math.round((Number(exb.product_total||0)+ppt)*100)/100,grand_total:Math.round((Number(exb.grand_total)+ppt)*100)/100,product_items:[...(Array.isArray(exb.product_items)?exb.product_items:[]),...products],amount_paid:Math.round((Number(exb.amount_paid||0)+pa)*100)/100,balance_due:nb,payment_parts:[...(Array.isArray(exb.payment_parts)?exb.payment_parts:[]),...alloc.map(p=>({...p,date:ds}))]})});
+          await api(`finance_booking_closures?id=eq.${exb.id}`,{method:"PATCH",body:JSON.stringify({product_total:Math.round((Number(exb.product_total||0)+ppt)*100)/100,grand_total:Math.round((tot+Number(exb.product_total||0)+ppt)*100)/100,product_items:[...(Array.isArray(exb.product_items)?exb.product_items:[]),...products],amount_paid:Math.round((Number(exb.amount_paid||0)+pa)*100)/100,balance_due:nb,payment_parts:[...(Array.isArray(exb.payment_parts)?exb.payment_parts:[]),...alloc.map(p=>({...p,date:ds}))]})});
           const pend=(await api(`finance_movements?select=id&booking_id=eq.${encodeURIComponent(bk.id)}&category=eq.Contas a receber&status=eq.pending`).catch(()=>[]))[0];
           if(pend)await api(`finance_movements?id=eq.${pend.id}`,{method:"PATCH",body:JSON.stringify(nb>0?{amount:nb}:{status:"cancelled"})});
           else if(nb>0)await pendingFor(bk,nb);
