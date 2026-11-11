@@ -356,6 +356,19 @@ button.cb-pill{cursor:pointer;font-family:inherit}
 .cpk-i span{background:#EAF3FF;border:1px solid #CFE0F3;border-radius:999px;padding:3px 10px;font-size:13px;color:#1F4E86}
 .cpk-i span.z{opacity:.5;text-decoration:line-through}
 .bdp{display:flex;gap:8px}.bdp select{flex:1;min-width:0;font-size:16px;padding:12px 6px;border-radius:12px;border:1px solid #CFE0F3;background:#fff;color:inherit;font-family:inherit}
+.nt-badge{background:#E5484D;color:#fff;border-radius:999px;font-size:12px;font-weight:800;padding:1px 8px;margin-left:8px}
+#hamb{position:relative}#hamb.has-notif::after{content:"";position:absolute;top:4px;right:2px;width:11px;height:11px;border-radius:50%;background:#E5484D;border:2px solid #fff}
+.nt-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#fff;border:1px solid #CFE0F3;border-radius:16px;padding:12px 14px;margin:0 0 9px;box-shadow:0 4px 14px rgba(30,70,140,.08);font:inherit;color:inherit}
+.nt-item .nt-dot{flex:0 0 10px;height:10px;border-radius:50%;background:#E5484D}
+.nt-item .nt-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.nt-item small{color:#5B7A99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nt-item.done{opacity:.5;box-shadow:none;background:rgba(255,255,255,.55)}.nt-item.done .nt-dot{background:#9bb0cc}
+.rv-row{display:flex;justify-content:center;gap:34px;margin:22px 0 4px}
+.rv-col{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#10304F}
+.rv-b{width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0;color:#fff;border:1px solid rgba(255,255,255,.8);-webkit-backdrop-filter:blur(14px) saturate(1.7);backdrop-filter:blur(14px) saturate(1.7);box-shadow:0 10px 24px rgba(31,100,180,.28),inset 0 1px 0 rgba(255,255,255,.7)}
+.rv-yes{background:linear-gradient(135deg,rgba(70,190,130,.95),rgba(25,150,95,.9))}
+.rv-no{background:linear-gradient(135deg,rgba(240,110,110,.95),rgba(205,60,70,.9))}
+.rv-b:active{transform:scale(.92)}
 .pay-addprod{width:100%;height:46px;border:1.5px dashed #6FA8DC;background:#F3F9FF;color:#2f6fb0;border-radius:14px;font-weight:800;font-size:15px;margin-top:4px}
 .pay-money{margin-left:auto;width:auto!important;min-width:0;padding:0 4px 0 8px!important;background:transparent!important;border:0!important}
 .pay-money input{width:96px!important;flex:none;text-align:right!important;background:#F3F9FF!important;border:1px solid #C4DFF8!important;border-radius:10px!important;padding:0 10px!important;height:42px!important}
@@ -408,7 +421,7 @@ button.cb-pill{cursor:pointer;font-family:inherit}
 <button class="menu-backdrop" id="menu-backdrop" aria-label="Fechar menu"></button>
 <nav class="menu" id="menu">
 <div class="menu-brand"><img class="logo" alt="Logo"><b>Barber Shop JS</b></div>
-<button data-page="agenda">Agenda</button><button data-page="settings">Configurações</button>
+<button data-page="agenda">Agenda</button><button data-page="notifications">Notificações<span class="nt-badge hidden" id="nt-badge"></span></button><button data-page="settings">Configurações</button>
 <button data-page="clients">Clientes</button><button data-page="birthdays">Aniversários</button>
 <button id="finance-menu" type="button">Financeiro</button>
 </nav>
@@ -463,7 +476,38 @@ function whatsappBrazilNumber(value){
  digits=digits.replace(/^0+/,"");
  return digits.startsWith("55")?digits:"55"+digits;
 }
-async function showBookingReview(id){
+const NT_KEY="bsjs_notif_seen";
+const ntLoad=()=>{try{return JSON.parse(localStorage.getItem(NT_KEY)||"[]")}catch(e){return[]}};
+const ntSave=a=>{try{localStorage.setItem(NT_KEY,JSON.stringify(a.slice(-60)))}catch(e){}};
+async function refreshNotifBadge(){
+ try{
+  if(!session)return;
+  const rows=await api("bookings?select=id&status=eq.pending");
+  const ids=ntLoad();rows.forEach(r=>{if(!ids.includes(r.id))ids.push(r.id)});ntSave(ids);
+  const n=rows.length,bd=$("#nt-badge");
+  if(bd){bd.textContent=n;bd.classList.toggle("hidden",!n)}
+  $("#hamb")?.classList.toggle("has-notif",n>0);
+ }catch(e){}
+}
+async function loadNotifications(){
+ shell("Notificações",`<div class="muted">Carregando…</div>`);
+ try{
+  const pend=await api("bookings?select=*&status=eq.pending&order=date,start_min");
+  let ids=ntLoad();pend.forEach(r=>{if(!ids.includes(r.id))ids.push(r.id)});
+  const rest=ids.filter(i=>!pend.some(p=>p.id===i));
+  let done=[];
+  if(rest.length)done=(await api(`bookings?select=*&id=in.(${rest.map(encodeURIComponent).join(",")})&status=neq.cancelled`)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||b.start_min-a.start_min);
+  ids=[...pend.map(p=>p.id),...done.map(d=>d.id)];ntSave(ids);
+  const card=(b,isDone)=>`<button type="button" class="nt-item${isDone?" done":""}" data-nt="${esc(b.id)}" data-date="${esc(b.date)}" data-st="${isDone?"done":"pending"}"><span class="nt-dot"></span><span class="nt-main"><b>${esc(b.client_name)}</b><small>${formatBookingDateBR(b.date)} · ${hm(b.start_min)}</small><small>${esc((b.services||[]).map(x=>x.name+(Number(x.qty||1)>1?" ×"+x.qty:"")).join(", "))}</small></span><span class="pill ${isDone?"":"pending"}">${isDone?statusPortuguese(b.status):"Pendente"}</span></button>`;
+  shell("Notificações",(pend.length?`<p class="muted" style="margin:0 0 8px">Agendamentos aguardando confirmação</p>`+pend.map(b=>card(b,false)).join(""):`<div class="card"><p class="muted" style="margin:0">Nenhum agendamento para confirmar.</p></div>`)+(done.length?`<p class="muted" style="margin:16px 0 8px">Já tratados</p>`+done.map(b=>card(b,true)).join(""):""));
+  app.querySelectorAll("[data-nt]").forEach(el=>el.onclick=()=>{
+   if(el.dataset.st==="pending")showBookingReview(el.dataset.nt,"notif");
+   else popMenu(el,[{icon:EYE_SVG,title:"Ver no dia",fn:()=>gotoBooking(el.dataset.nt,el.dataset.date)}]);
+  });
+  refreshNotifBadge();
+ }catch(e){shell("Notificações",`<p class="error">${esc(e.message)}</p>`)}
+}
+async function showBookingReview(id,from){
  try{
   const rows=await api(`bookings?select=*&id=eq.${encodeURIComponent(id)}&limit=1`);
   const b=rows[0];if(!b){shell("Agendamento não encontrado",`<button class="btn" id="review-back">Voltar à agenda</button>`);return}
@@ -472,7 +516,7 @@ async function showBookingReview(id){
   const time=hm(b.start_min),end=hm(b.end_min);
   const phone=whatsappBrazilNumber(b.client_phone);
   const msg=applyBookingMessage(getBookingMessages().confirmed,b);
-  shell("Detalhes do agendamento",`<div class="card booking-review-card"><span class="pill ${b.status==="pending"?"pending":""}">${statusPortuguese(b.status)}</span><h2>${esc(b.client_name)}</h2><p><b>WhatsApp:</b> ${esc(b.client_phone)}</p><p><b>Data:</b> ${date}</p><p><b>Horário:</b> ${time} às ${end}</p><p><b>Serviços:</b><br>${services}</p><p><b>Valor:</b> ${fm(b.total)}</p><div class="row review-actions"><button class="btn primary" id="review-confirm" data-id="${esc(b.id)}">Confirmar agendamento</button><button class="btn danger" id="review-cancel" data-id="${esc(b.id)}">Cancelar agendamento</button></div></div><button class="btn" id="review-back">Voltar à agenda</button>`);
+  shell("Detalhes do agendamento",`<div class="card booking-review-card"><span class="pill ${b.status==="pending"?"pending":""}">${statusPortuguese(b.status)}</span><h2>${esc(b.client_name)}</h2><p><b>WhatsApp:</b> ${esc(b.client_phone)}</p><p><b>Data:</b> ${date}</p><p><b>Horário:</b> ${time} às ${end}</p><p><b>Serviços:</b><br>${services}</p><p><b>Valor:</b> ${fm(b.total)}</p>${b.status==="pending"?`<div class="rv-row"><div class="rv-col"><button type="button" data-bb="x" class="rv-b rv-no" id="review-cancel" data-id="${esc(b.id)}" aria-label="Cancelar agendamento"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span>Cancelar</span></div><div class="rv-col"><button type="button" data-bb="x" class="rv-b rv-yes" id="review-confirm" data-id="${esc(b.id)}" aria-label="Confirmar agendamento"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button><span>Confirmar</span></div></div>`:""}</div><div class="bb-row"><button type="button" class="bb-btn bb-back" data-bb="back" id="review-back" aria-label="Voltar" title="Voltar">Voltar</button></div>`);
   $("#review-confirm").onclick=async()=>{
    const waWindow=window.open("about:blank","_blank");
    try{
@@ -480,15 +524,15 @@ async function showBookingReview(id){
     day=new Date(b.date+"T12:00:00");history.replaceState({},"","/barbershop-js/gestao.html");
     const url="https://wa.me/"+phone+"?text="+encodeURIComponent(msg);
     if(waWindow)waWindow.location.href=url;else alert("Agendamento confirmado. Abra o WhatsApp para enviar a confirmação ao cliente.");
-    await loadAgenda();
+    if(from==="notif")await navigate("notifications");else await loadAgenda();
    }catch(err){if(waWindow)waWindow.close();alert("Não foi possível confirmar: "+err.message)}
   };
   $("#review-cancel").onclick=async()=>{
-   if(!confirm("Deseja realmente cancelar este agendamento?"))return;
+   if(!(await appConfirmP("Deseja realmente cancelar este agendamento?","Cancelar agendamento")))return;
    await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});
-   day=new Date(b.date+"T12:00:00");history.replaceState({},"","/barbershop-js/gestao.html");await loadAgenda();
+   day=new Date(b.date+"T12:00:00");history.replaceState({},"","/barbershop-js/gestao.html");if(from==="notif")await navigate("notifications");else await loadAgenda();
   };
-  $("#review-back").onclick=async()=>{history.replaceState({},"","/barbershop-js/gestao.html");await loadAgenda()};
+  $("#review-back").onclick=async()=>{history.replaceState({},"","/barbershop-js/gestao.html");if(from==="notif")await navigate("notifications");else await loadAgenda()};
  }catch(e){shell("Não foi possível abrir o agendamento",`<p class="error">${esc(e.message)}</p><button class="btn" id="review-back">Voltar</button>`);$("#review-back").onclick=()=>loadAgenda()}
 }
 document.addEventListener("click",async e=>{
@@ -1472,7 +1516,7 @@ function changePasswordSheet(){
 function mins(id){let v=val(id);if(!v)return null;let [h,m]=v.split(":").map(Number);return h*60+m}
 $("#app").addEventListener("submit",async e=>{if(e.target.id!=="hours-form")return;e.preventDefault();try{for(const x of hours){let wd=x.weekday,o=mins("o-"+wd),c=mins("c-"+wd),ls=mins("ls-"+wd),le=mins("le-"+wd);if((o==null)!=(c==null))throw Error("Informe abertura e fechamento ou deixe ambos vazios.");if(o!=null&&c<=o)throw Error("Fechamento deve ser depois da abertura: "+DW[wd]);await api(`business_hours?weekday=eq.${wd}`,{method:"PATCH",body:JSON.stringify({open_min:o,close_min:c,lunch_start:ls,lunch_end:le})})}await loadHours();notice="Horários atualizados.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}});
 async function loadBirthdays(){try{clients=await api("clients?select=name,phone,birth_date&birth_date=not.is.null");let list=clients.filter(c=>c.birth_date&&Number(c.birth_date.split("-")[1])===month.getMonth()+1).sort((a,b)=>Number(a.birth_date.split("-")[2])-Number(b.birth_date.split("-")[2]));shell("Aniversários",`<div class="row between"><button class="btn" id="month-prev">‹</button><b>${MONTH[month.getMonth()]} ${month.getFullYear()}</b><button class="btn" id="month-next">›</button></div>`+(list.map(c=>{let d=c.birth_date.split("-")[2],first=c.name.split(" ")[0],text=`Feliz aniversário, ${first}! 🎂 A Barber Shop JS deseja um dia incrível pra você.`;return `<div class="card"><b>${d}/${String(month.getMonth()+1).padStart(2,"0")} · ${esc(c.name)}</b><div class="muted">${esc(c.phone)}</div><div class="actions"><a class="btn small" target="_blank" rel="noopener" href="https://wa.me/${esc(c.phone)}?text=${encodeURIComponent(text)}">Enviar parabéns</a></div></div>`}).join("")||`<p class="muted">Nenhum aniversariante neste mês.</p>`))}catch(e){shell("Aniversários",`<p class="error">${esc(e.message)}</p>`)}}
-function renderLoginOrPage(){if(!session){loginView();return}currentUserUI();const qs=new URLSearchParams(location.search),pendingReview=qs.get("booking");if(pendingReview){showBookingReview(pendingReview);return}const pgq=qs.get("page");if(pgq&&["agenda","clients","birthdays","settings","settings-professionals"].includes(pgq))page=pgq;navigate(page)}
+function renderLoginOrPage(){if(!session){loginView();return}currentUserUI();setTimeout(refreshNotifBadge,600);const qs=new URLSearchParams(location.search),pendingReview=qs.get("booking");if(pendingReview){showBookingReview(pendingReview);return}const pgq=qs.get("page");if(pgq&&["agenda","clients","birthdays","settings","settings-professionals"].includes(pgq))page=pgq;navigate(page)}
 function serviceDurationMinutes(service){
  const name=String(service?.name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
  const thirtyMinuteServices=new Set(["corte simples","degrade na zero","degrade navalhado","degrade na shaver","undercut feminino","corte feminino"]);
@@ -1637,7 +1681,7 @@ document.addEventListener("click",e=>{
  const h=e.target.closest(".hist-item");
  if(h&&!e.target.closest("a,button"))h.classList.toggle("open");
 });
-async function navigate(p){clientFromAgenda=false;if(session&&!window.__me)await loadMe();if(window.__me&&window.__me.has_access===false){setMenuOpen(false);app.innerHTML=`<div class="card"><div class="section-title">Sem acesso</div><p class="muted">Esta conta ainda não foi liberada pelo proprietário. Peça para ele criar o seu acesso em Configurações → Profissionais.</p></div>`;return}p=guardPage(p);page=p;if(p!=="agenda")window.scrollTo(0,0);ensurePM();$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p||(["settings-hours","settings-professionals","settings-messages","settings-payments","settings-roles","services","products","packages","combos"].includes(p)&&b.dataset.page==="settings")));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="packages")await loadPackages();else if(p==="combos")await loadCombos();else if(p==="settings-hours")await loadHours();else if(p==="settings-professionals")await loadProfessionals();else if(p==="settings-messages")loadMessageSettings();else if(p==="settings-payments")await loadPayMethods();else if(p==="settings-roles")await loadRoles();else if(p==="birthdays")await loadBirthdays()}
+async function navigate(p){if(p!=="notifications")setTimeout(refreshNotifBadge,400);clientFromAgenda=false;if(session&&!window.__me)await loadMe();if(window.__me&&window.__me.has_access===false){setMenuOpen(false);app.innerHTML=`<div class="card"><div class="section-title">Sem acesso</div><p class="muted">Esta conta ainda não foi liberada pelo proprietário. Peça para ele criar o seu acesso em Configurações → Profissionais.</p></div>`;return}p=guardPage(p);page=p;if(p!=="agenda")window.scrollTo(0,0);ensurePM();$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p||(["settings-hours","settings-professionals","settings-messages","settings-payments","settings-roles","services","products","packages","combos"].includes(p)&&b.dataset.page==="settings")));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="packages")await loadPackages();else if(p==="combos")await loadCombos();else if(p==="settings-hours")await loadHours();else if(p==="settings-professionals")await loadProfessionals();else if(p==="settings-messages")loadMessageSettings();else if(p==="settings-payments")await loadPayMethods();else if(p==="settings-roles")await loadRoles();else if(p==="birthdays")await loadBirthdays();else if(p==="notifications")await loadNotifications()}
 // Gesto lateral: arrastar da borda esquerda para a direita volta à tela anterior,
 // mostrando a tela de baixo (instantâneo da tela anterior) enquanto arrasta.
 (function(){
