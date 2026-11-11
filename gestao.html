@@ -2212,7 +2212,7 @@ async function sellPackageDialog(c,done){
   m.innerHTML=`<div class="nsm-card"><h3>Vender pacote</h3><p>${esc(c.name||"Cliente")} · o valor entra no caixa e os serviços ficam disponíveis para o cliente.</p>
   ${pk.length?`<div class="pkg-list">${pk.map(p=>`<button type="button" class="pkg-opt" data-pk="${p.id}"><b>${esc(p.name)}</b><span>${p.items.map(i=>esc(i.service_name)+" ×"+i.quantity).join(", ")}</span><em>${fm(p.price)}</em></button>`).join("")}</div>`:`<div class="muted">Nenhum pacote cadastrado. Crie em Financeiro → Pacotes.</div>`}
   <label class="pay-optrow"><span>Quantidade de pacotes</span><div class="qty-st"><button type="button" data-q="-1">−</button><b id="sp-q">1</b><button type="button" data-q="1">+</button></div></label>
-  <label class="pay-optrow" id="sp-seqrow" style="display:none"><span>Ativar em sequência<small>Cada pacote só começa quando o anterior vence</small></span><input type="checkbox" id="sp-seq"></label>
+  <label class="pay-optrow" id="sp-seqrow" style="display:none"><span>Ativar em sequência<small>Cada pacote só é liberado quando o anterior terminar; a validade conta a partir do 1º uso</small></span><input type="checkbox" id="sp-seq"></label>
   <label class="pay-optrow"><span>Valor (R$)</span><div class="pay-money" style="width:130px"><i>R$</i><input id="sp-amt" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,00"></div></label>
   <h3 class="pay-h" style="margin:10px 0 0;font-size:15px">Como foi pago?</h3><div id="sp-split"></div>
   <div id="sp-err" class="pay-diff"></div>
@@ -2236,10 +2236,9 @@ async function sellPackageDialog(c,done){
         const now=new Date(),seq=qn>1&&m.querySelector("#sp-seq")?.checked&&sel.has_expiration,per=Math.round(paid/qn*100)/100;let cursor=new Date(now);
         const pkExp=base=>{if(!(sel.has_expiration&&sel.expiration_value))return null;const d=new Date(base);d.setDate(d.getDate()+Number(sel.expiration_value)*(sel.expiration_unit==="weeks"?7:1));return d.toISOString()};
         for(let n=0;n<qn;n++){
-          const startAt=seq&&n>0?new Date(cursor):null,expires=(sel.validity_start_mode==="purchase"||seq)?pkExp(startAt||now):null;
-          const cp=(await api("client_packages",{method:"POST",body:JSON.stringify({client_phone:c.phone,client_name:c.name||"",package_id:sel.id,package_name:sel.name,purchased_price:per,status:"active",purchased_at:now.toISOString(),starts_at:startAt?startAt.toISOString():null,expires_at:expires,validity_start_mode:sel.validity_start_mode,first_used_at:null,services_snapshot:sel.items.map(i=>({service_id:i.service_id,service_name:i.service_name,quantity:i.quantity})),created_by:uid()})}))[0];
+          const startAt=seq&&n>0?new Date(now.getTime()+n*1000):null,expires=(seq&&n>0)?null:(sel.validity_start_mode==="purchase"?pkExp(now):null);
+          const cp=(await api("client_packages",{method:"POST",body:JSON.stringify({client_phone:c.phone,client_name:c.name||"",package_id:sel.id,package_name:sel.name,purchased_price:per,status:"active",purchased_at:now.toISOString(),starts_at:startAt?startAt.toISOString():null,expires_at:expires,validity_start_mode:(seq&&n>0)?"first_use":sel.validity_start_mode,first_used_at:null,services_snapshot:sel.items.map(i=>({service_id:i.service_id,service_name:i.service_name,quantity:i.quantity})),created_by:uid()})}))[0];
           for(const i of sel.items)await api("client_package_services",{method:"POST",body:JSON.stringify({client_package_id:cp.id,service_id:i.service_id,service_name:i.service_name,quantity_purchased:i.quantity,quantity_remaining:i.quantity})});
-          if(seq&&expires)cursor=new Date(expires);
         }
         if(paid>0)await saveSaleParts(sp.parts(),"Venda pacote "+sel.name+(qn>1?" ×"+qn:"")+" — "+(c.name||c.phone),"Venda de pacote");
         m.remove();await done?.();
