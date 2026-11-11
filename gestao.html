@@ -369,6 +369,21 @@ button.cb-pill{cursor:pointer;font-family:inherit}
 .rv-yes{background:linear-gradient(135deg,rgba(70,190,130,.95),rgba(25,150,95,.9))}
 .rv-no{background:linear-gradient(135deg,rgba(240,110,110,.95),rgba(205,60,70,.9))}
 .rv-b:active{transform:scale(.92)}
+#client-form .cf-actions{display:block!important;margin:0!important;padding:0!important;height:0}
+#client-form .cf-actions .bb-row{display:block!important;margin:0!important;width:0;height:0}
+#client-form button.cf-save.bb-btn{position:fixed!important;right:18px!important;bottom:calc(18px + env(safe-area-inset-bottom))!important;margin:0!important;z-index:60;box-shadow:0 10px 24px rgba(31,100,180,.35)!important}
+#client-form{padding-bottom:96px}
+.field:has(.bdp){grid-column:1/-1}.bdp{width:100%}.bdp select{width:auto!important;flex:1 1 0!important}
+.pm-card{background:#fff;border:1px solid #CFE0F3;border-radius:16px;padding:12px 14px;margin:0 0 9px;box-shadow:0 4px 14px rgba(30,70,140,.08)}
+.pm-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.pm-h small{color:#5B7A99;font-size:12px}
+.pm-tag{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;background:#EAF3FF;color:#1F4E86;border:1px solid #CFE0F3}
+.pm-tag.on{background:#E3F6EC;color:#136C45;border-color:#B7E3CB}.pm-tag.off{background:#F1F2F4;color:#6B7785;border-color:#DDE1E6}
+.pm-it{background:#fff;border:1px solid #CFE0F3;border-radius:14px;padding:10px 12px;margin:8px 0}
+.pm-it .pm-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.pm-it .pm-top small{color:#5B7A99}
+.pm-it .pm-ctl{display:flex;gap:8px;align-items:center;margin-top:8px}.pm-it input{flex:1;min-width:0;font-size:16px}
+.pm-res{margin-top:6px;font-size:13px;color:#136C45;font-weight:700}
+.pm-dates{display:flex;gap:8px}.pm-dates .field{flex:1;min-width:0}
+.promo-tag{display:inline-block;background:#E5484D;color:#fff;border-radius:8px;padding:0 6px;font-size:11px;font-weight:800;margin-left:6px}
 .pay-addprod{width:100%;height:46px;border:1.5px dashed #6FA8DC;background:#F3F9FF;color:#2f6fb0;border-radius:14px;font-weight:800;font-size:15px;margin-top:4px}
 .pay-money{margin-left:auto;width:auto!important;min-width:0;padding:0 4px 0 8px!important;background:transparent!important;border:0!important}
 .pay-money input{width:96px!important;flex:none;text-align:right!important;background:#F3F9FF!important;border:1px solid #C4DFF8!important;border-radius:10px!important;padding:0 10px!important;height:42px!important}
@@ -1049,6 +1064,94 @@ function pdAdjust(id){
 }
 
 let packages=[],editPackageId=null;
+
+/* ===== Promoções ===== */
+let __promoCache=null;
+function promoCalc(type,value,base){base=Number(base||0);value=Number(value||0);let p=base;if(type==="price")p=value;else if(type==="amount")p=base-value;else if(type==="percent")p=base*(1-Math.min(100,value)/100);p=Math.round(Math.max(0,Math.min(base,p))*100)/100;return p}
+async function loadActivePromos(force){
+ const t=Date.now();if(!force&&__promoCache&&t-__promoCache.t<45000)return __promoCache.map;
+ const map={};
+ try{
+  const today=key(new Date());
+  const ps=await api(`promotions?select=*&active=eq.true&starts_on=lte.${today}&ends_on=gte.${today}`);
+  if(ps.length){
+   const its=await api(`promotion_items?select=*&promotion_id=in.(${ps.map(p=>p.id).join(",")})`);
+   its.forEach(i=>{const pr=ps.find(p=>p.id===i.promotion_id);const k=(i.product_id!=null?"p":"s")+(i.product_id!=null?i.product_id:i.service_id);(map[k]=map[k]||[]).push({name:pr.name,type:i.discount_type,value:Number(i.value)})});
+  }
+ }catch(e){}
+ __promoCache={t,map};return map;
+}
+function promoFor(map,kind,id,base){
+ const l=map[kind+id];if(!l)return null;let best=null;
+ l.forEach(x=>{const p=promoCalc(x.type,x.value,base);if(p<Number(base)&&(!best||p<best.price))best={price:p,name:x.name}});
+ return best;
+}
+async function applyPromosToProducts(list){const m=await loadActivePromos();list.forEach(c=>{if(c.orig_price!=null){c.sale_price=c.orig_price;delete c.orig_price;delete c.promo}const pr=promoFor(m,"p",c.id,c.sale_price);if(pr){c.orig_price=Number(c.sale_price);c.sale_price=pr.price;c.promo=pr.name}});return list}
+async function applyPromosToServices(list){const m=await loadActivePromos();return list.map(c=>{const pr=promoFor(m,"s",c.id,c.price);return pr?{...c,orig_price:Number(c.price),price:pr.price,promo:pr.name}:c})}
+function promoState(p){const t=key(new Date());if(!p.active)return["Pausada","off"];if(t<p.starts_on)return["Agendada",""];if(t>p.ends_on)return["Encerrada","off"];return["Ativa agora","on"]}
+async function loadPromotions(){
+ try{
+  const [ps,its]=await Promise.all([api("promotions?select=*&order=starts_on.desc,id.desc"),api("promotion_items?select=promotion_id")]);
+  shell("Promoções",`<div class="row between"><span class="muted">${ps.length} promoção(ões)</span><button class="btn primary" id="new-promo" aria-label="Adicionar promoção" title="Adicionar promoção">＋</button></div>`+(ps.map(p=>{const [tx,cl]=promoState(p);const n=its.filter(i=>i.promotion_id===p.id).length;return `<div class="pm-card" data-promo="${p.id}"><div class="pm-h"><b>${esc(p.name)}</b><span class="pm-tag ${cl}">${tx}</span></div><div class="muted">${pkgDateBR(p.starts_on)} a ${pkgDateBR(p.ends_on)} · ${n} item(ns)</div></div>`}).join("")||`<p class="muted">Nenhuma promoção cadastrada ainda. Toque no ＋ para criar, por exemplo, a Black November.</p>`));
+  $("#new-promo").onclick=()=>editPromotion(null);
+  const X='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  app.querySelectorAll("[data-promo]").forEach(c=>c.onclick=()=>{const id=Number(c.dataset.promo),p=ps.find(x=>x.id===id);popMenu(c,[{icon:ICO.edit,title:"Editar",fn:()=>editPromotion(id)},{icon:p.active?'<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>':'<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M7 4.5v15l12-7.5z"/></svg>',title:p.active?"Pausar":"Ativar",fn:async()=>{try{await api(`promotions?id=eq.${id}`,{method:"PATCH",body:JSON.stringify({active:!p.active})});__promoCache=null;await loadPromotions()}catch(e){alert(e.message)}}},{icon:X,title:"Excluir",cls:"danger",fn:()=>showAppConfirm("Excluir esta promoção?",async()=>{try{await api(`promotions?id=eq.${id}`,{method:"DELETE"});__promoCache=null;await loadPromotions()}catch(e){alert(e.message)}})}])});
+ }catch(e){shell("Promoções",`<p class="error">${esc(e.message)}</p>`)}
+}
+async function editPromotion(id){
+ window.scrollTo(0,0);
+ let p={name:"",starts_on:key(new Date(new Date().getFullYear(),new Date().getMonth(),1)),ends_on:key(new Date(new Date().getFullYear(),new Date().getMonth()+1,0)),active:true},items=[],prods=[],svcs=[];
+ try{
+  [prods,svcs]=await Promise.all([api("finance_products?select=id,name,sale_price&active=eq.true&order=name").catch(()=>[]),api("services?select=id,name,price&active=eq.true&order=name")]);
+  if(id){p=(await api(`promotions?select=*&id=eq.${id}`))[0];items=(await api(`promotion_items?select=*&promotion_id=eq.${id}&order=id`)).map(i=>({kind:i.product_id!=null?"p":"s",ref:i.product_id!=null?i.product_id:i.service_id,type:i.discount_type,value:Number(i.value)}))}
+ }catch(e){alert(e.message);return}
+ const base=it=>{const l=it.kind==="p"?prods:svcs,x=l.find(z=>Number(z.id)===Number(it.ref));return x?{name:x.name,price:Number(it.kind==="p"?x.sale_price:x.price)}:{name:"(removido)",price:0}};
+ const draw=()=>{
+  const body=$("#pm-items");if(!body)return;
+  body.innerHTML=items.map((it,i)=>{const b=base(it),fin=promoCalc(it.type,it.value,b.price);return `<div class="pm-it" data-i="${i}"><div class="pm-top"><b>${esc(b.name)}${it.kind==="s"?" <small>(serviço)</small>":""}</b><small>normal ${fm(b.price)}</small></div><div class="pm-ctl"><div class="pk-seg">${[["price","Preço"],["amount","R$ off"],["percent","% off"]].map(([t,l])=>`<button type="button" data-bb="x" data-pt="${t}" class="${it.type===t?"on":""}">${l}</button>`).join("")}</div><input type="number" step="0.01" min="0" inputmode="decimal" data-pv value="${it.value}"><button type="button" data-bb="x" data-prm aria-label="Remover" class="pk-rm">✕</button></div><div class="pm-res">Fica por ${fm(fin)} · desconto de ${fm(b.price-fin)}</div></div>`}).join("")||`<p class="muted">Nenhum item ainda. Adicione produtos ou serviços abaixo.</p>`;
+  body.querySelectorAll(".pm-it").forEach(el=>{const i=Number(el.dataset.i);
+   el.querySelectorAll("[data-pt]").forEach(b=>b.onclick=()=>{items[i].type=b.dataset.pt;draw()});
+   el.querySelector("[data-pv]").oninput=ev=>{items[i].value=Number(ev.target.value||0);const b=base(items[i]),fin=promoCalc(items[i].type,items[i].value,b.price);el.querySelector(".pm-res").textContent=`Fica por ${fm(fin)} · desconto de ${fm(b.price-fin)}`};
+   el.querySelector("[data-prm]").onclick=()=>{items.splice(i,1);draw()};
+  });
+ };
+ shell(id?"Editar promoção":"Nova promoção",`<form id="promo-form">${field("Nome da promoção","pm-name",p.name,"text",'placeholder="Ex.: Black November"')}
+ <div class="pm-dates"><div class="field"><label for="pm-start">Começa em</label><input id="pm-start" type="date" value="${esc(p.starts_on)}"></div><div class="field"><label for="pm-end">Termina em</label><input id="pm-end" type="date" value="${esc(p.ends_on)}"></div></div>
+ <label class="pk-opt"><input type="checkbox" id="pm-active" ${p.active?"checked":""}> Promoção ativa</label>
+ <div class="section-title">Itens em promoção</div><div id="pm-items"></div>
+ <button type="button" class="pay-addprod" data-bb="x" id="pm-add">＋ Adicionar produto ou serviço</button>
+ <p id="pm-err" class="error hidden"></p>
+ <div class="form-actions std-actions"><button class="btn primary" type="submit">Salvar promoção</button><button class="btn" type="button" id="pm-cancel">Voltar</button></div></form>`);
+ draw();
+ $("#pm-cancel").onclick=()=>navigate("promotions");
+ $("#pm-add").onclick=()=>{
+  document.querySelector(".nsm")?.remove();
+  const m=document.createElement("div");m.className="nsm";
+  const used=new Set(items.map(i=>i.kind+i.ref));
+  const rows=[...prods.map(x=>({kind:"p",ref:x.id,name:x.name,price:Number(x.sale_price),tag:"Produto"})),...svcs.map(x=>({kind:"s",ref:x.id,name:x.name,price:Number(x.price),tag:"Serviço"}))].filter(r=>!used.has(r.kind+r.ref));
+  m.innerHTML=`<div class="nsm-card"><h3>Adicionar à promoção</h3><input id="pm-q" type="search" placeholder="Buscar…" autocomplete="off" style="width:100%;margin-bottom:8px"><div id="pm-list" style="max-height:48vh;overflow:auto"></div><div class="bb-row"><button type="button" class="bb-btn bb-back" data-bb="back" id="pm-b" aria-label="Voltar" title="Voltar">Voltar</button></div></div>`;
+  document.body.appendChild(m);
+  const list=()=>{const q=normalizeSearch($("#pm-q").value);$("#pm-list").innerHTML=rows.filter(r=>!q||normalizeSearch(r.name).includes(q)).map(r=>`<button type="button" class="pp-item" data-r="${r.kind}${r.ref}"><span><b>${esc(r.name)}</b><small>${r.tag}</small></span><b>${fm(r.price)}</b></button>`).join("")||`<p class="muted">Nada encontrado.</p>`;
+   $("#pm-list").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const r=rows.find(x=>x.kind+x.ref===b.dataset.r);items.push({kind:r.kind,ref:r.ref,type:"price",value:Math.round(r.price*100)/100});m.remove();draw()})};
+  list();$("#pm-q").oninput=list;$("#pm-b").onclick=()=>m.remove();
+  m.addEventListener("click",e=>{if(e.target===m)m.remove()});
+ };
+ $("#promo-form").onsubmit=async e=>{
+  e.preventDefault();const er=$("#pm-err");er.classList.add("hidden");
+  try{
+   const name=val("pm-name").trim(),s0=val("pm-start"),e0=val("pm-end");
+   if(name.length<2)throw Error("Dê um nome para a promoção.");
+   if(!s0||!e0||e0<s0)throw Error("Confira as datas: o fim deve ser depois do início.");
+   if(!items.length)throw Error("Adicione pelo menos um item.");
+   const row={name,starts_on:s0,ends_on:e0,active:$("#pm-active").checked};
+   let pid=id;
+   if(id){await api(`promotions?id=eq.${id}`,{method:"PATCH",body:JSON.stringify(row)});await api(`promotion_items?promotion_id=eq.${id}`,{method:"DELETE"})}
+   else{const r=await api("promotions",{method:"POST",body:JSON.stringify(row),headers:{Prefer:"return=representation"}});pid=(Array.isArray(r)?r[0]:r).id}
+   await api("promotion_items",{method:"POST",body:JSON.stringify(items.map(i=>({promotion_id:pid,product_id:i.kind==="p"?i.ref:null,service_id:i.kind==="s"?i.ref:null,discount_type:i.type,value:i.value})))});
+   __promoCache=null;await navigate("promotions");
+  }catch(err){er.textContent=err.message;er.classList.remove("hidden")}
+ };
+}
 async function loadPackages(){
  try{
   const [pk,items]=await Promise.all([api("service_packages?select=*&order=name"),api("service_package_items?select=*&order=id")]);
@@ -1151,11 +1254,11 @@ async function editCombo(id=null){
  $("#cancel-combo").onclick=loadCombos;
 }
 async function loadSettings(){
- shell("Configurações",`<div class="settings-menu-grid"><button type="button" class="card settings-menu-button" id="open-hours"><span class="settings-menu-icon">◷</span><b>Horários</b><span class="muted">Funcionamento</span></button><button type="button" class="card settings-menu-button" id="open-professionals"><span class="settings-menu-icon">♧</span><b>Profissionais</b><span class="muted">Equipe cadastrada</span></button><button type="button" class="card settings-menu-button" id="open-roles"><span class="settings-menu-icon">🔑</span><b>Permissões e acessos</b><span class="muted">O que cada função pode</span></button><button type="button" class="card settings-menu-button" id="open-messages"><span class="settings-menu-icon">✉︎</span><b>Mensagens</b><span class="muted">Confirmação e cancelamento</span></button><button type="button" class="card settings-menu-button" id="open-services"><span class="settings-menu-icon">✂︎</span><b>Serviços</b><span class="muted">Valores e tempos</span></button><button type="button" class="card settings-menu-button" id="open-products"><span class="settings-menu-icon">▣</span><b>Produtos</b><span class="muted">Estoque e preços</span></button><button type="button" class="card settings-menu-button" id="open-paymethods"><span class="settings-menu-icon">＄</span><b>Formas de pagamento</b><span class="muted">Dinheiro, Pix, cartão…</span></button><button type="button" class="card settings-menu-button" id="open-packages"><span class="settings-menu-icon">❖</span><b>Pacotes</b><span class="muted">Pacotes de serviços</span></button><button type="button" class="card settings-menu-button" id="open-combos"><span class="settings-menu-icon">✦</span><b>Combos</b><span class="muted">Descontos por conjunto</span></button><button type="button" class="card settings-menu-button" id="open-password"><span class="settings-menu-icon">🔒</span><b>Alterar senha</b><span class="muted">Sua senha de acesso</span></button></div>`);
+ shell("Configurações",`<div class="settings-menu-grid"><button type="button" class="card settings-menu-button" id="open-hours"><span class="settings-menu-icon">◷</span><b>Horários</b><span class="muted">Funcionamento</span></button><button type="button" class="card settings-menu-button" id="open-professionals"><span class="settings-menu-icon">♧</span><b>Profissionais</b><span class="muted">Equipe cadastrada</span></button><button type="button" class="card settings-menu-button" id="open-roles"><span class="settings-menu-icon">🔑</span><b>Permissões e acessos</b><span class="muted">O que cada função pode</span></button><button type="button" class="card settings-menu-button" id="open-messages"><span class="settings-menu-icon">✉︎</span><b>Mensagens</b><span class="muted">Confirmação e cancelamento</span></button><button type="button" class="card settings-menu-button" id="open-services"><span class="settings-menu-icon">✂︎</span><b>Serviços</b><span class="muted">Valores e tempos</span></button><button type="button" class="card settings-menu-button" id="open-products"><span class="settings-menu-icon">▣</span><b>Produtos</b><span class="muted">Estoque e preços</span></button><button type="button" class="card settings-menu-button" id="open-paymethods"><span class="settings-menu-icon">＄</span><b>Formas de pagamento</b><span class="muted">Dinheiro, Pix, cartão…</span></button><button type="button" class="card settings-menu-button" id="open-packages"><span class="settings-menu-icon">❖</span><b>Pacotes</b><span class="muted">Pacotes de serviços</span></button><button type="button" class="card settings-menu-button" id="open-promos"><span class="settings-menu-icon">％</span><b>Promoções</b><span class="muted">Black November e outras</span></button><button type="button" class="card settings-menu-button" id="open-combos"><span class="settings-menu-icon">✦</span><b>Combos</b><span class="muted">Descontos por conjunto</span></button><button type="button" class="card settings-menu-button" id="open-password"><span class="settings-menu-icon">🔒</span><b>Alterar senha</b><span class="muted">Sua senha de acesso</span></button></div>`);
  $("#open-password").onclick=()=>changePasswordSheet();
  $("#open-hours").onclick=()=>navigate("settings-hours");
  $("#open-roles").onclick=()=>navigate("settings-roles");
- if(window.__me&&!window.__me.owner){["#open-hours","#open-professionals","#open-messages","#open-paymethods","#open-roles"].forEach(q=>$(q)?.classList.add("hidden"));if(!can("finance_edit"))["#open-packages","#open-combos"].forEach(q=>$(q)?.classList.add("hidden"))}
+ if(window.__me&&!window.__me.owner){["#open-hours","#open-professionals","#open-messages","#open-paymethods","#open-roles"].forEach(q=>$(q)?.classList.add("hidden"));if(!can("finance_edit"))["#open-packages","#open-combos","#open-promos"].forEach(q=>$(q)?.classList.add("hidden"))}
  $("#open-professionals").onclick=()=>navigate("settings-professionals");
  $("#open-messages").onclick=()=>navigate("settings-messages");
  $("#open-services").onclick=()=>navigate("services");
@@ -1163,6 +1266,7 @@ async function loadSettings(){
  $("#open-packages").onclick=()=>navigate("packages");
  $("#open-paymethods").onclick=()=>navigate("settings-payments");
  $("#open-combos").onclick=()=>navigate("combos");
+ $("#open-promos").onclick=()=>navigate("promotions");
 }
 
 const PM_ICONS=["💵","💳","⚡","🏦","🧾","🎁","📱","💰"];
@@ -1472,7 +1576,7 @@ let rolePerms={};
 const roleKey=r=>(r==="barber"||r==="cashier")?r:"manager";
 const rpBase=r=>({...DEFAULT_RP[roleKey(r)],...(rolePerms[roleKey(r)]||{})});
 function can(k){const m=window.__me;return !m||m.owner||!!(m.perms&&m.perms[k])}
-function guardPage(p){const m=window.__me;if(!m||m.owner)return p;if(["settings-hours","settings-professionals","settings-messages","settings-payments","settings-roles"].includes(p))return can("catalog_edit")?"settings":"agenda";if((p==="clients"||p==="birthdays")&&!can("clients_view"))return "agenda";if(["settings","services","products","packages","combos"].includes(p)&&!can("catalog_edit"))return "agenda";return p}
+function guardPage(p){const m=window.__me;if(!m||m.owner)return p;if(["settings-hours","settings-professionals","settings-messages","settings-payments","settings-roles"].includes(p))return can("catalog_edit")?"settings":"agenda";if((p==="clients"||p==="birthdays")&&!can("clients_view"))return "agenda";if(["settings","services","products","packages","combos","promotions"].includes(p)&&!can("catalog_edit"))return "agenda";return p}
 async function loadMe(){try{const r=await api("rpc/app_me",{method:"POST",body:"{}"});window.__me=r;window.__myBarberId=r&&!r.owner?r.barber_id:null}catch(e){window.__me=null}applyMenuPerms()}
 function applyMenuPerms(){const m=window.__me;const set=(sel,show)=>{const el=$(sel);if(el)el.classList.toggle("hidden",!show)};set('[data-page="settings"]',!m||m.owner||can("catalog_edit"));set('[data-page="clients"]',can("clients_view"));set('[data-page="birthdays"]',can("clients_view"));set("#finance-menu",can("finance_view"))}
 async function staffCall(action,extra={}){const r=await fetch(SB+"/functions/v1/staff-admin",{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+session.access_token,"Content-Type":"application/json"},body:JSON.stringify({action,...extra})});const j=await r.json().catch(()=>({}));if(!r.ok||j.error)throw Error(j.error||("Falha ("+r.status+")"));return j}
@@ -1681,7 +1785,7 @@ document.addEventListener("click",e=>{
  const h=e.target.closest(".hist-item");
  if(h&&!e.target.closest("a,button"))h.classList.toggle("open");
 });
-async function navigate(p){if(p!=="notifications")setTimeout(refreshNotifBadge,400);clientFromAgenda=false;if(session&&!window.__me)await loadMe();if(window.__me&&window.__me.has_access===false){setMenuOpen(false);app.innerHTML=`<div class="card"><div class="section-title">Sem acesso</div><p class="muted">Esta conta ainda não foi liberada pelo proprietário. Peça para ele criar o seu acesso em Configurações → Profissionais.</p></div>`;return}p=guardPage(p);page=p;if(p!=="agenda")window.scrollTo(0,0);ensurePM();$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p||(["settings-hours","settings-professionals","settings-messages","settings-payments","settings-roles","services","products","packages","combos"].includes(p)&&b.dataset.page==="settings")));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="packages")await loadPackages();else if(p==="combos")await loadCombos();else if(p==="settings-hours")await loadHours();else if(p==="settings-professionals")await loadProfessionals();else if(p==="settings-messages")loadMessageSettings();else if(p==="settings-payments")await loadPayMethods();else if(p==="settings-roles")await loadRoles();else if(p==="birthdays")await loadBirthdays();else if(p==="notifications")await loadNotifications()}
+async function navigate(p){if(p!=="notifications")setTimeout(refreshNotifBadge,400);clientFromAgenda=false;if(session&&!window.__me)await loadMe();if(window.__me&&window.__me.has_access===false){setMenuOpen(false);app.innerHTML=`<div class="card"><div class="section-title">Sem acesso</div><p class="muted">Esta conta ainda não foi liberada pelo proprietário. Peça para ele criar o seu acesso em Configurações → Profissionais.</p></div>`;return}p=guardPage(p);page=p;if(p!=="agenda")window.scrollTo(0,0);ensurePM();$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p||(["settings-hours","settings-professionals","settings-messages","settings-payments","settings-roles","services","products","packages","combos","promotions"].includes(p)&&b.dataset.page==="settings")));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="packages")await loadPackages();else if(p==="combos")await loadCombos();else if(p==="promotions")await loadPromotions();else if(p==="settings-hours")await loadHours();else if(p==="settings-professionals")await loadProfessionals();else if(p==="settings-messages")loadMessageSettings();else if(p==="settings-payments")await loadPayMethods();else if(p==="settings-roles")await loadRoles();else if(p==="birthdays")await loadBirthdays();else if(p==="notifications")await loadNotifications()}
 // Gesto lateral: arrastar da borda esquerda para a direita volta à tela anterior,
 // mostrando a tela de baixo (instantâneo da tela anterior) enquanto arrasta.
 (function(){
@@ -2070,7 +2174,7 @@ function __renderBookingScreen(){
  <div id="booking-client-badge" class="cb-row booking-badge-out"></div>
  <div class="booking-range-label">Início</div><div class="booking-date-time-line"><div class="field"><input id="booking-date" type="date" aria-label="Data de início" title="${["dom","seg","ter","qua","qui","sex","sáb"][d.date.getDay()]}, ${d.date.toLocaleDateString("pt-BR")}" value="${key(d.date)}"></div><div class="field"><input id="booking-start" type="time" aria-label="Horário de início" value="${startMin==null?'':hm(startMin)}" step="1800"></div></div>
  <div class="section-title">Serviços</div>
- <div>${(d.catalog||[]).map(x=>{const chosen=selected.find(z=>String(z.id)===String(x.id));const price=chosen?Number(chosen.price):Number(x.price||0);return `<label class="service-choice${chosen?' on':''}" data-sid="${x.id}"><input type="checkbox" data-service="${x.id}" ${chosen?'checked':''}><span class="grow"><b>${esc(x.name)}</b><span class="muted">${(()=>{const dm=Number(x.duration_min||0);return dm>0?dm+" min":(x.is_cut||serviceAddsDuration(x)?"30 min":"")})()}</span></span><span class="svc-price">${fm(price)}</span></label>`}).join('')}</div>
+ <div>${(d.catalog||[]).map(x=>{const chosen=selected.find(z=>String(z.id)===String(x.id));const price=chosen?Number(chosen.price):Number(x.price||0);return `<label class="service-choice${chosen?' on':''}" data-sid="${x.id}"><input type="checkbox" data-service="${x.id}" ${chosen?'checked':''}><span class="grow"><b>${esc(x.name)}</b><span class="muted">${(()=>{const dm=Number(x.duration_min||0);return dm>0?dm+" min":(x.is_cut||serviceAddsDuration(x)?"30 min":"")})()}</span></span><span class="svc-price">${!chosen&&x.promo?`<s style="opacity:.5;font-weight:500">${fm(x.orig_price)}</s> `:""}${fm(price)}${!chosen&&x.promo?`<span class="promo-tag">${esc(x.promo)}</span>`:""}</span></label>`}).join('')}</div>
  <div class="booking-range-label">Fim</div><div class="field-line">${dateInput('booking-end-date','',d.endDate||new Date(d.date.getFullYear(),d.date.getMonth(),d.date.getDate()+Math.floor(endMin/1440)))}${timeInput('booking-end','',endMin==null?null:endMin%1440)}</div>
  <div class="card pkg-card2 hidden" id="pkg-card"></div>
  <div class="section-title">Desconto ou acréscimo</div>
@@ -2103,7 +2207,7 @@ async function offerPrevServices(phone){
 async function openBooking(start,mode='book',existing=null){
  try{
   if(!$(".booking-screen")){swipeBackSnapshot=app.innerHTML;swipeBackScrollY=window.scrollY}
-  const [cs,ss,bs,cbs,cbi]=await Promise.all([api("clients?select=phone,name&order=name"),api("services?select=id,name,price,is_cut,duration_min,active&active=eq.true&order=sort"),api("rpc/agenda_barbers",{method:"POST",body:"{}"}),api("service_combos?select=*&active=eq.true").catch(()=>[]),api("service_combo_items?select=*").catch(()=>[])]);const combosList=cbs.map(c=>({...c,items:cbi.filter(i=>String(i.combo_id)===String(c.id))}));
+  let [cs,ss,bs,cbs,cbi]=await Promise.all([api("clients?select=phone,name&order=name"),api("services?select=id,name,price,is_cut,duration_min,active&active=eq.true&order=sort"),api("rpc/agenda_barbers",{method:"POST",body:"{}"}),api("service_combos?select=*&active=eq.true").catch(()=>[]),api("service_combo_items?select=*").catch(()=>[])]);const combosList=cbs.map(c=>({...c,items:cbi.filter(i=>String(i.combo_id)===String(c.id))}));ss=await applyPromosToServices(ss);
   const ddate=existing?.date?new Date(existing.date+"T12:00:00"):new Date(day.getFullYear(),day.getMonth(),day.getDate());const savedServices=existing?.services||[];const __nb=window.__newBarber;window.__newBarber=null;const __ns=(()=>{if(existing||start!=null)return null;const stp=Math.max(5,Number(slotStep)||30),n=new Date(),isToday=ddate.toDateString()===n.toDateString();let m=isToday?Math.ceil((n.getHours()*60+n.getMinutes())/stp)*stp:((dayRanges&&dayRanges[0]&&Number(dayRanges[0].start_min))||540);return Math.min(m,1440-stp)})();if(__ns!=null)start=__ns;
   bookingDraft={pkgs:[],pkgId:(existing?.services||[]).find(x=>x&&x.pkg)?.pkg||null,usePkg:existing?!!(existing.services||[]).some(x=>x&&x.pkg):true,barberId:(existing?.barber_id!=null?Number(existing.barber_id):(__nb!=null?Number(__nb):(agendaBarber&&agendaBarber!=="all"?Number(agendaBarber):(bs[0]?.id||null)))),blockAll:existing?(existing.blockId?existing.barber_id==null:false):agendaBarber==="all",mode,start:existing?.start_min!=null?Number(existing.start_min):(start==null?null:Number(start)),date:ddate,clients:cs,catalog:ss,barbers:bs,services:savedServices.map(x=>({...x,id:x.id??ss.find(y=>y.name===x.name)?.id})),query:'',newName:'',newPhone:'',selectedPhone:existing?.client_phone||null,addingClient:false,end:existing?.end_min!=null?Number(existing.end_min):(start==null?null:Number(start)+30),endDate:ddate,editingId:existing?.id||null,editingBlockId:existing?.blockId||null,reason:existing?.reason||'',notes:existing?.notes||'',existingStatus:existing?.status||"confirmed",endManuallyChanged:false,combos:combosList,discount:Number(existing?.discount||0),surcharge:Number(existing?.surcharge||0),comboOff:!!existing&&Number(existing?.combo_discount||0)===0&&savedServices.length>0&&!!(()=>{try{return bookingCombo({services:savedServices.map(x=>({id:x.id??ss.find(y=>y.name===x.name)?.id})),combos:combosList})}catch(e){return null}})()};
   renderBookingScreen();loadBookingPkgs();
@@ -2265,7 +2369,7 @@ async function openPaymentScreen(b,opts={}){
   let total=Math.round(Number(b.total||0)*100)/100;
   let ex=null;try{ex=(await api(`finance_booking_closures?select=*&booking_id=eq.${encodeURIComponent(b.id)}`))[0]||null}catch(e){}
   await ensurePM();
-  let catalog=[];try{catalog=await api("finance_products?select=*&active=eq.true&order=name")}catch(e){}
+  let catalog=[];try{catalog=await api("finance_products?select=*&active=eq.true&order=name");await applyPromosToProducts(catalog)}catch(e){}
   let credits=[];try{if(b.client_phone)credits=await api(`client_credits?select=*&client_phone=eq.${encodeURIComponent(b.client_phone)}&status=eq.available&remaining_amount=gt.0&order=created_at`)}catch(e){}
   let creditAvail=Math.round(credits.reduce((a,c)=>a+Number(c.remaining_amount||0),0)*100)/100;
   let others=[];try{if(b.client_phone){const cs=await clientStats(b.client_phone);others=cs.owing.filter(o=>String(o.b.id)!==String(b.id))}}catch(e){}
@@ -2322,7 +2426,7 @@ async function openPaymentScreen(b,opts={}){
     ${already>0?`<div class="pay-actions"><button type="button" class="pay-sm" id="pay-alter">✎ Alterar valor pago</button><button type="button" class="pay-sm danger" id="pay-cancel">Cancelar pagamento</button></div>`:(pkgRed.length&&ex?`<div class="pay-actions"><button type="button" class="pay-sm danger" id="pay-cancel">Cancelar baixa do pacote</button></div>`:"")}
     ${others.length?`<div class="pay-incl"><div class="pay-incl-h">Incluir agendamentos anteriores <small>este cliente tem ${fm(others.reduce((a,o)=>a+o.v,0))} pendente</small></div>${others.map(o=>`<label class="pay-inclrow"><input type="checkbox" data-incl="${o.b.id}" ${incl.has(String(o.b.id))?"checked":""}><span><b>${esc(o.b.date.split("-").reverse().join("/"))} · ${esc((o.b.services||[]).map(x=>x.name).join(", ")||"Agendamento")}</b><small>${o.v<Number(o.b.total||0)-0.001?"pagamento parcial":"atendido, não pago"}</small></span><b>${fm(o.v)}</b></label>`).join("")}</div>`:""}
     <h3 class="pay-h">Produtos</h3>
-    ${prods.length?`<div class="pay-prods">${prods.map((p,i)=>`<div class="pay-prod"><div class="pp-n"><b>${esc(p.name)}</b><span>${fm(p.unit_price)} cada</span></div><div class="pp-q"><button type="button" data-pq="-1" data-i="${i}">−</button><b>${p.quantity}</b><button type="button" data-pq="1" data-i="${i}">+</button></div><div class="pp-t">${fm(p.quantity*p.unit_price)}</div><button type="button" class="pay-x" data-prd="${i}" aria-label="Remover">✕</button></div>`).join("")}</div>`:""}
+    ${prods.length?`<div class="pay-prods">${prods.map((p,i)=>`<div class="pay-prod"><div class="pp-n"><b>${esc(p.name)}</b><span>${p.promo&&p.orig?`<s style="opacity:.5">${fm(p.orig)}</s> `:""}${fm(p.unit_price)} cada${p.promo?` <span class="promo-tag">${esc(p.promo)}</span>`:""}</span></div><div class="pp-q"><button type="button" data-pq="-1" data-i="${i}">−</button><b>${p.quantity}</b><button type="button" data-pq="1" data-i="${i}">+</button></div><div class="pp-t">${fm(p.quantity*p.unit_price)}</div><button type="button" class="pay-x" data-prd="${i}" aria-label="Remover">✕</button></div>`).join("")}</div>`:""}
     <button type="button" class="pay-addprod" id="pay-addprod">＋ Adicionar produto</button>
     ${b.client_phone&&!ex&&!pkgRed.length&&!already?`<button type="button" data-bb="x" class="pay-addprod" id="pay-sellpkg">🎟️ Vender pacote</button>`:""}
     ${settled&&pt<=0?(pkgPending?`<div class="pay-diff ok" style="margin-top:6px">Serviços cobertos pelo pacote ✓ — é só confirmar para dar baixa.</div>${needsDoneToggle?`<div class="pay-opts"><label class="pay-optrow"><span>Serviço já realizado?<small>${serviceDone?"O agendamento ficará concluído":"Fica marcado como pago, falta atender"}</small></span><input type="checkbox" id="pay-done" ${serviceDone?"checked":""}></label></div>`:""}`:`<div class="pay-diff ok" style="margin-top:6px">Atendimento totalmente pago ✓</div>`):`<h3 class="pay-h">Como foi pago?</h3>
@@ -2332,7 +2436,7 @@ async function openPaymentScreen(b,opts={}){
     <div class="pay-opts"><label class="pay-optrow"><span>Data do pagamento</span><input type="date" id="pay-date" value="${payDate}"></label>
     ${needsDoneToggle?`<label class="pay-optrow"><span>Serviço já realizado?<small>${serviceDone?"O agendamento ficará concluído":"Fica marcado como pago, falta atender"}</small></span><input type="checkbox" id="pay-done" ${serviceDone?"checked":""}></label>`:""}</div>`}
     </div>${settled&&pt<=0&&!pkgPending?"":`<footer class="pay-foot"><button type="button" class="btn primary pay-confirm" id="pay-ok" ${info.bad?"disabled":""}>${info.label}</button></footer>`}
-    ${pickerOpen?`<div class="pay-picker" id="pay-picker"><div class="pay-picker-card"><div class="pay-picker-h"><b>Escolha o produto</b><button type="button" id="pp-close" class="pay-x">✕</button></div>${catalog.length?catalog.map(p=>`<button type="button" class="pp-item" data-pp="${p.id}" ${Number(p.stock_quantity)<=0?"disabled":""}><span><b>${esc(p.name)}</b><small>Estoque: ${p.stock_quantity}</small></span><b>${fm(p.sale_price)}</b></button>`).join(""):`<p class="muted" style="padding:12px">Nenhum produto ativo cadastrado. Cadastre em Configurações › Produtos.</p>`}</div></div>`:""}`;
+    ${pickerOpen?`<div class="pay-picker" id="pay-picker"><div class="pay-picker-card"><div class="pay-picker-h"><b>Escolha o produto</b><button type="button" id="pp-close" class="pay-x">✕</button></div>${catalog.length?catalog.map(p=>`<button type="button" class="pp-item" data-pp="${p.id}" ${Number(p.stock_quantity)<=0?"disabled":""}><span><b>${esc(p.name)}</b><small>Estoque: ${p.stock_quantity}${p.promo?` · <span class="promo-tag">${esc(p.promo)}</span>`:""}</small></span><b>${p.promo?`<s style="opacity:.5;font-weight:500">${fm(p.orig_price)}</s> `:""}${fm(p.sale_price)}</b></button>`).join(""):`<p class="muted" style="padding:12px">Nenhum produto ativo cadastrado. Cadastre em Configurações › Produtos.</p>`}</div></div>`:""}`;
     {const nb=el.querySelector(".pay-body");if(nb)nb.scrollTop=__top}
     const q=x=>el.querySelector(x),qa=x=>el.querySelectorAll(x);
     q("#pay-back").onclick=close;
@@ -2348,7 +2452,7 @@ async function openPaymentScreen(b,opts={}){
     q("#pay-sellpkg")?.addEventListener("click",sellPkgHere);
     q("#pp-close")?.addEventListener("click",()=>{pickerOpen=false;draw()});
     q("#pay-picker")?.addEventListener("click",ev=>{if(ev.target.id==="pay-picker"){pickerOpen=false;draw()}});
-    qa("[data-pp]").forEach(x=>x.onclick=()=>{const c=catalog.find(z=>String(z.id)===x.dataset.pp);const f=prods.find(p=>p.product_id===c.id);if(f){if(f.quantity+1>Number(c.stock_quantity)){alert("Estoque insuficiente.");return}f.quantity++}else prods.push({product_id:c.id,name:c.name,quantity:1,unit_price:Number(c.sale_price),unit_cost:Number(c.cost_price||0)});pickerOpen=false;resync();draw()});
+    qa("[data-pp]").forEach(x=>x.onclick=()=>{const c=catalog.find(z=>String(z.id)===x.dataset.pp);const f=prods.find(p=>p.product_id===c.id);if(f){if(f.quantity+1>Number(c.stock_quantity)){alert("Estoque insuficiente.");return}f.quantity++}else prods.push({product_id:c.id,name:c.name,quantity:1,unit_price:Number(c.sale_price),unit_cost:Number(c.cost_price||0),promo:c.promo||"",orig:c.orig_price});pickerOpen=false;resync();draw()});
     q("#pay-alter")?.addEventListener("click",enterEdit);
     q("#pay-cancel")?.addEventListener("click",()=>showAppConfirm("Tem certeza que deseja cancelar o pagamento já registrado?",async()=>{try{await undoPayment(b.id);if(!needsDoneToggle)await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"completed"})});close();await loadAgenda()}catch(err){alert("Não foi possível cancelar o pagamento: "+err.message)}}));
     q("#pay-ok")?.addEventListener("click",save);
@@ -2384,7 +2488,7 @@ async function openPaymentScreen(b,opts={}){
     try{
       for(const p of prods){const c=catalog.find(z=>z.id===p.product_id);if(!c||p.quantity>Number(c.stock_quantity))throw Error("Estoque insuficiente para "+p.name+".")}
       if(parts.some(p=>p.method==="credit")&&!b.client_phone)throw Error("O agendamento precisa ter telefone para usar crédito.");
-      if(editing){await undoPayment(b.id,{editing:true,phone:b.client_phone,name:b.client_name});catalog=await api("finance_products?select=*&active=eq.true&order=name");credits=b.client_phone?await api(`client_credits?select=*&client_phone=eq.${encodeURIComponent(b.client_phone)}&status=eq.available&remaining_amount=gt.0&order=created_at`):[]}
+      if(editing){await undoPayment(b.id,{editing:true,phone:b.client_phone,name:b.client_name});catalog=await api("finance_products?select=*&active=eq.true&order=name");await applyPromosToProducts(catalog);credits=b.client_phone?await api(`client_credits?select=*&client_phone=eq.${encodeURIComponent(b.client_phone)}&status=eq.available&remaining_amount=gt.0&order=created_at`):[]}
       const ds=payDate||todayLocal();
       const p0=paid(),pt=pTotal(),curDue=curRemaining();
       const inclList=others.filter(o=>incl.has(String(o.b.id)));
