@@ -1566,7 +1566,7 @@ async function openPaymentScreen(b,opts={}){
     <button type="button" class="pay-addprod" id="pay-addprod">＋ Adicionar produto</button>
     ${settled&&pt<=0?`<div class="pay-diff ok" style="margin-top:6px">Atendimento totalmente pago ✓</div>`:`<h3 class="pay-h">Como foi pago?</h3>
     <div class="pay-grid">${methods.map(m=>`<button type="button" class="pay-tile ${has(m[0])?"on":""}" data-pick="${m[0]}"><span>${m[2]}</span>${m[1]}${m[0]==="credit"?`<small>${fm(creditAvail)}</small>`:""}</button>`).join("")}</div>
-    ${parts.length?`<div class="pay-amts">${parts.map((p,i)=>{const mm=methods.find(x=>x[0]===p.method);return `<label class="pay-amt"><span>${mm[2]} ${mm[1]}</span><div class="pay-money"><i>R$</i><input data-pa="${i}" type="number" inputmode="decimal" step="0.01" min="0" value="${p.amount}"></div></label>`}).join("")}</div>`:`<p class="pay-hint">Toque na forma de pagamento. Para dividir, toque em mais de uma e informe o valor de cada.</p>`}
+    ${parts.length?`<div class="pay-amts">${parts.map((p,i)=>{const mm=methods.find(x=>x[0]===p.method);return `<label class="pay-amt"><span>${mm[2]} ${mm[1]}</span><div class="pay-money"><i>R$</i><input data-pa="${i}" type="text" inputmode="decimal" autocomplete="off" value="${String(p.amount).replace(".",",")}"></div></label>`}).join("")}</div>`:`<p class="pay-hint">Toque na forma de pagamento. Para dividir, toque em mais de uma e informe o valor de cada.</p>`}
     <div id="pay-diff" class="pay-diff ${info.cls}">${info.msg}</div>
     <div class="pay-opts"><label class="pay-optrow"><span>Data do pagamento</span><input type="date" id="pay-date" value="${payDate}"></label>
     ${needsDoneToggle?`<label class="pay-optrow"><span>Serviço já realizado?<small>${serviceDone?"O agendamento ficará concluído":"Fica marcado como pago, falta atender"}</small></span><input type="checkbox" id="pay-done" ${serviceDone?"checked":""}></label>`:""}</div>`}
@@ -1577,7 +1577,7 @@ async function openPaymentScreen(b,opts={}){
     q("#pay-back").onclick=close;
     qa("[data-pick]").forEach(x=>x.onclick=()=>{const m=x.dataset.pick;const i=parts.findIndex(p=>p.method===m);if(i>=0){parts.splice(i,1)}else{let amt=parts.length?Math.max(0,Math.round((remaining()-paid())*100)/100):remaining();if(m==="credit")amt=Math.min(amt,creditAvail);parts.push({method:m,amount:amt})}draw(m)});
     qa("[data-incl]").forEach(x=>x.onchange=()=>{if(x.checked)incl.add(x.dataset.incl);else incl.delete(x.dataset.incl);resync();draw()});
-    qa("[data-pa]").forEach(x=>x.oninput=()=>{parts[+x.dataset.pa].amount=Math.round(Number(x.value||0)*100)/100;refresh()});
+    qa("[data-pa]").forEach(x=>{x.oninput=()=>{const c=x.value.replace(/[^0-9.,]/g,"");if(c!==x.value)x.value=c;parts[+x.dataset.pa].amount=Math.round((Number(String(c).replace(",","."))||0)*100)/100;refresh()};x.onfocus=()=>setTimeout(()=>{const n=x.value.length;try{x.setSelectionRange(n,n)}catch(e){}},0)});
     q("#pay-date")?.addEventListener("change",x=>{payDate=x.target.value||todayLocal()});
     q("#pay-done")?.addEventListener("change",x=>{serviceDone=x.target.checked;const sm=x.target.parentElement.querySelector("small");if(sm)sm.textContent=serviceDone?"O agendamento ficará concluído":"Fica marcado como pago, falta atender"});
     const resync=()=>{if(parts.length===1&&parts[0].method!=="credit")parts[0].amount=remaining()};
