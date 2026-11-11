@@ -259,6 +259,27 @@ input:focus,select:focus,textarea:focus{outline:2px solid #2378d42a;border-color
 
 .management-pushbar{display:flex;justify-content:flex-end;margin:0 0 8px}.management-pushbar .btn{border-radius:999px;padding:8px 13px;font-size:13px}.booking-review-card{padding:20px}.booking-review-card h2{font-size:23px;margin:14px 0}.booking-review-card p{margin:10px 0}.review-actions{display:grid;gap:10px;margin-top:22px}.review-actions .btn{width:100%;min-height:50px}.review-actions .danger{background:#d94343!important;color:#fff!important;border-color:#d94343!important}
 </style>
+<style id="theme-v7">
+.pay-screen{position:fixed;inset:0;z-index:5000;display:flex;flex-direction:column;background:linear-gradient(#F3F9FF,#E2EFFC);color:#10304F}
+.pay-head{display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(#D6EAFC,#A9D0F5);border-bottom:1px solid #6FA8DC;font-size:18px}
+.pay-back{width:36px;height:36px;border-radius:10px;border:1px solid #6FA8DC;background:#fff;color:#1F4B75;font-size:26px;line-height:1;padding:0}
+.pay-body{flex:1;overflow:auto;padding:14px;max-width:560px;width:100%;margin:0 auto}
+.pay-card{background:#fff;border:1px solid #C4DFF8;border-radius:16px;padding:14px}
+.pay-client{font-weight:800;font-size:18px}.pay-sub{color:#5b7a99;font-size:14px;margin-top:2px}
+.pay-total{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding-top:12px;border-top:1px dashed #C4DFF8}.pay-total b{font-size:26px;color:#1F4B75}
+.pay-h{margin:18px 2px 8px;font-size:16px}
+.pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pay-tile{height:76px;border-radius:14px;border:1.5px solid #C4DFF8;background:#fff;color:#1F4B75;font-weight:700;font-size:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.pay-tile span{font-size:22px}.pay-tile.on{border-color:#4F94D8;background:#EAF4FF;box-shadow:0 0 0 2px #4F94D8 inset}
+.pay-link{background:none;border:0;color:#2f6fb0;font-weight:700;font-size:15px;padding:12px 2px}
+.pay-row{display:flex;gap:8px;margin-bottom:8px}.pay-row select,.pay-row input{height:46px;font-size:16px;border:1px solid #C4DFF8;border-radius:12px;background:#fff;padding:0 10px;min-width:0}.pay-row select{flex:1}.pay-row input{width:110px}
+.pay-x{width:40px;border:1px solid #C4DFF8;border-radius:12px;background:#fff;color:#c0392b}
+.pay-diff{font-weight:700;color:#c0392b;padding:4px 2px}.pay-diff.ok{color:#1f8a4c}
+.pay-foot{padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #C4DFF8}
+.pay-confirm{width:100%;height:50px;font-size:17px;border-radius:14px}.pay-confirm:disabled{opacity:.45}
+.slot.lunch{cursor:pointer}
+.sheet-action.pay{background:#EAF8EF!important;border-color:#8fd3a8!important}
+</style>
 </head>
 <body><main>
 <header class="top">
@@ -425,7 +446,7 @@ function renderAgenda(){
   }else if(outside){
    right.push(`<button type="button" class="btn slot agenda-slot outside" data-slot="${m}" aria-label="Agendar manualmente às ${hm(m)} — fora do expediente" title="Agendar manualmente fora do expediente" style="grid-column:2;grid-row:${row}"></button>`);
   }else if(lunch){
-   right.push(`<div class="btn slot agenda-slot lunch" aria-hidden="true" style="grid-column:2;grid-row:${row}"><span class="desc">Intervalo de almoço</span></div>`);
+   right.push(`<button type="button" class="btn slot agenda-slot lunch" data-slot="${m}" aria-label="Agendar ou bloquear no intervalo de almoço às ${hm(m)}" style="grid-column:2;grid-row:${row}"><span class="desc">Intervalo de almoço</span></button>`);
   }else{
    right.push(`<button class="btn slot agenda-slot" data-slot="${m}" aria-label="Agendar ou bloquear às ${hm(m)}" style="grid-column:2;grid-row:${row}"></button>`);
   }
@@ -465,7 +486,7 @@ async function editService(id=null){editServiceId=id;let s=services.find(x=>x.id
 $("#s-pricing").value=s.pricing_type||"fixed";$("#s-barber").value=s.barber_id||"";$("#s-cut").checked=!!s.is_cut;$("#s-active").checked=!!s.active;$("#s-visible").checked=s.visible_to_customers!==false;$("#s-bookable").checked=s.bookable_by_customers!==false;$("#s-showprice").checked=s.show_price_to_customers!==false;
 $("#service-form").onsubmit=async e=>{e.preventDefault();try{let data={name:val("s-name").trim(),description:val("s-description"),price:num("s-price"),duration_min:num("s-duration"),cost:num("s-cost"),sort:num("s-sort"),pricing_type:val("s-pricing"),barber_id:val("s-barber")?Number(val("s-barber")):null,is_cut:checked("s-cut"),active:checked("s-active"),visible_to_customers:checked("s-visible"),bookable_by_customers:checked("s-bookable"),show_price_to_customers:checked("s-showprice"),anamnesis:val("s-anamnesis")};if(!data.name)throw Error("Informe o nome do serviço.");if(id)await api(`services?id=eq.${id}`,{method:"PATCH",body:JSON.stringify(data)});else await api("services",{method:"POST",body:JSON.stringify(data)});await loadServices();notice="Serviço salvo.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};
 $("#cancel-service").onclick=loadServices}
-async function loadProducts(){try{products=await api("products?select=*&order=name");shell("Produtos",`<div class="notice">Cadastro e edição de produtos. A baixa automática de estoque por venda ainda não está implementada.</div><div class="row between"><span class="muted">${products.length} produto(s)</span><button class="btn primary" id="new-product">＋ Adicionar produto</button></div>`+products.map(p=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(p.name)}</b><div class="muted">${esc(p.description||"")}</div><div>${fm(p.price)} · Estoque: ${p.stock} ${p.active?"":"· Inativo"}</div></div><button class="btn small" data-edit-product="${p.id}">Editar</button></div></div>`).join(""))}catch(e){shell("Produtos",`<p class="error">${esc(e.message)}</p><p class="muted">Se o banco informar que a tabela products não existe, a migração precisa ser aplicada no Supabase.</p>`)}}
+async function loadProducts(){try{products=await api("products?select=*&order=name");shell("Produtos",`<div class="notice">Cadastro e edição de produtos. A baixa automática de estoque por venda ainda não está implementada.</div><div class="row between"><span class="muted">${products.length} produto(s)</span><button class="btn primary" id="new-product">＋ Adicionar produto</button></div>`+products.map(p=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(p.name)}</b><div class="muted">${esc(p.description||"")}</div><div>${fm(p.price)} · Estoque: ${p.stock} ${p.active?"":"· Inativo"}</div></div><button type="button" class="lic" data-edit-product="${p.id}" aria-label="Editar" title="Editar">${ICO.edit}</button></div></div>`).join(""))}catch(e){shell("Produtos",`<p class="error">${esc(e.message)}</p><p class="muted">Se o banco informar que a tabela products não existe, a migração precisa ser aplicada no Supabase.</p>`)}}
 async function editProduct(id=null){editProductId=id;let p=products.find(x=>x.id===id)||{name:"",description:"",price:0,cost:0,stock:0,active:true};shell(id?"Editar produto":"Novo produto",`<form id="product-form">${field("Nome","pr-name",p.name)}${area("Descrição","pr-description",p.description)}<div class="grid">${field("Preço de venda (R$)","pr-price",p.price,"number",'step="0.01" min="0"')}${field("Custo (R$)","pr-cost",p.cost,"number",'step="0.01" min="0"')}${field("Estoque","pr-stock",p.stock,"number",'step="1" min="0"')}</div><label><input style="width:auto" type="checkbox" id="pr-active"> Produto ativo</label><div class="form-actions"><button class="btn primary">Salvar produto</button><button class="btn" type="button" id="cancel-product">Voltar</button></div></form>`);$("#pr-active").checked=!!p.active;$("#product-form").onsubmit=async e=>{e.preventDefault();try{let data={name:val("pr-name").trim(),description:val("pr-description"),price:num("pr-price"),cost:num("pr-cost"),stock:num("pr-stock"),active:checked("pr-active")};if(!data.name)throw Error("Informe o nome.");if(id)await api(`products?id=eq.${id}`,{method:"PATCH",body:JSON.stringify(data)});else await api("products",{method:"POST",body:JSON.stringify(data)});await loadProducts();notice="Produto salvo.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};$("#cancel-product").onclick=loadProducts}
 
 let packages=[],editPackageId=null;
@@ -473,7 +494,7 @@ async function loadPackages(){
  try{
   const [pk,items]=await Promise.all([api("service_packages?select=*&order=name"),api("service_package_items?select=*&order=id")]);
   packages=pk.map(p=>({...p,items:items.filter(i=>String(i.package_id)===String(p.id))}));
-  shell("Pacotes",`<div class="row between"><span class="muted">${packages.length} pacote(s)</span><button class="btn primary" id="new-package">＋ Adicionar pacote</button></div>`+(packages.map(p=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(p.name)}</b><div class="muted">${esc(p.description||"")}</div><div>${fm(p.price)}${p.active?"":" · Inativo"}</div><div class="muted">${p.items.map(i=>esc(i.service_name)+" x"+i.quantity).join(", ")}${p.has_expiration?` · validade: ${p.expiration_value} ${p.expiration_unit==="weeks"?"semana(s)":"dia(s)"}`:""}</div></div><button class="btn small" data-edit-package="${p.id}">Editar</button></div></div>`).join("")||`<p class="muted">Nenhum pacote cadastrado ainda.</p>`));
+  shell("Pacotes",`<div class="row between"><span class="muted">${packages.length} pacote(s)</span><button class="btn primary" id="new-package">＋ Adicionar pacote</button></div>`+(packages.map(p=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(p.name)}</b><div class="muted">${esc(p.description||"")}</div><div>${fm(p.price)}${p.active?"":" · Inativo"}</div><div class="muted">${p.items.map(i=>esc(i.service_name)+" x"+i.quantity).join(", ")}${p.has_expiration?` · validade: ${p.expiration_value} ${p.expiration_unit==="weeks"?"semana(s)":"dia(s)"}`:""}</div></div><button type="button" class="lic" data-edit-package="${p.id}" aria-label="Editar" title="Editar">${ICO.edit}</button></div></div>`).join("")||`<p class="muted">Nenhum pacote cadastrado ainda.</p>`));
  }catch(e){shell("Pacotes",`<p class="error">${esc(e.message)}</p>`)}
 }
 async function editPackage(id=null){
@@ -505,7 +526,7 @@ async function loadCombos(){
   services=svs;
   combos=cs.map(c=>({...c,items:items.filter(i=>String(i.combo_id)===String(c.id))}));
   const groupText=c=>{const g={};c.items.forEach(i=>{(g[i.group_no]=g[i.group_no]||[]).push(i.service_id)});return Object.keys(g).sort((a,b)=>a-b).map(k=>{const ids=g[k];const cutIds=svs.filter(x=>x.is_cut).map(x=>x.id);const all=cutIds.length>1&&cutIds.every(i=>ids.includes(i))&&ids.every(i=>cutIds.includes(i));return all?"todos os cortes":ids.map(i=>(svs.find(x=>x.id===i)||{}).name||"?").join(" / ")}).join(" + ")};
-  shell("Combos",`<div class="row between"><span class="muted">${combos.length} combo(s)</span><button class="btn primary" id="new-combo">＋ Adicionar combo</button></div><div class="notice">O desconto é aplicado automaticamente quando o cliente (ou você) escolhe os serviços do combo juntos.</div>`+(combos.map(c=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(c.name)}</b><div class="muted">${esc(groupText(c))}</div><div>− ${c.discount_type==="percent"?Number(c.discount)+"%":fm(c.discount)}${c.active?"":" · Inativo"}</div></div><button class="btn small" data-edit-combo="${c.id}">Editar</button></div></div>`).join("")||`<p class="muted">Nenhum combo cadastrado ainda.</p>`));
+  shell("Combos",`<div class="row between"><span class="muted">${combos.length} combo(s)</span><button class="btn primary" id="new-combo">＋ Adicionar combo</button></div><div class="notice">O desconto é aplicado automaticamente quando o cliente (ou você) escolhe os serviços do combo juntos.</div>`+(combos.map(c=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(c.name)}</b><div class="muted">${esc(groupText(c))}</div><div>− ${c.discount_type==="percent"?Number(c.discount)+"%":fm(c.discount)}${c.active?"":" · Inativo"}</div></div><button type="button" class="lic" data-edit-combo="${c.id}" aria-label="Editar" title="Editar">${ICO.edit}</button></div></div>`).join("")||`<p class="muted">Nenhum combo cadastrado ainda.</p>`));
  }catch(e){shell("Combos",`<p class="error">${esc(e.message)}</p>`)}
 }
 async function editCombo(id=null){
@@ -716,7 +737,7 @@ async function loadProfessionals(){
   barbers=await api("barbers?select=*&order=id");
   const rows=barbers.map(x=>`<div class="card professional-card">
     <button type="button" class="professional-edit" data-edit-professional="${x.id}">${esc(x.name)}</button>
-    <div class="professional-actions"><span class="pill">${x.active?"Ativo":"Inativo"}</span><button type="button" class="btn small" data-edit-professional="${x.id}">Editar</button></div>
+    <div class="professional-actions"><span class="pill">${x.active?"Ativo":"Inativo"}</span><button type="button" class="lic" data-edit-professional="${x.id}" aria-label="Editar" title="Editar">${ICO.edit}</button></div>
    </div>`).join("");
   shell("Profissionais",`<div class="settings-back-row"><button type="button" class="btn" id="settings-back">← Configurações</button></div>
    ${rows||'<p class="muted">Nenhum profissional cadastrado.</p>'}
@@ -830,10 +851,15 @@ async function showBookingDetail(id){
   </div>`;
   const pendingActions=`<button class="sheet-action" id="detail-confirm"><span class="sheet-icon">✓</span><span>Confirmar agendamento</span></button>
    <button class="sheet-action cancel" id="detail-cancel-pending"><span class="sheet-icon">✕</span><span>Cancelar agendamento</span></button>`;
-  const regularActions=`<button class="sheet-action" id="detail-edit"><span class="sheet-icon">✎</span><span>Editar agendamento</span></button>
-   <a class="sheet-action" target="_blank" rel="noopener" href="https://wa.me/${phone}?text=${encodeURIComponent("Olá "+(b.client_name||"")+", seu agendamento na Barber Shop JS para "+dateLabel+" às "+hm(b.start_min)+" está confirmado.")}"><span class="sheet-icon whatsapp-icon" aria-hidden="true">●</span><span>Enviar confirmação</span></a>
-   <div class="sheet-divider"></div>
-   <button class="sheet-action cancel" id="detail-cancel"><span class="sheet-icon">✕</span><span>Cancelar agendamento</span></button>`;
+  const st=normalizedStatus(b.status);
+  const editBtn=`<button class="sheet-action" id="detail-edit"><span class="sheet-icon">✎</span><span>Editar agendamento</span></button>`;
+  const waBtn=`<a class="sheet-action" target="_blank" rel="noopener" href="https://wa.me/${phone}?text=${encodeURIComponent("Olá "+(b.client_name||"")+", seu agendamento na Barber Shop JS para "+dateLabel+" às "+hm(b.start_min)+" está confirmado.")}"><span class="sheet-icon whatsapp-icon" aria-hidden="true">●</span><span>Enviar confirmação</span></a>`;
+  const cancelBtn=`<div class="sheet-divider"></div><button class="sheet-action cancel" id="detail-cancel"><span class="sheet-icon">✕</span><span>Cancelar agendamento</span></button>`;
+  let regularActions;
+  if(st==="confirmed")regularActions=editBtn+waBtn+`<button class="sheet-action" id="detail-attended"><span class="sheet-icon">✂</span><span>Atendido</span></button><button class="sheet-action" id="detail-noshow"><span class="sheet-icon">⊘</span><span>Não compareceu / faltou</span></button>`+cancelBtn;
+  else if(st==="completed")regularActions=editBtn+`<button class="sheet-action pay" id="detail-pay"><span class="sheet-icon">$</span><span>Pagar / finalizar</span></button>`+cancelBtn;
+  else if(st==="finalized")regularActions=editBtn;
+  else regularActions=editBtn+cancelBtn;
   document.body.classList.add("sheet-open");
   const scrollY=window.scrollY;
   app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="detail-sheet"><section class="action-sheet" role="dialog" aria-modal="true" aria-label="Detalhes do agendamento"><div class="sheet-grabber"></div><h2 class="section-title">${isPending?"Agendamento pendente":"Agendamento"}</h2>${details}${isPending?pendingActions:regularActions}<button class="btn sheet-close" id="detail-close">Fechar</button></section></div>`);
@@ -861,7 +887,11 @@ async function showBookingDetail(id){
    $("#detail-confirm").onclick=()=>finishAction("confirmed","Seu agendamento está CONFIRMADO!",null);
    $("#detail-cancel-pending").onclick=()=>finishAction("cancelled","Informamos que seu agendamento foi CANCELADO.","Deseja realmente cancelar este agendamento?");
   }else{
-   $("#detail-cancel").onclick=()=>finishAction("cancelled","Informamos que seu agendamento foi CANCELADO.","Deseja realmente cancelar este agendamento?");
+   $("#detail-cancel")&&($("#detail-cancel").onclick=()=>finishAction("cancelled","Informamos que seu agendamento foi CANCELADO.","Deseja realmente cancelar este agendamento?"));
+   const quick=async(status,q)=>{if(q&&!confirm(q))return;try{await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status})});close();await loadAgenda()}catch(err){alert("Não foi possível atualizar: "+err.message)}};
+   $("#detail-attended")&&($("#detail-attended").onclick=()=>quick("completed"));
+   $("#detail-noshow")&&($("#detail-noshow").onclick=()=>quick("no_show","Marcar que o cliente não compareceu?"));
+   $("#detail-pay")&&($("#detail-pay").onclick=()=>{close();openPaymentScreen(b)});
   }
   bindSheetDrag($("#detail-sheet"),close);
  }catch(e){shell("Agendamento",`<p class="error">${esc(e.message)}</p><button class="btn" id="retry">Voltar</button>`)}
@@ -1283,6 +1313,62 @@ function showAppConfirm(message,onOk){
     if(e.target.closest("[data-confirm-ok]")){scrim.remove();await onOk()}
   });
 }
+
+function uid(){try{return session?.user?.id||JSON.parse(atob(session.access_token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).sub||null}catch{return null}}
+const PAY_METHODS=[["cash","Dinheiro","💵"],["card","Cartão","💳"],["pix","Pix","⚡"],["other","Outro","•••"]];
+const payName=m=>(PAY_METHODS.find(x=>x[0]===m)||[0,m])[1];
+async function openPaymentScreen(b){
+  document.querySelector(".pay-screen")?.remove();
+  const total=Math.round(Number(b.total||0)*100)/100;
+  let parts=[],split=false;
+  const el=document.createElement("div");el.className="pay-screen";
+  document.body.appendChild(el);document.body.classList.add("sheet-open");
+  const close=()=>{el.remove();document.body.classList.remove("sheet-open")};
+  const paid=()=>Math.round(parts.reduce((a,p)=>a+Number(p.amount||0),0)*100)/100;
+  const draw=()=>{
+    const diff=Math.round((total-paid())*100)/100;
+    el.innerHTML=`<header class="pay-head"><button type="button" class="pay-back" id="pay-back" aria-label="Voltar">‹</button><b>Pagamento</b></header>
+    <div class="pay-body"><div class="pay-card"><div class="pay-client">${esc(b.client_name||"Cliente")}</div><div class="pay-sub">${esc(formatBookingDateBR(b.date))} · ${hm(b.start_min)}</div><div class="pay-total"><span>Total a receber</span><b>${fm(total)}</b></div></div>
+    <h3 class="pay-h">Como foi pago?</h3>
+    ${split?`<div class="pay-rows">${parts.map((p,i)=>`<div class="pay-row"><select data-pm="${i}">${PAY_METHODS.map(m=>`<option value="${m[0]}" ${m[0]===p.method?"selected":""}>${m[1]}</option>`).join("")}</select><input data-pa="${i}" type="number" inputmode="decimal" step="0.01" min="0" value="${p.amount}"><button type="button" class="pay-x" data-prm="${i}" aria-label="Remover">✕</button></div>`).join("")}</div>
+    <button type="button" class="pay-link" id="pay-add">＋ Adicionar forma</button>
+    <div class="pay-diff ${diff===0?"ok":""}">${diff===0?"Valor conferido ✓":diff>0?"Faltam "+fm(diff):"Excede "+fm(-diff)}</div>`
+    :`<div class="pay-grid">${PAY_METHODS.map(m=>`<button type="button" class="pay-tile ${parts.length===1&&parts[0].method===m[0]?"on":""}" data-pick="${m[0]}"><span>${m[2]}</span>${m[1]}</button>`).join("")}</div>
+    <button type="button" class="pay-link" id="pay-split">Dividir em mais de uma forma</button>`}
+    </div><footer class="pay-foot"><button type="button" class="btn primary pay-confirm" id="pay-ok" ${(!parts.length||(split&&diff!==0))?"disabled":""}>Confirmar pagamento</button></footer>`;
+    el.querySelector("#pay-back").onclick=close;
+    el.querySelectorAll("[data-pick]").forEach(x=>x.onclick=()=>{parts=[{method:x.dataset.pick,amount:total}];draw()});
+    el.querySelector("#pay-split")?.addEventListener("click",()=>{split=true;if(!parts.length)parts=[{method:"cash",amount:total}];draw()});
+    el.querySelector("#pay-add")?.addEventListener("click",()=>{const d=Math.max(0,total-paid());parts.push({method:"pix",amount:d});draw()});
+    el.querySelectorAll("[data-pm]").forEach(x=>x.onchange=()=>{parts[+x.dataset.pm].method=x.value});
+    el.querySelectorAll("[data-pa]").forEach(x=>x.onchange=()=>{parts[+x.dataset.pa].amount=Math.round(Number(x.value||0)*100)/100;draw()});
+    el.querySelectorAll("[data-prm]").forEach(x=>x.onclick=()=>{parts.splice(+x.dataset.prm,1);if(!parts.length)split=false;draw()});
+    el.querySelector("#pay-ok").onclick=save;
+  };
+  const save=async()=>{
+    const btn=el.querySelector("#pay-ok");btn.disabled=true;btn.textContent="Salvando…";
+    try{
+      const today=new Date(),ds=today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-"+String(today.getDate()).padStart(2,"0");
+      const exist=await api(`finance_booking_closures?select=id&booking_id=eq.${encodeURIComponent(b.id)}`);
+      if(!exist.length){
+        const cfg=(await api("finance_settings?select=card_fee_percent&limit=1").catch(()=>[]))[0];
+        const fee=Number(cfg?.card_fee_percent||0);
+        const disc=Number(b.discount||0)+Number(b.combo_discount||0),sur=Number(b.surcharge||0);
+        const closure=(await api("finance_booking_closures",{method:"POST",body:JSON.stringify({booking_id:b.id,service_total:Math.round((total+disc-sur)*100)/100,product_total:0,discount:disc,surcharge:sur,grand_total:total,amount_paid:paid(),balance_due:0,product_items:[],payment_parts:parts,no_show_fee:0,notes:"",closed_by:uid()})}))[0];
+        for(const p of parts){
+          const mv={movement_date:ds,payment_method:p.method,status:"paid",booking_id:b.id,created_by:uid()};
+          await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"income",description:`Atendimento ${b.client_name} (${payName(p.method)})`,category:"Atendimento",amount:p.amount})});
+          if(p.method==="cash"||p.method==="card")await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"pro_labore",description:`Retirada automática sobre atendimento ${b.client_name} (${payName(p.method)})`,category:"Retirada do proprietário",amount:p.amount})});
+          if(p.method==="card"&&fee>0)await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"expense",description:`Taxa cartão atendimento ${b.client_name}`,category:"Taxas de cartão",amount:Math.round(p.amount*fee)/100})});
+        }
+        api("finance_audit_log",{method:"POST",body:JSON.stringify({table_name:"finance_booking_closures",record_id:String(closure?.id??""),action:"created",new_data:{booking_id:b.id,grand_total:total,amount_paid:paid()},changed_by:uid()})}).catch(()=>null);
+      }
+      await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"finalized"})});
+      close();await loadAgenda();
+    }catch(err){alert("Não foi possível registrar o pagamento: "+err.message);btn.disabled=false;btn.textContent="Confirmar pagamento"}
+  };
+  draw();
+}
 async function saveAppointmentStatus(id,status){
   const dbStatusMap={pending:"pending",confirmed:"confirmed",completed:"completed",finalized:"finalized",no_show:"no_show",cancelled:"cancelled"};
   const dbStatus=dbStatusMap[status]||status;
@@ -1310,6 +1396,7 @@ function openStatusPicker(id){
       showAppConfirm("Deseja cancelar o atendimento?",()=>saveAppointmentStatus(id,"cancelled").catch(err=>alert("Não foi possível cancelar: "+(err.message||err))));
       return;
     }
+    if(b.dataset.setStatus==="finalized"){closeStatusPicker();try{const bk=(await api(`bookings?select=*&id=eq.${encodeURIComponent(id)}`))[0];openPaymentScreen(bk)}catch(err){alert("Não foi possível abrir o pagamento: "+err.message)}return}
     try{await saveAppointmentStatus(id,b.dataset.setStatus)}catch(err){alert("Não foi possível atualizar o status: "+(err.message||err))}
   });
 }
