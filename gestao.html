@@ -2197,7 +2197,7 @@ function openStatusPicker(id){
   });
 }
 document.addEventListener("pointerdown",e=>{
-  const card=e.target.closest(".agenda-appointment[data-open-booking]");if(!card)return;
+  const card=e.target.closest(".agenda-appointment[data-open-booking],.ag-appt[data-open-booking]");if(!card)return;
   appointmentHoldTriggered=false;appointmentHoldTarget=card;
   clearTimeout(appointmentHoldTimer);
   appointmentHoldTimer=setTimeout(()=>{appointmentHoldTriggered=true;openStatusPicker(card.dataset.openBooking)},550);
@@ -2205,11 +2205,11 @@ document.addEventListener("pointerdown",e=>{
 document.addEventListener("pointerup",()=>clearTimeout(appointmentHoldTimer));
 document.addEventListener("pointercancel",()=>clearTimeout(appointmentHoldTimer));
 document.addEventListener("contextmenu",e=>{
-  const card=e.target.closest(".agenda-appointment[data-open-booking]");if(!card)return;
+  const card=e.target.closest(".agenda-appointment[data-open-booking],.ag-appt[data-open-booking]");if(!card)return;
   e.preventDefault();clearTimeout(appointmentHoldTimer);appointmentHoldTriggered=true;openStatusPicker(card.dataset.openBooking);
 });
 document.addEventListener("click",e=>{
-  if(appointmentHoldTriggered&&e.target.closest(".agenda-appointment[data-open-booking]")){
+  if(appointmentHoldTriggered&&e.target.closest(".agenda-appointment[data-open-booking],.ag-appt[data-open-booking]")){
     e.preventDefault();e.stopImmediatePropagation();appointmentHoldTriggered=false;
   }
 },true);
@@ -2662,4 +2662,6 @@ input.sw:checked{background:#2378d4}input.sw:checked::after{transform:translateX
 #app input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not(.sw),#app select,#app textarea,.booking-screen input:not([type=checkbox]):not([type=radio]):not(.sw):not(.dt-box input),.booking-screen select,.booking-screen textarea,.pay-body input:not([type=checkbox]):not([type=radio]),.pay-body select,.pay-body textarea,.sheet-scrim input:not([type=checkbox]):not([type=radio]):not(.sw),.sheet-scrim select,.sheet-scrim textarea,#login-card input{box-shadow:var(--box-shadow)!important}
 .std-actions .btn:not(.primary){box-shadow:var(--box-shadow)!important}
 .dt-box,.booking-screen .client-card-compact{box-shadow:var(--box-shadow)!important}
+
+.ag-appt{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:pan-x pan-y}
 </style>
