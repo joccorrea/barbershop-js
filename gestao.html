@@ -371,7 +371,7 @@ button.cb-pill{cursor:pointer;font-family:inherit}
 .chk-list{display:grid;gap:6px;margin-top:4px}.chk-item{display:flex;gap:10px;align-items:center;background:#fff;border:1.5px solid #C4DFF8;border-radius:12px;padding:9px 12px;font-weight:600}.chk-item input{width:auto}
 .agenda-pros{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}.ag-chip{padding:8px 15px;border-radius:99px;border:1.5px solid #C4DFF8;background:#fff;color:#10304F;font-weight:700;font-size:14px}.ag-chip.on{background:#1F4B75;color:#fff;border-color:#1F4B75}
 .ag-cols{display:grid;gap:4px;align-items:stretch;grid-auto-rows:minmax(38px,auto)}.ag-colh{text-align:center;font-weight:800;font-size:13px;color:#1F4B75;padding:4px 0}.ag-time{font-size:12px;font-weight:700;color:#4A6B8C;padding-top:10px}
-.ag-cell{border:1px dashed #C4DFF8;background:#fff;border-radius:10px;min-height:38px;font-size:11px;color:#7A4500}.ag-cell.off{background:#E6EEF7;border-color:transparent}.ag-cell.blk{background:#FFE9C7;border:1px solid #E3B341;font-weight:700}
+.ag-cell{border:1px dashed #C4DFF8;background:#fff;border-radius:10px;min-height:38px;font-size:11px;color:#7A4500}.ag-cell.off{background:#EEF5FC;border:1px dashed #D5E6F7}.ag-cell.blk{background:#FFE9C7;border:1px solid #E3B341;font-weight:700}
 .ag-appt{border-radius:10px;padding:5px 6px;text-align:left;font-size:12px;overflow:hidden;min-height:38px;border-width:2px;border-style:solid;z-index:2}.ag-appt b{display:block;color:#10304F;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ag-appt.status-pending-card{background:#FFF3CF;border-color:#E3B341}.ag-appt.status-confirmed-card{background:#DCEBFA;border-color:#5B9BD5}.ag-appt.status-completed-card{background:#EADCF8;border-color:#9A6BD1}.ag-appt.status-finalized-card{background:#D9F1E2;border-color:#4DAA75}.ag-appt.status-partial-card{background:#FFE4C2;border-color:#E58A1F}.ag-appt.status-prepaid-card{background:#D5F3EF;border-color:#2BA79A}.ag-appt.status-noshow-card{background:#F3DCDC;border-color:#C95B5B}.ag-appt.status-cancelled-card{background:#eee;border-color:#bbb}
 .ag-seg{display:flex;gap:6px}.ag-seg button{flex:1;height:42px;border-radius:12px;border:1.5px solid #C4DFF8;background:#fff;color:#10304F;font-weight:700;font-size:14px}.ag-seg button.on{border-color:#4F94D8;background:#EAF4FF;box-shadow:0 0 0 2px #4F94D8 inset}
@@ -524,8 +524,9 @@ function renderAgendaColumns(nav){
  const rg=list.map(b=>barberRanges(b,wd,shopRanges));
  const all=rg.flat();
  if(!all.length){shell("Agenda",nav+agendaChips()+`<p class="notice">Estabelecimento fechado ou horário não configurado para este dia.</p>`);return}
- const first=Math.min(...all.map(r=>r.start_min)),last=Math.max(...all.map(r=>r.end_min));
- const set=new Set();for(let m=first;m<last;m+=step)set.add(m);
+ const first0=Math.min(...all.map(r=>r.start_min)),last0=Math.max(...all.map(r=>r.end_min));
+ let first=first0,last=last0;allBookings.forEach(b=>{if(Number.isFinite(Number(b.start_min)))first=Math.min(first,Number(b.start_min));if(Number.isFinite(Number(b.end_min)))last=Math.max(last,Number(b.end_min))});
+ const set=new Set();for(let m=first0-Math.ceil((first0-first)/step)*step;m<last;m+=step)set.add(m);
  allBookings.forEach(b=>set.add(Number(b.start_min)));
  const times=[...set].filter(m=>m>=0&&m<1440).sort((a,b)=>a-b);
  const n=list.length;
@@ -542,7 +543,7 @@ function renderAgendaColumns(nav){
    if(starting){const span=Math.max(1,times.filter(t=>t>=Number(starting.start_min)&&t<Number(starting.end_min)).length);html+=`<button type="button" class="ag-appt ${apptCls(starting)}" data-open-booking="${esc(starting.id)}" style="${pos} / span ${span}"><b>${esc(starting.client_name)}</b></button>`}
    else if(occ){}
    else if(blk)html+=`<button type="button" class="ag-cell blk" data-open-block="${esc(blk.id)}" style="${pos}">Bloq.</button>`;
-   else if(!inR)html+=`<div class="ag-cell off" style="${pos}"></div>`;
+   else if(!inR)html+=`<button type="button" class="ag-cell off" data-slot="${m}" data-slot-barber="${b.id}" style="${pos}" aria-label="Agendar ${hm(m)} com ${esc(b.name)} (fora do expediente)"></button>`;
    else html+=`<button type="button" class="ag-cell" data-slot="${m}" data-slot-barber="${b.id}" style="${pos}" aria-label="Agendar ${hm(m)} com ${esc(b.name)}"></button>`;
   });
  });
@@ -571,7 +572,7 @@ function renderAgenda(){
  const gridSet=new Set();
  // Dois horários antes da abertura, todos os intervalos até o fechamento
  // (incluindo cada horário do almoço) e um horário depois do fechamento.
- for(let m=firstStart-2*step;m<=lastEnd+step;m+=step)gridSet.add(m);
+ {let lo=firstStart,hi=lastEnd;bookings.forEach(b=>{if(Number.isFinite(Number(b.start_min)))lo=Math.min(lo,Number(b.start_min));if(Number.isFinite(Number(b.end_min)))hi=Math.max(hi,Number(b.end_min))});const m0=firstStart-Math.ceil((firstStart-lo)/step)*step;for(let m=m0;m<hi;m+=step)gridSet.add(m)}
  // Garante a exibição exata dos inícios e finais cadastrados, mesmo quando
  // não coincidem com o múltiplo do intervalo selecionado.
  validRanges.forEach(r=>{gridSet.add(r.start_min);gridSet.add(r.end_min)});
@@ -1927,10 +1928,10 @@ async function saveBookingForm(){
   if(end>1440)throw Error("O atendimento não pode terminar após a meia-noite. Divida o atendimento em outro agendamento.");
   const insideBusinessHours=allowedRanges.some(r=>d.start>=Number(r.start_min)&&end<=Number(r.end_min));
   if(!insideBusinessHours){
-    const confirmed=confirm("O horário de agendamento está fora do expediente.\n\nDeseja confirmar esse agendamento mesmo assim?\n\nOK: continuar e salvar.\nCancelar: voltar ao formulário para alterar o horário.");
+    const confirmed=await appConfirmP("Este horário está fora do expediente.<br><small style=\"font-weight:500;color:#5b7a99;font-size:14px\">Deseja confirmar o agendamento mesmo assim?</small>","Confirmar mesmo assim");
     if(!confirmed)return;
   }
-  const conflicts=bookings.filter(b=>String(b.id)!==String(d.editingId)&&Number(b.start_min)<end&&Number(b.end_min)>d.start);if(conflicts.length){const aceitaConflito=confirm("Atenção: este horário entra em conflito com outro agendamento ("+conflicts.map(b=>b.client_name+" às "+hm(b.start_min)).join(", ")+"). Deseja realizar mesmo assim?");if(!aceitaConflito)return;}
+  const conflicts=bookings.filter(b=>String(b.id)!==String(d.editingId)&&Number(b.start_min)<end&&Number(b.end_min)>d.start);if(conflicts.length){const aceitaConflito=await appConfirmP("Atenção: este horário entra em conflito com outro agendamento<br><small style=\"font-weight:500;color:#5b7a99;font-size:14px\">"+esc(conflicts.map(b=>b.client_name+" às "+hm(b.start_min)).join(", "))+".<br>Deseja realizar mesmo assim?</small>","Realizar mesmo assim");if(!aceitaConflito)return;}
   if(blocks.some(b=>Number(b.start_min)<end&&Number(b.end_min)>d.start))throw Error("Esse horário está bloqueado.");
   if(newClientData){
     await api("clients?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify(newClientData)});
@@ -1944,6 +1945,16 @@ async function saveBookingForm(){
 
 let appointmentHoldTimer=null, appointmentHoldTriggered=false, appointmentHoldTarget=null;
 function closeStatusPicker(){document.querySelector("#status-picker-scrim")?.remove()}
+function appConfirmP(message,okLabel){
+  return new Promise(res=>{
+    document.querySelector("#app-confirm-p")?.remove();
+    const sc=document.createElement("div");sc.id="app-confirm-p";sc.className="app-confirm-scrim";sc.style.touchAction="none";
+    sc.innerHTML=`<section class="app-confirm" role="dialog" aria-modal="true"><p>${message}</p><div class="bb-row"><button type="button" class="bb-btn bb-back" data-bb="back" data-no aria-label="Voltar" title="Voltar">Voltar</button><button type="button" class="bb-btn bb-ok" data-bb="ok" data-yes aria-label="${okLabel||"Confirmar"}" title="${okLabel||"Confirmar"}">OK</button></div></section>`;
+    document.body.appendChild(sc);
+    ["touchstart","touchmove","pointerdown","mousedown"].forEach(ev=>sc.addEventListener(ev,e=>{e.stopPropagation();if(ev==="touchmove")e.preventDefault()},{passive:false}));
+    sc.addEventListener("click",e=>{e.stopPropagation();if(e.target.closest("[data-yes]")){sc.remove();res(true)}else if(e.target.closest("[data-no]")){sc.remove();res(false)}});
+  });
+}
 function askSendCancelWhatsApp(url){
   document.querySelector("#app-confirm-scrim")?.remove();
   const sc=document.createElement("div");sc.id="app-confirm-scrim";sc.className="app-confirm-scrim";
