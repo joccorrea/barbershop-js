@@ -388,10 +388,15 @@ function renderAgenda(){
  bookings.forEach(b=>gridSet.add(Number(b.start_min)));
  blocks.forEach(b=>gridSet.add(Number(b.start_min)));
  const gridTimes=[...gridSet].filter(m=>Number.isFinite(m)&&m>=0&&m<1440).sort((a,b)=>a-b);
- const times=[],right=[],renderedBookings=[];
+ const times=[],right=[];
+ // Distribui TODOS os agendamentos em "faixas": quem começa depois (ou no mesmo horário, mas foi criado depois)
+ // fica por cima e um pouco deslocado à direita, para todos continuarem visíveis e clicáveis.
+ const bookingsSorted=[...bookings].sort((a,b)=>Number(a.start_min)-Number(b.start_min)||String(a.created_at||"").localeCompare(String(b.created_at||""))||String(a.id).localeCompare(String(b.id)));
+ const laneOf=new Map(),placed=[];
+ bookingsSorted.forEach(b=>{const s0=Number(b.start_min),e0=Number(b.end_min);const used=new Set(placed.filter(x=>s0<Number(x.end_min)&&e0>Number(x.start_min)).map(x=>laneOf.get(String(x.id))));let l=0;while(used.has(l))l++;laneOf.set(String(b.id),l);placed.push(b)});
  for(let i=0;i<gridTimes.length;i++){
   const m=gridTimes[i],row=i+1;
-  const b=bookings.find(x=>Number(x.start_min)===m);
+  const starting=bookingsSorted.filter(x=>Number(x.start_min)===m);
   const occupying=bookings.find(x=>Number(x.start_min)<m&&Number(x.end_min)>m);
   const block=blocks.find(x=>Number(x.start_min)<=m&&Number(x.end_min)>m);
   const inRange=validRanges.some(r=>m>=r.start_min&&m<r.end_min);
@@ -399,14 +404,14 @@ function renderAgenda(){
   const lunch=!inRange&&!outside;
   const slotClass=outside?"outside":"";
   times.push(`<div class="agenda-time-cell ${slotClass} ${lunch?"lunch":""}" style="grid-row:${row};grid-column:1"><b>${hm(m)}</b></div>`);
-  if(b){
-   n++;
-   const start=Number(b.start_min),end=Number(b.end_min);
-   const overlapping=renderedBookings.filter(x=>start<Number(x.end_min)&&end>Number(x.start_min));
-   const lane=overlapping.length;
-   const durationSlots=Math.max(1,gridTimes.filter(t=>t>=start&&t<end).length);
-   renderedBookings.push(b);
-   right.push(`<button class="card appointment-card agenda-appointment ${appointmentCardStatus(b.status)}" data-open-booking="${esc(b.id)}" style="grid-column:2;grid-row:${row} / span ${durationSlots};width:calc(100% - ${lane*54}px);margin-left:${lane*54}px;z-index:${10+lane}"><div class="agenda-appt-main"><b class="agenda-client">${esc(b.client_name)}</b></div><span class="agenda-chevron">›</span></button>`);
+  if(starting.length){
+   starting.forEach(b=>{
+    n++;
+    const start=Number(b.start_min),end=Number(b.end_min);
+    const lane=Math.min(laneOf.get(String(b.id))||0,6),off=lane*40;
+    const durationSlots=Math.max(1,gridTimes.filter(t=>t>=start&&t<end).length);
+    right.push(`<button class="card appointment-card agenda-appointment ${appointmentCardStatus(b.status)}" data-open-booking="${esc(b.id)}" style="grid-column:2;grid-row:${row} / span ${durationSlots};width:calc(100% - ${off}px);margin-left:${off}px;z-index:${10+lane};box-shadow:${lane?"-4px 3px 12px #00000026":"0 4px 18px #00000009"}"><div class="agenda-appt-main"><b class="agenda-client">${esc(b.client_name)}</b></div><span class="agenda-chevron">›</span></button>`);
+   });
   }else if(occupying){
   }else if(block){
    right.push(`<button class="btn slot agenda-slot blocked" data-open-block="${esc(block.id)}" style="grid-column:2;grid-row:${row}"><span class="desc">Bloqueado${block.reason?" · "+esc(block.reason):""}</span><span class="pill">Opções</span></button>`);
