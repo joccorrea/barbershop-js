@@ -1349,9 +1349,10 @@ function bindSheetDrag(scrim,close){
 const panel=scrim?.querySelector(".action-sheet"),grip=scrim?.querySelector(".sheet-grabber");if(!panel||!grip)return;
 let sy=0,dy=0,active=false;
 const dismiss=()=>{panel.style.transition="transform .24s ease";panel.style.transform="translate3d(0,110%,0)";setTimeout(close,240)};
-panel.addEventListener("touchstart",e=>{if(!e.touches.length)return;sy=e.touches[0].clientY;dy=0;active=true;panel.style.transition="none"},{passive:true});
-panel.addEventListener("touchmove",e=>{if(!active||!e.touches.length)return;const y=e.touches[0].clientY-sy;if(y>0){dy=y;panel.style.transform=`translate3d(0,${dy}px,0)`;e.preventDefault()}},{passive:false});
-panel.addEventListener("touchend",()=>{if(!active)return;active=false;panel.style.transition="transform .22s ease";if(dy>75)dismiss();else panel.style.transform="translate3d(0,0,0)"},{passive:true});
+let canDrag=false;
+panel.addEventListener("touchstart",e=>{if(!e.touches.length)return;sy=e.touches[0].clientY;dy=0;active=true;canDrag=panel.scrollTop<=0||!!e.target.closest(".sheet-grabber");panel.style.transition="none"},{passive:true});
+panel.addEventListener("touchmove",e=>{if(!active||!e.touches.length)return;if(panel.scrollTop>0&&!e.target.closest(".sheet-grabber"))canDrag=false;if(!canDrag){sy=e.touches[0].clientY;return}const y=e.touches[0].clientY-sy;if(y>0){dy=y;panel.style.transform=`translate3d(0,${dy}px,0)`;e.preventDefault()}},{passive:false});
+panel.addEventListener("touchend",()=>{if(!active)return;active=false;panel.style.transition="transform .22s ease";if(canDrag&&dy>75)dismiss();else panel.style.transform="translate3d(0,0,0)"},{passive:true});
 grip.addEventListener("click",dismiss);
 scrim.addEventListener("click",e=>{if(e.target===scrim)dismiss()});
 }
@@ -1391,10 +1392,10 @@ async function showBookingDetail(id){
   else regularActions=editBtn+cancelBtn;
   document.body.classList.add("sheet-open");
   const scrollY=window.scrollY;
-  app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="detail-sheet"><section class="action-sheet" role="dialog" aria-modal="true" aria-label="Detalhes do agendamento"><div class="sheet-grabber"></div><h2 class="section-title">${isPending?"Agendamento pendente":"Agendamento"}</h2>${details}${isPending?pendingActions:regularActions}${b.client_phone?`<button class="sheet-action" id="detail-goto-client"><span class="sheet-icon">${ICO2.user}</span><span>Ir para o cliente</span></button>`:""}${page!=="agenda"?`<button class="sheet-action" id="detail-goto-agenda"><span class="sheet-icon">${ICO.cal}</span><span>Ir para a agenda</span></button>`:""}<button class="btn sheet-close" id="detail-close">Fechar</button></section></div>`);
+  app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="detail-sheet"><section class="action-sheet" role="dialog" aria-modal="true" aria-label="Detalhes do agendamento"><div class="sheet-grabber"></div><h2 class="section-title">${isPending?"Agendamento pendente":"Agendamento"}</h2>${details}${isPending?pendingActions:regularActions}${b.client_phone?`<button class="sheet-action" id="detail-goto-client"><span class="sheet-icon">${ICO2.user}</span><span>Ir para o cliente</span></button>`:""}${page!=="agenda"?`<button class="sheet-action" id="detail-goto-agenda"><span class="sheet-icon">${ICO.cal}</span><span>Ir para a agenda</span></button>`:""}</section></div>`);
   const close=()=>{const el=$("#detail-sheet");if(el){el.remove();document.body.classList.remove("sheet-open");window.scrollTo(0,scrollY)}};
   fillClientBadge(b.client_phone,"#detail-badge",b.id,b.client_name);
-  $("#detail-close").onclick=close;
+  $("#detail-close")&&($("#detail-close").onclick=close);
   if($("#detail-goto-client"))$("#detail-goto-client").onclick=async()=>{close();clientFromAgenda=true;page="clients";await showClientCard(b.client_phone)};
   if($("#detail-goto-agenda"))$("#detail-goto-agenda").onclick=()=>{close();gotoBooking(b.id,b.date)};
   $("#detail-sheet").addEventListener("click",e=>{if(e.target.id==="detail-sheet")close()});
@@ -1593,6 +1594,7 @@ if(b.dataset.slot!=null){__slotMenu(Number(b.dataset.slot),b.dataset.slotBarber|
 if(b.dataset.blockScope){readBookingInputs();bookingDraft.blockAll=b.dataset.blockScope==="all";renderBookingScreen();return}
 if(b.id==="booking-back"){bookingDraft=null;await loadAgenda();return}
 if(b.id==="mode-book"||b.id==="mode-block"){readBookingInputs();bookingDraft.mode=b.id==="mode-book"?"book":"block";renderBookingScreen();return}
+if(b.id==="booking-barber-btn"){readBookingInputs();pickBarberGlass();return}
 if(b.id==="open-client-picker"){readBookingInputs();if(bookingDraft&&bookingDraft.selectedPhone){clientOptionsSheet(bookingDraft.selectedPhone);return}renderClientPicker();return}
 if(b.id==="booking-add-client"){readBookingInputs();bookingDraft.addingClient=true;bookingDraft.selectedPhone=null;renderBookingScreen();return}
 if(b.dataset.pickClient){readBookingInputs();bookingDraft.selectedPhone=b.dataset.pickClient;bookingDraft.newName="";bookingDraft.newPhone="";bookingDraft.addingClient=false;bookingDraft.query="";renderBookingScreen();offerPrevServices(b.dataset.pickClient);return}
@@ -1777,10 +1779,10 @@ function __renderBookingScreen(){
  app.innerHTML=`<section class="booking-screen">
  <div class="booking-head" style="display:none"><button class="btn form-back" id="booking-back" aria-label="Voltar à agenda" title="Voltar à agenda">←</button></div>
  <h2 class="section-title">${d.mode==='book'?'Novo agendamento':'Bloquear horário'}</h2>
- ${(d.barbers&&d.barbers.length&&!(d.mode==='block'&&d.blockAll))?`<div class="card client-card-compact pro-card"><div class="fcap">Profissional</div>${d.barbers.length>1?`<select id="booking-barber" class="pro-sel">${d.barbers.map(b=>`<option value="${b.id}" ${Number(b.id)===Number(d.barberId)?'selected':''}>${esc(b.name)}</option>`).join('')}</select>`:`<div class="pro-name">${esc(d.barbers[0].name)}</div>`}</div>`:''}
+ ${(d.barbers&&d.barbers.length&&!(d.mode==='block'&&d.blockAll))?`<div class="fcap">Profissional</div><div class="card client-card-compact"><input type="hidden" id="booking-barber" value="${(d.barbers.find(x=>Number(x.id)===Number(d.barberId))||d.barbers[0]).id}"><button class="btn client-select-btn" id="booking-barber-btn" type="button" ${d.barbers.length>1?'':'disabled'}><span class="client-selected-wrap"><span class="client-selected-name" id="booking-barber-name">${esc((d.barbers.find(x=>Number(x.id)===Number(d.barberId))||d.barbers[0]).name)}</span></span></button></div>`:''}
  ${d.mode==='book'?`
- <div class="card client-card-compact">
  <div class="fcap">Cliente</div>
+ <div class="card client-card-compact">
  <button class="btn client-select-btn" id="open-client-picker" type="button">${d.selectedPhone?`<span class="client-selected-wrap"><span class="client-selected-name">${esc((d.clients.find(c=>c.phone===d.selectedPhone)||{}).name||'Selecionado')}</span><span class="client-selected-phone">${esc(fmtPhoneBR(d.selectedPhone))}</span></span>`:'<span class="client-plus-mini">＋</span><span>Selecionar cliente</span>'}</button>
  <div id="booking-new-client-panel" class="${d.addingClient?'':'hidden'}"><div class="field"><label>Nome completo</label><input id="booking-new-name" placeholder="Nome completo" value="${esc(d.newName||'')}"></div><div class="field"><label>Telefone com DDD</label><input id="booking-new-phone" placeholder="Telefone com DDD" inputmode="tel" value="${esc(d.newPhone||'')}"></div></div>
  </div>
@@ -1918,6 +1920,18 @@ function askSendCancelWhatsApp(url){
   sc.addEventListener("click",e=>{
     if(e.target.closest("[data-confirm-ok]")){sc.remove();window.location.href=url;return}
     if(e.target===sc||e.target.closest("[data-confirm-cancel]"))sc.remove();
+  });
+}
+function pickBarberGlass(){
+  const d=bookingDraft;if(!d||!d.barbers||d.barbers.length<2)return;
+  document.querySelector("#app-confirm-scrim")?.remove();
+  const scrim=document.createElement("div");scrim.id="app-confirm-scrim";scrim.className="app-confirm-scrim";
+  scrim.innerHTML=`<section class="app-confirm bar-pick" role="dialog" aria-modal="true"><p>Profissional</p>${d.barbers.map(x=>`<button type="button" class="bar-opt${Number(x.id)===Number(d.barberId)?" on":""}" data-bid="${x.id}"><span>${esc(x.name)}</span><i>${Number(x.id)===Number(d.barberId)?"✓":""}</i></button>`).join("")}</section>`;
+  document.body.appendChild(scrim);
+  scrim.addEventListener("click",e=>{
+    const o=e.target.closest("[data-bid]");
+    if(o){const x=d.barbers.find(z=>String(z.id)===o.dataset.bid);if(x){d.barberId=Number(x.id);const h=$("#booking-barber"),n=$("#booking-barber-name");if(h)h.value=x.id;if(n)n.textContent=x.name}scrim.remove();return}
+    if(e.target===scrim)scrim.remove();
   });
 }
 function showAppConfirm(message,onOk){
@@ -2956,6 +2970,12 @@ html{touch-action:manipulation}
 .pkg-card{cursor:pointer}
 .allday-row{display:flex;align-items:center;gap:10px;margin:0 0 6px}
 
+/* g25 */
+.bar-pick p{text-align:center;font-size:13px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#5b7a99;margin:0 0 12px}
+.bar-opt{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:50px;margin:0 0 9px;padding:0 16px;border-radius:16px;border:1px solid rgba(255,255,255,.95);background:rgba(255,255,255,.78);box-shadow:var(--box-shadow);font-size:17px;font-weight:700;color:#10304F}
+.bar-opt i{font-style:normal;color:#2378d4;font-weight:800}
+.bar-opt.on{border-color:#7fb4e8;background:rgba(214,234,252,.85)}
+.client-select-btn:disabled{opacity:1;color:inherit}
 /* g24 */
 .fcap{font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#5b7a99;margin:0 2px 2px}
 .pro-name{font-size:17px;font-weight:700;color:#10304F;padding:4px 2px 6px}
