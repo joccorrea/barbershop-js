@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#A9D0F5">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -166,8 +166,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid #2378d42a;border-color
 /* Configurações: navegação em duas telas e campos sempre contidos nos cartões */
 *,*::before,*::after{box-sizing:border-box}
 #app{width:100%;min-width:0;max-width:100%;overflow-x:hidden}
-#app .card,#app .field,#app .grid{min-width:0;max-width:100%}
-#app input,#app select,#app textarea{box-sizing:border-box;width:100%;max-width:100%;min-width:0}
+:is(#app,.app-clone) .card,:is(#app,.app-clone) .field,:is(#app,.app-clone) .grid{min-width:0;max-width:100%}
+:is(#app,.app-clone) input,:is(#app,.app-clone) select,:is(#app,.app-clone) textarea{box-sizing:border-box;width:100%;max-width:100%;min-width:0}
 /* Configurações em cartões grandes, lado a lado, conforme referência enviada */
 .settings-menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;width:100%;min-width:0}
 .settings-menu-button{width:100%;min-width:0;min-height:190px;text-align:center;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:22px 12px;background:#fff!important;color:var(--tx)!important;border:0!important;border-radius:24px!important;box-shadow:none!important}
@@ -653,6 +653,7 @@ function histRows(list,o={}){
 }
 let clientBackTo=null;
 const setSub=(go,key)=>{window.__subBack={go,key}};
+let clientFromAgenda=false;
 const backFromClient=()=>clientBackTo?showClientCard(clientBackTo):loadClients();
 async function editClient(phone=null){editClientPhone=phone;let c=clients.find(x=>x.phone===phone)||{name:"",phone:"",nickname:"",birth_date:""},profile={};if(phone){try{profile=(await api(`client_profiles?select=*&phone=eq.${encodeURIComponent(phone)}`))[0]||{}}catch(e){profile={}}}let history=[];if(phone){try{history=await api(`bookings?select=id,date,start_min,end_min,status,services,total,client_name,client_phone&client_phone=eq.${encodeURIComponent(phone)}&order=date.desc`)}catch(e){}}
 shell(phone?"Editar cliente":"Novo cliente",`<div class="subnav"><button type="button" class="btn small on" data-formtab="cadastro">Cadastro</button><button type="button" class="btn small" data-formtab="endereco">Endereço</button><button type="button" class="btn small" data-formtab="fotos">Fotos</button><button type="button" class="btn small" data-formtab="historico">Agenda</button></div><form id="client-form"><div id="client-form-body"><div class="grid">${field("Nome completo","c-name",c.name)}${field("Telefone/WhatsApp","c-phone",c.phone,"tel",phone?"readonly":"")}${field("Apelido","c-nickname",c.nickname||"")}${field("Data de nascimento","c-birth",c.birth_date||"","date")}</div></div><div class="form-actions cf-actions">${phone?`<button class="cf-del" type="button" id="delete-client" aria-label="Excluir cliente" title="Excluir cliente"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></button>`:""}<button class="btn primary cf-save" type="submit">Salvar cliente</button></div><p class="muted cf-note">Fotos: use links públicos de imagens (upload direto ainda não disponível).</p></form>`);
@@ -750,7 +751,7 @@ async function showClientCard(phone){
     <h3 class="cc-h">Agendados${scheduled.length?` <small>(${scheduled.length})</small>`:""}</h3><div class="hlist">${histRows(scheduled,{group:false})||`<div class="muted">Nenhum agendamento marcado.</div>`}</div>
     ${noshows.length?`<h3 class="cc-h">Não compareceu</h3><div class="hlist">${histRows(noshows,{group:false})}</div>`:""}
     <h3 class="cc-h">Últimos atendimentos${cancelledN?` <small>(${cancelledN} cancelado(s) não contam)</small>`:""}</h3><div class="hlist">${histRows(attended.slice(0,5),{group:false})||`<div class="muted">Nenhum atendimento concluído ainda.</div>`}</div>`);
-    $("#back-clients").onclick=loadClients;setSub(loadClients,"clients");window.__snaps.card=app.innerHTML;softIn();
+    if(clientFromAgenda){$("#back-clients").remove();const tt=app.querySelector(".section-title");tt.style.cssText="display:flex;align-items:center;justify-content:space-between";tt.insertAdjacentHTML("beforeend",'<button type="button" class="cc-x" id="cc-x" aria-label="Fechar">✕</button>');$("#cc-x").onclick=()=>navigate("agenda");setSub(()=>navigate("agenda"),"agenda")}else{$("#back-clients").onclick=loadClients;setSub(loadClients,"clients")}window.__snaps.card=app.innerHTML;softIn();
     $("#cc-sell-credit").onclick=()=>sellCreditDialog(c,()=>showClientCard(phone));$("#cc-sell-pkg").onclick=()=>sellPackageDialog(c,()=>showClientCard(phone));
   }catch(e){shell("Cliente",`<p class="error">${esc(e.message)}</p><button class="btn" id="back-clients">← Clientes</button>`);$("#back-clients").onclick=loadClients}
 }
@@ -950,7 +951,7 @@ async function editCombo(id=null){
  $("#cancel-combo").onclick=loadCombos;
 }
 async function loadSettings(){
- shell("Configurações",`<div class="notice">Escolha o que deseja configurar.</div><div class="settings-menu-grid"><button type="button" class="card settings-menu-button" id="open-hours"><span class="settings-menu-icon">◷</span><b>Horários</b><span class="muted">Funcionamento</span></button><button type="button" class="card settings-menu-button" id="open-professionals"><span class="settings-menu-icon">♧</span><b>Profissionais</b><span class="muted">Equipe cadastrada</span></button><button type="button" class="card settings-menu-button" id="open-roles"><span class="settings-menu-icon">🔑</span><b>Permissões e acessos</b><span class="muted">O que cada função pode</span></button><button type="button" class="card settings-menu-button" id="open-messages"><span class="settings-menu-icon">✉︎</span><b>Mensagens</b><span class="muted">Confirmação e cancelamento</span></button><button type="button" class="card settings-menu-button" id="open-services"><span class="settings-menu-icon">✂︎</span><b>Serviços</b><span class="muted">Valores e tempos</span></button><button type="button" class="card settings-menu-button" id="open-products"><span class="settings-menu-icon">▣</span><b>Produtos</b><span class="muted">Estoque e preços</span></button><button type="button" class="card settings-menu-button" id="open-paymethods"><span class="settings-menu-icon">＄</span><b>Formas de pagamento</b><span class="muted">Dinheiro, Pix, cartão…</span></button><button type="button" class="card settings-menu-button" id="open-packages"><span class="settings-menu-icon">❖</span><b>Pacotes</b><span class="muted">Pacotes de serviços</span></button><button type="button" class="card settings-menu-button" id="open-combos"><span class="settings-menu-icon">✦</span><b>Combos</b><span class="muted">Descontos por conjunto</span></button><button type="button" class="card settings-menu-button" id="open-password"><span class="settings-menu-icon">🔒</span><b>Alterar senha</b><span class="muted">Sua senha de acesso</span></button></div>`);
+ shell("Configurações",`<div class="settings-menu-grid"><button type="button" class="card settings-menu-button" id="open-hours"><span class="settings-menu-icon">◷</span><b>Horários</b><span class="muted">Funcionamento</span></button><button type="button" class="card settings-menu-button" id="open-professionals"><span class="settings-menu-icon">♧</span><b>Profissionais</b><span class="muted">Equipe cadastrada</span></button><button type="button" class="card settings-menu-button" id="open-roles"><span class="settings-menu-icon">🔑</span><b>Permissões e acessos</b><span class="muted">O que cada função pode</span></button><button type="button" class="card settings-menu-button" id="open-messages"><span class="settings-menu-icon">✉︎</span><b>Mensagens</b><span class="muted">Confirmação e cancelamento</span></button><button type="button" class="card settings-menu-button" id="open-services"><span class="settings-menu-icon">✂︎</span><b>Serviços</b><span class="muted">Valores e tempos</span></button><button type="button" class="card settings-menu-button" id="open-products"><span class="settings-menu-icon">▣</span><b>Produtos</b><span class="muted">Estoque e preços</span></button><button type="button" class="card settings-menu-button" id="open-paymethods"><span class="settings-menu-icon">＄</span><b>Formas de pagamento</b><span class="muted">Dinheiro, Pix, cartão…</span></button><button type="button" class="card settings-menu-button" id="open-packages"><span class="settings-menu-icon">❖</span><b>Pacotes</b><span class="muted">Pacotes de serviços</span></button><button type="button" class="card settings-menu-button" id="open-combos"><span class="settings-menu-icon">✦</span><b>Combos</b><span class="muted">Descontos por conjunto</span></button><button type="button" class="card settings-menu-button" id="open-password"><span class="settings-menu-icon">🔒</span><b>Alterar senha</b><span class="muted">Sua senha de acesso</span></button></div>`);
  $("#open-password").onclick=()=>changePasswordSheet();
  $("#open-hours").onclick=()=>navigate("settings-hours");
  $("#open-roles").onclick=()=>navigate("settings-roles");
@@ -965,17 +966,18 @@ async function loadSettings(){
 }
 
 const PM_ICONS=["💵","💳","⚡","🏦","🧾","🎁","📱","💰"];
-const PM_KINDS=[["cash","Dinheiro","Entra como retirada do proprietário"],["card","Cartão","Aplica a taxa de cartão"],["pix","Pix","Fica no caixa da barbearia"],["transfer","Transferência","Fica no caixa da barbearia"],["other","Outro","Fica no caixa da barbearia"]];
+const PM_KINDS=[["cash","Dinheiro","Entra como retirada do proprietário"],["card","Cartão","Aplica a taxa de cartão (definida em Financeiro → Configurações)"],["pix","Pix","Fica no caixa da barbearia"],["transfer","Transferência","Fica no caixa da barbearia"],["other","Outro","Fica no caixa da barbearia"]];
 async function loadPayMethods(){
  await ensurePM(true);
  const list=__pm;
  shell("Formas de pagamento",`<div class="settings-back-row"><button type="button" class="btn" id="pm-back">← Configurações</button></div>
  <div class="muted" style="margin-bottom:8px">Estas formas aparecem no Pagamento da agenda e no Financeiro.</div>`+
- list.map(m=>`<div class="lrow ${m.active===false?"off":""}"><div class="lic" style="background:none;border:0;font-size:22px;width:34px">${m.icon||"💰"}</div><div class="lg"><b>${esc(m.name)}</b><div class="lsub">${m.built_in?"Padrão":esc((PM_KINDS.find(k=>k[0]===m.kind)||[])[1]||"")}${m.active===false?" · Inativa":""}</div></div><button type="button" class="lic" data-pm-edit="${m.id}" aria-label="Editar" title="Editar">${ICO.edit}</button></div>`).join("")+
+ list.map(m=>`<div class="lrow ${m.active===false?"off":""}"><div class="lic" style="background:none;border:0;font-size:22px;width:34px">${m.icon||"💰"}</div><div class="lg"><b>${esc(m.name)}</b><div class="lsub">${m.built_in?"Padrão":esc((PM_KINDS.find(k=>k[0]===m.kind)||[])[1]||"")}${m.active===false?" · Inativa":""}</div></div><button type="button" class="lic" data-pm-edit="${m.id}" aria-label="Editar" title="Editar">${ICO.edit}</button><button type="button" class="lic pm-del" data-pm-del="${m.id}" aria-label="Excluir" title="Excluir">✕</button></div>`).join("")+
  `<button type="button" class="btn primary" id="add-paymethod" aria-label="Adicionar forma de pagamento" title="Adicionar forma de pagamento">＋</button>`);
  $("#pm-back").onclick=()=>navigate("settings");
  app.querySelectorAll("[data-pm-edit]").forEach(b=>b.onclick=()=>editPayMethod(list.find(x=>String(x.id)===b.dataset.pmEdit)));
  $("#add-paymethod").onclick=()=>editPayMethod(null);
+ app.querySelectorAll("[data-pm-del]").forEach(b=>b.onclick=async()=>{const x=list.find(z=>String(z.id)===b.dataset.pmDel);if(!x||!confirm(`Excluir a forma de pagamento "${x.name}"? Lançamentos antigos continuam no histórico.`))return;try{await api(`payment_methods?id=eq.${encodeURIComponent(x.id)}`,{method:"DELETE"});await loadPayMethods()}catch(err){alert("Não foi possível excluir: "+err.message)}});
 }
 function editPayMethod(m){
  document.querySelector(".nsm")?.remove();
@@ -984,10 +986,10 @@ function editPayMethod(m){
  const draw=()=>{d.innerHTML=`<div class="nsm-card"><h3>${isNew?"Nova forma de pagamento":"Editar forma de pagamento"}</h3>
  <div class="field"><label>Nome</label><input id="pm-name" maxlength="30" placeholder="Ex.: Vale-presente" value="${esc(m?.name||"")}"></div>
  <label style="font-size:13px;color:#5b7a99;font-weight:600">Ícone</label><div class="pm-icons">${PM_ICONS.map(i=>`<button type="button" data-pm-icon="${i}" class="${i===icon?"on":""}">${i}</button>`).join("")}</div>
- ${m?.built_in?"":`<label style="font-size:13px;color:#5b7a99;font-weight:600">Como o sistema trata</label><div class="pm-kinds">${PM_KINDS.map(k=>`<button type="button" data-pm-kind="${k[0]}" class="${k[0]===kind?"on":""}"><b>${k[1]}</b><span>${k[2]}</span></button>`).join("")}</div>`}
+ <label style="font-size:13px;color:#5b7a99;font-weight:600">Como o sistema trata</label><div class="pm-kinds">${PM_KINDS.map(k=>`<button type="button" data-pm-kind="${k[0]}" class="${k[0]===kind?"on":""}"><b>${k[1]}</b><span>${k[2]}</span></button>`).join("")}</div>
  ${isNew?"":`<label class="pay-optrow"><span>Ativa (aparece nas telas)</span><input type="checkbox" id="pm-active" ${active?"checked":""} style="width:auto"></label>`}
  <div id="pm-err" class="pay-diff"></div>
- <button type="button" class="btn primary" id="pm-ok" style="width:100%;height:46px;margin-top:6px">Salvar</button><button type="button" class="ns-x" data-ns="x">Voltar</button></div>`};
+ <div class="dlg-foot"><button type="button" class="dlg-back" data-ns="x">Voltar</button><button type="button" class="dlg-ok" id="pm-ok">Salvar</button></div></div>`};
  draw();document.body.appendChild(d);
  d.addEventListener("click",async e=>{
   if(e.target===d||e.target.closest("[data-ns=x]")){d.remove();return}
@@ -999,7 +1001,7 @@ function editPayMethod(m){
    const btn=e.target.closest("#pm-ok");btn.disabled=true;btn.textContent="Salvando…";
    try{
     if(isNew)await api("payment_methods",{method:"POST",body:JSON.stringify({name,kind,icon,active:true,sort_order:((__pm||[]).reduce((a,x)=>Math.max(a,x.sort_order||0),0))+1})});
-    else await api(`payment_methods?id=eq.${m.id}`,{method:"PATCH",body:JSON.stringify({name,icon,kind:m.built_in?m.kind:kind,active:d.querySelector("#pm-active")?.checked??true})});
+    else await api(`payment_methods?id=eq.${m.id}`,{method:"PATCH",body:JSON.stringify({name,icon,kind,active:d.querySelector("#pm-active")?.checked??true})});
     d.remove();await loadPayMethods();
    }catch(err){d.querySelector("#pm-err").textContent="Não foi possível salvar: "+err.message;btn.disabled=false;btn.textContent="Salvar"}
   }
@@ -1191,7 +1193,7 @@ let psServices=[],psLinks=[];
 const PS_DAYS=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
 function openProfessionalForm(id){
  const x=barbers.find(b=>Number(b.id)===Number(id))||{id:null,name:"",active:true,role:"barber",phone:"",email:"",notes:""};
- shell(x.id?"Editar profissional":"Novo profissional",`<div class="settings-back-row"><button type="button" class="btn" id="prof-back">← Profissionais</button></div><div id="professional-editor"></div>`);$("#prof-back").onclick=loadProfessionals;window.scrollTo(0,0);
+ shell(x.id?"Editar profissional":"Novo profissional",`<div class="settings-back-row"><button type="button" class="btn" id="prof-back">← Profissionais</button></div><div id="professional-editor"></div>`);$("#prof-back").onclick=loadProfessionals;setSub(loadProfessionals,"settings-professionals");window.scrollTo(0,0);
  const host=$("#professional-editor");
  const psSch=x.schedule?normalizeSchedule(x.schedule):{};let psOwn=!!x.schedule;
  host.innerHTML=`<form id="professional-form" class="professional-form">
@@ -1208,12 +1210,12 @@ function openProfessionalForm(id){
   <div class="field" id="prof-access-wrap"></div>
   <label class="chk-item" style="margin:12px 0 0"><input id="prof-active" type="checkbox" ${x.active?"checked":""}> <span>Profissional ativo</span></label>
   <div class="std-actions">
-   <button class="btn primary" type="submit">Salvar</button>
    ${x.id?'<button class="btn danger" type="button" id="delete-professional">Excluir</button>':''}
    <button class="btn" type="button" id="cancel-professional">Cancelar</button>
+   <button class="btn primary" type="submit">Salvar</button>
   </div>
  </form>`;
- $("#cancel-professional").onclick=()=>host.innerHTML="";
+ $("#cancel-professional").onclick=loadProfessionals;
  let permCur={...rpBase(x.role||"barber"),...(x.perm_overrides||{})};
  const drawPerms=()=>{const w=$("#prof-perm-wrap"),r=$("#prof-role").value;if(r==="owner"){w.innerHTML='<label>Permissões</label><p class="muted">O proprietário tem acesso total.</p>';return}
   w.innerHTML=`<label>Permissões desta pessoa</label><p class="muted" style="margin:0 0 4px;font-size:12.5px">Começam pelo padrão da função (${ROLE_LABEL[r]}). Ajuste só se esta pessoa for diferente.</p>${permSwitches(permCur,"pp")}`;bindPermSwitches(w,"pp",permCur)};
@@ -1392,7 +1394,7 @@ async function showBookingDetail(id){
   const close=()=>{const el=$("#detail-sheet");if(el){el.remove();document.body.classList.remove("sheet-open");window.scrollTo(0,scrollY)}};
   fillClientBadge(b.client_phone,"#detail-badge",b.id,b.client_name);
   $("#detail-close").onclick=close;
-  if($("#detail-goto-client"))$("#detail-goto-client").onclick=async()=>{close();await navigate("clients");showClientCard(b.client_phone)};
+  if($("#detail-goto-client"))$("#detail-goto-client").onclick=async()=>{close();clientFromAgenda=true;page="clients";await showClientCard(b.client_phone)};
   if($("#detail-goto-agenda"))$("#detail-goto-agenda").onclick=()=>{close();gotoBooking(b.id,b.date)};
   $("#detail-sheet").addEventListener("click",e=>{if(e.target.id==="detail-sheet")close()});
   $("#detail-edit")?.addEventListener("click",()=>{close();openBooking(Number(b.start_min),"book",b)});
@@ -1479,7 +1481,7 @@ document.addEventListener("click",e=>{
  const h=e.target.closest(".hist-item");
  if(h&&!e.target.closest("a,button"))h.classList.toggle("open");
 });
-async function navigate(p){if(session&&!window.__me)await loadMe();if(window.__me&&window.__me.has_access===false){setMenuOpen(false);app.innerHTML=`<div class="card"><div class="section-title">Sem acesso</div><p class="muted">Esta conta ainda não foi liberada pelo proprietário. Peça para ele criar o seu acesso em Configurações → Profissionais.</p></div>`;return}p=guardPage(p);page=p;ensurePM();$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p||(["settings-hours","settings-professionals","settings-messages","settings-payments","settings-roles","services","products","packages","combos"].includes(p)&&b.dataset.page==="settings")));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="packages")await loadPackages();else if(p==="combos")await loadCombos();else if(p==="settings-hours")await loadHours();else if(p==="settings-professionals")await loadProfessionals();else if(p==="settings-messages")loadMessageSettings();else if(p==="settings-payments")await loadPayMethods();else if(p==="settings-roles")await loadRoles();else if(p==="birthdays")await loadBirthdays()}
+async function navigate(p){clientFromAgenda=false;if(session&&!window.__me)await loadMe();if(window.__me&&window.__me.has_access===false){setMenuOpen(false);app.innerHTML=`<div class="card"><div class="section-title">Sem acesso</div><p class="muted">Esta conta ainda não foi liberada pelo proprietário. Peça para ele criar o seu acesso em Configurações → Profissionais.</p></div>`;return}p=guardPage(p);page=p;ensurePM();$("#menu").querySelectorAll("button").forEach(b=>b.classList.toggle("primary",b.dataset.page===p||(["settings-hours","settings-professionals","settings-messages","settings-payments","settings-roles","services","products","packages","combos"].includes(p)&&b.dataset.page==="settings")));notice="";if(p==="agenda")await loadAgenda();else if(p==="clients")await loadClients();else if(p==="services")await loadServices();else if(p==="products")await loadProducts();else if(p==="settings")await loadSettings();else if(p==="packages")await loadPackages();else if(p==="combos")await loadCombos();else if(p==="settings-hours")await loadHours();else if(p==="settings-professionals")await loadProfessionals();else if(p==="settings-messages")loadMessageSettings();else if(p==="settings-payments")await loadPayMethods();else if(p==="settings-roles")await loadRoles();else if(p==="birthdays")await loadBirthdays()}
 // Gesto lateral: arrastar da borda esquerda para a direita volta à tela anterior,
 // mostrando a tela de baixo (instantâneo da tela anterior) enquanto arrasta.
 (function(){
@@ -1503,7 +1505,7 @@ async function navigate(p){if(session&&!window.__me)await loadMe();if(window.__m
   const m=a.closest("main")||a.parentNode,cs=getComputedStyle(m),r=m.getBoundingClientRect();
   under=document.createElement("div");under.id="swipe-under";under.setAttribute("aria-hidden","true");
   under.style.cssText="position:fixed;left:0;right:0;top:0;bottom:0;z-index:1;pointer-events:none;overflow:hidden;background:linear-gradient(180deg,#F3F9FF 0%,#E2EFFC 100%)";
-  const inner=document.createElement("div");
+  const inner=document.createElement("div");inner.className="app-clone";
   const ar=a.getBoundingClientRect();inner.style.cssText=`position:absolute;left:${r.left}px;width:${r.width}px;top:${Math.max(0,ar.top+window.scrollY)}px;box-sizing:border-box;padding:0 ${cs.paddingRight} 0 ${cs.paddingLeft}`;
   inner.innerHTML=snaps[tkey];inner.style.transform='translate3d(-28%,0,0)';inner.style.willChange='transform';under.appendChild(inner);const dim=document.createElement('div');dim.style.cssText='position:absolute;inset:0;background:#10304F;opacity:.16;pointer-events:none';under.appendChild(dim);under._in=inner;under._dim=dim;
   
@@ -1571,7 +1573,7 @@ app.addEventListener("click",async e=>{let b=e.target.closest("button");if(!b)re
 try{
 if(b.id==="do-login"){try{await auth({email:val("email").trim(),password:val("password")});notice="";renderLoginOrPage()}catch(err){session=null;saveSession();$("#login-error").textContent=err.message}return}
 if(b.id==="retry"){loadAgenda();return}
-if(b.id==="open-date-picker"){document.querySelector("#dp-scrim")?.remove();const r=b.getBoundingClientRect(),orig=key(day);const sc=document.createElement("div");sc.id="dp-scrim";sc.className="dp2-scrim";sc.innerHTML=`<section class="dp2" role="dialog" aria-modal="true" aria-label="Escolher data" style="top:${Math.round(r.bottom+8)}px"><div class="dp2-row"><input type="date" id="dp-date" value="${orig}"><button type="button" class="dp2-t" data-dp-today><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Hoje</span></button></div><div class="dp2-row2" id="dp-row2"><button type="button" class="dp2-t" data-dp-reset><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg><span>Redefinir</span></button><button type="button" class="dp2-t go" data-dp-go><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span>Ir para esta data</span></button></div></section>`;document.body.appendChild(sc);const inp=sc.querySelector("#dp-date"),row2=sc.querySelector("#dp-row2");inp.addEventListener("input",()=>row2.classList.toggle("show",!!inp.value&&inp.value!==orig));sc.addEventListener("click",async ev=>{if(ev.target===sc){sc.remove();return}if(ev.target.closest("[data-dp-reset]")){inp.value=orig;row2.classList.remove("show");return}if(ev.target.closest("[data-dp-today]")){sc.remove();day=new Date();await loadAgenda();return}if(ev.target.closest("[data-dp-go]")){const v=inp.value;sc.remove();if(v){day=new Date(v+"T12:00:00");await loadAgenda()}}});return}
+if(b.id==="open-date-picker"){document.querySelector("#dp-scrim")?.remove();const r=b.getBoundingClientRect(),orig=key(day);const sc=document.createElement("div");sc.id="dp-scrim";sc.className="dp2-scrim";sc.innerHTML=`<section class="dp2" role="dialog" aria-modal="true" aria-label="Escolher data" style="top:${Math.round(r.bottom+8)}px"><div class="dp2-row"><input type="date" id="dp-date" value="${orig}"><div class="dp2-r1"><button type="button" class="dp2-t" data-dp-today><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Hoje</span></button></div><div class="dp2-r2"><button type="button" class="dp2-t" data-dp-reset><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg><span>Redefinir</span></button><button type="button" class="dp2-t go" data-dp-go><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span>Ir para</span></button></div></div></section>`;document.body.appendChild(sc);const inp=sc.querySelector("#dp-date"),box=sc.querySelector(".dp2");inp.addEventListener("input",()=>box.classList.toggle("chg",!!inp.value&&inp.value!==orig));sc.addEventListener("click",async ev=>{if(ev.target===sc){sc.remove();return}if(ev.target.closest("[data-dp-reset]")){inp.value=orig;box.classList.remove("chg");return}if(ev.target.closest("[data-dp-today]")){sc.remove();day=new Date();await loadAgenda();return}if(ev.target.closest("[data-dp-go]")){const v=inp.value;sc.remove();if(v){day=new Date(v+"T12:00:00");await loadAgenda()}}});return}
 if(b.dataset.day){day=new Date(day.getFullYear(),day.getMonth(),day.getDate()+Number(b.dataset.day));await loadAgenda();return}
 if(b.id==="toggle-goto"){$("#goto-panel")?.classList.toggle("open");return}
 if(b.id==="goto"){if(val("goto-date"))day=new Date(val("goto-date")+"T12:00:00");await loadAgenda();return}
@@ -2158,73 +2160,89 @@ async function noShowChargeDialog(b,done){
     }catch(err){alert("Não foi possível concluir: "+err.message)}
   });
 }
+function mountSplit(host,getTotal,onState){
+ const r2=n=>Math.round(n*100)/100;let parts=[];
+ const paid=()=>r2(parts.reduce((a,p)=>a+(Number(p.amount)||0),0));
+ const info=()=>{const t=r2(getTotal()||0);if(!(t>0))return{ok:true,msg:"",cls:""};if(!parts.length)return{ok:false,msg:"Escolha a forma de pagamento.",cls:"warn"};if(parts.some(p=>!(Number(p.amount)>0)))return{ok:false,msg:"Informe o valor de cada forma.",cls:"warn"};const d=r2(t-paid());if(d===0)return{ok:true,msg:"Valor conferido ✓",cls:"ok"};return{ok:false,msg:d>0?`Faltam ${fm(d)} para fechar o valor`:`Passou ${fm(-d)} do valor`,cls:"warn"}};
+ const upd=()=>{const i=info(),e=host.querySelector(".sp-diff");if(e){e.textContent=i.msg;e.className="pay-diff sp-diff "+i.cls}onState(i)};
+ const draw=()=>{const L=payList();host.innerHTML=`<div class="pay-grid sc-grid">${L.map(x=>`<button type="button" class="pay-tile ${parts.find(p=>p.method===x[0])?"on":""}" data-spm="${x[0]}"><span>${x[2]}</span>${esc(x[1])}</button>`).join("")}</div>${parts.length?`<div class="pay-amts">${parts.map((p,i)=>{const mm=L.find(x=>x[0]===p.method)||[p.method,payName(p.method),"💰"];return `<label class="pay-amt"><span>${mm[2]} ${esc(mm[1])}</span><div class="pay-money"><i>R$</i><input data-spa="${i}" type="text" inputmode="decimal" autocomplete="off" value="${String(p.amount).replace(".",",")}"></div></label>`}).join("")}</div>`:`<p class="pay-hint">Toque em uma forma. Para dividir, toque em mais de uma e informe o valor de cada.</p>`}<div class="pay-diff sp-diff"></div>`;
+  host.querySelectorAll("[data-spm]").forEach(b=>b.onclick=()=>{const m=b.dataset.spm,i=parts.findIndex(p=>p.method===m);if(i>=0)parts.splice(i,1);else parts.push({method:m,amount:parts.length?Math.max(0,r2(getTotal()-paid())):r2(getTotal()||0)});draw()});
+  host.querySelectorAll("[data-spa]").forEach(inp=>inp.oninput=()=>{parts[Number(inp.dataset.spa)].amount=Number(String(inp.value).replace(",","."))||0;upd()});
+  upd()};
+ const refresh=()=>{const t=r2(getTotal()||0);if(!parts.length&&t>0){const L=payList();parts=[{method:(L.find(x=>x[3]==="pix")||L[0]||["pix"])[0],amount:t}]}else if(parts.length===1)parts[0].amount=t;draw()};
+ return{draw,refresh,info,parts:()=>parts.filter(p=>Number(p.amount)>0)};
+}
+async function saveSaleParts(parts,desc,cat,ds){
+ for(const pt of parts){
+  const mv={movement_date:ds||todayLocal(),...payMv(pt.method),status:"paid",created_by:uid()};
+  await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"income",description:parts.length>1?`${desc} (${payName(pt.method)})`:desc,category:cat,amount:pt.amount})});
+  if(["cash","card"].includes(payKind(pt.method)))await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"pro_labore",description:"Retirada automática — "+desc,category:"Retirada do proprietário",amount:pt.amount})});
+ }
+}
 async function sellPackageDialog(c,done){
   document.querySelector(".nsm")?.remove();
   await ensurePM();
   let pk=[],items=[];
   try{pk=await api("service_packages?select=*&active=eq.true&order=name.asc");if(pk.length)items=await api("service_package_items?select=*&package_id=in.("+pk.map(p=>p.id).join(",")+")")}catch(e){}
   pk.forEach(p=>p.items=items.filter(i=>String(i.package_id)===String(p.id)));
-  let method=(payList().find(x=>x[3]==="pix")||payList()[0]||["pix"])[0],sel=null;
+  let sel=null;
   const m=document.createElement("div");m.className="nsm";
   m.innerHTML=`<div class="nsm-card"><h3>Vender pacote</h3><p>${esc(c.name||"Cliente")} · o valor entra no caixa e os serviços ficam disponíveis para o cliente.</p>
   ${pk.length?`<div class="pkg-list">${pk.map(p=>`<button type="button" class="pkg-opt" data-pk="${p.id}"><b>${esc(p.name)}</b><span>${p.items.map(i=>esc(i.service_name)+" ×"+i.quantity).join(", ")}</span><em>${fm(p.price)}</em></button>`).join("")}</div>`:`<div class="muted">Nenhum pacote cadastrado. Crie em Financeiro → Pacotes.</div>`}
   <label class="pay-optrow"><span>Valor (R$)</span><div class="pay-money" style="width:130px"><i>R$</i><input id="sp-amt" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,00"></div></label>
-  <div class="pay-grid sc-grid">${payList().map(x=>`<button type="button" class="pay-tile ${x[0]===method?"on":""}" data-scm="${x[0]}"><span>${x[2]}</span>${x[1]}</button>`).join("")}</div>
+  <h3 class="pay-h" style="margin:10px 0 0;font-size:15px">Como foi pago?</h3><div id="sp-split"></div>
   <div id="sp-err" class="pay-diff"></div>
-  <button type="button" class="btn primary" id="sp-ok" style="width:100%;height:46px;margin-top:6px">Confirmar venda do pacote</button>
-  <button type="button" class="ns-x" data-ns="x">Voltar</button></div>`;
+  <div class="dlg-foot"><button type="button" class="dlg-back" data-ns="x">Voltar</button><button type="button" class="dlg-ok" id="sp-ok" disabled>Confirmar venda</button></div></div>`;
   document.body.appendChild(m);
+  const okb=m.querySelector("#sp-ok");
+  const sp=mountSplit(m.querySelector("#sp-split"),()=>Number(m.querySelector("#sp-amt").value||0),i=>{okb.disabled=!(sel&&i.ok)});
+  sp.draw();
+  m.querySelector("#sp-amt").addEventListener("input",()=>sp.refresh());
   m.addEventListener("click",async e=>{
     if(e.target===m||e.target.closest("[data-ns=x]")){m.remove();return}
-    const t=e.target.closest("[data-scm]");if(t){method=t.dataset.scm;m.querySelectorAll("[data-scm]").forEach(x=>x.classList.toggle("on",x===t));return}
-    const o=e.target.closest("[data-pk]");if(o){sel=pk.find(p=>String(p.id)===o.dataset.pk);m.querySelectorAll("[data-pk]").forEach(x=>x.classList.toggle("on",x===o));m.querySelector("#sp-amt").value=Number(sel.price).toFixed(2);return}
+    const o=e.target.closest("[data-pk]");if(o){sel=pk.find(p=>String(p.id)===o.dataset.pk);m.querySelectorAll("[data-pk]").forEach(x=>x.classList.toggle("on",x===o));m.querySelector("#sp-amt").value=Number(sel.price).toFixed(2);sp.refresh();return}
     if(e.target.closest("#sp-ok")){
       if(!sel){m.querySelector("#sp-err").textContent="Escolha o pacote.";return}
       const paid=Math.round(Number(m.querySelector("#sp-amt").value||0)*100)/100;
       if(paid<0){m.querySelector("#sp-err").textContent="Valor inválido.";return}
-      const btn=e.target.closest("#sp-ok");btn.disabled=true;btn.textContent="Salvando…";
+      okb.disabled=true;okb.textContent="Salvando…";
       try{
         const now=new Date();let expires=null;
         if(sel.validity_start_mode==="purchase"&&sel.has_expiration&&sel.expiration_value){const d=new Date(now);d.setDate(d.getDate()+Number(sel.expiration_value)*(sel.expiration_unit==="weeks"?7:1));expires=d.toISOString()}
         const cp=(await api("client_packages",{method:"POST",body:JSON.stringify({client_phone:c.phone,client_name:c.name||"",package_id:sel.id,package_name:sel.name,purchased_price:paid,status:"active",purchased_at:now.toISOString(),expires_at:expires,validity_start_mode:sel.validity_start_mode,first_used_at:null,services_snapshot:sel.items.map(i=>({service_id:i.service_id,service_name:i.service_name,quantity:i.quantity})),created_by:uid()})}))[0];
         for(const i of sel.items)await api("client_package_services",{method:"POST",body:JSON.stringify({client_package_id:cp.id,service_id:i.service_id,service_name:i.service_name,quantity_purchased:i.quantity,quantity_remaining:i.quantity})});
-        if(paid>0){
-          const mv={movement_date:todayLocal(),...payMv(method),status:"paid",created_by:uid()};
-          await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"income",description:"Venda pacote "+sel.name+" — "+(c.name||c.phone),category:"Venda de pacote",amount:paid})});
-          if(["cash","card"].includes(payKind(method)))await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"pro_labore",description:"Retirada automática venda pacote "+sel.name,category:"Retirada do proprietário",amount:paid})});
-        }
+        if(paid>0)await saveSaleParts(sp.parts(),"Venda pacote "+sel.name+" — "+(c.name||c.phone),"Venda de pacote");
         m.remove();await done?.();
-      }catch(err){m.querySelector("#sp-err").textContent="Não foi possível registrar: "+err.message;btn.disabled=false;btn.textContent="Confirmar venda do pacote"}
+      }catch(err){m.querySelector("#sp-err").textContent="Não foi possível registrar: "+err.message;okb.disabled=false;okb.textContent="Confirmar venda"}
     }
   });
 }
 async function sellCreditDialog(c,done){
   document.querySelector(".nsm")?.remove();
   await ensurePM();
-  let method=(payList().find(x=>x[3]==="pix")||payList()[0]||["pix"])[0];
   const m=document.createElement("div");m.className="nsm";
   m.innerHTML=`<div class="nsm-card"><h3>Vender crédito</h3><p>${esc(c.name||"Cliente")} · o valor entra no caixa e fica disponível para abater em agendamentos.</p>
   <label class="pay-optrow"><span>Valor (R$)</span><div class="pay-money" style="width:130px"><i>R$</i><input id="sc-amt" type="number" inputmode="decimal" step="0.01" min="0" placeholder="100,00"></div></label>
-  <div class="pay-grid sc-grid">${payList().map(x=>`<button type="button" class="pay-tile ${x[0]===method?"on":""}" data-scm="${x[0]}"><span>${x[2]}</span>${x[1]}</button>`).join("")}</div>
+  <h3 class="pay-h" style="margin:10px 0 0;font-size:15px">Como foi pago?</h3><div id="sc-split"></div>
   <label class="pay-optrow"><span>Data do pagamento</span><input type="date" id="sc-date" value="${todayLocal()}"></label>
   <div id="sc-err" class="pay-diff"></div>
-  <button type="button" class="btn primary" id="sc-ok" style="width:100%;height:46px;margin-top:6px">Confirmar venda de crédito</button>
-  <button type="button" class="ns-x" data-ns="x">Voltar</button></div>`;
+  <div class="dlg-foot"><button type="button" class="dlg-back" data-ns="x">Voltar</button><button type="button" class="dlg-ok" id="sc-ok" disabled>Confirmar venda</button></div></div>`;
   document.body.appendChild(m);
+  const okb=m.querySelector("#sc-ok");
+  const sp=mountSplit(m.querySelector("#sc-split"),()=>Number(m.querySelector("#sc-amt").value||0),i=>{okb.disabled=!(Number(m.querySelector("#sc-amt").value||0)>0&&i.ok)});
+  sp.draw();
+  m.querySelector("#sc-amt").addEventListener("input",()=>sp.refresh());
   m.addEventListener("click",async e=>{
     if(e.target===m||e.target.closest("[data-ns=x]")){m.remove();return}
-    const t=e.target.closest("[data-scm]");if(t){method=t.dataset.scm;m.querySelectorAll("[data-scm]").forEach(x=>x.classList.toggle("on",x===t));return}
     if(e.target.closest("#sc-ok")){
       const amount=Math.round(Number(m.querySelector("#sc-amt").value||0)*100)/100,ds=m.querySelector("#sc-date").value||todayLocal();
       if(!(amount>0)){m.querySelector("#sc-err").textContent="Informe o valor do crédito.";return}
-      const btn=e.target.closest("#sc-ok");btn.disabled=true;btn.textContent="Salvando…";
+      okb.disabled=true;okb.textContent="Salvando…";
       try{
         await api("client_credits",{method:"POST",body:JSON.stringify({client_phone:c.phone,client_name:c.name||"",amount,remaining_amount:amount,status:"available",description:"Venda de crédito",created_by:uid()})});
-        const mv={movement_date:ds,...payMv(method),status:"paid",created_by:uid()};
-        await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"income",description:`Venda de crédito — ${c.name||c.phone} (${payName(method)})`,category:"Venda de crédito",amount})});
-        if(["cash","card"].includes(payKind(method)))await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"pro_labore",description:`Retirada automática venda de crédito — ${c.name||c.phone}`,category:"Retirada do proprietário",amount})});
+        await saveSaleParts(sp.parts(),`Venda de crédito — ${c.name||c.phone}`,"Venda de crédito",ds);
         m.remove();await done?.();
-      }catch(err){m.querySelector("#sc-err").textContent="Não foi possível registrar: "+err.message;btn.disabled=false;btn.textContent="Confirmar venda de crédito"}
+      }catch(err){m.querySelector("#sc-err").textContent="Não foi possível registrar: "+err.message;okb.disabled=false;okb.textContent="Confirmar venda"}
     }
   });
 }
@@ -2401,6 +2419,7 @@ if(session){const pendingReview=new URLSearchParams(location.search).get("bookin
  document.addEventListener('DOMContentLoaded',start);window.addEventListener('load',start);window.addEventListener('resize',update);window.addEventListener('scroll',update,true);document.addEventListener('click',()=>setTimeout(update,250));start();
 })();
 </script>
+<script>["gesturestart","gesturechange","gestureend"].forEach(function(t){document.addEventListener(t,function(e){e.preventDefault()},{passive:false})});document.addEventListener("touchmove",function(e){if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});</script>
 </body></html>
 <style>
 /* v14: status shown by the appointment card itself, not by extra labels */
@@ -2824,4 +2843,24 @@ body{animation:pg-in .3s ease backwards}
 .dp2-t.go{flex-direction:row;gap:8px;font-size:14px;font-weight:800;padding:0 14px!important;min-height:46px}
 .dp2-row2{display:none;justify-content:flex-end;gap:4px;margin-top:2px;border-top:1px solid rgba(111,168,220,.28);padding-top:6px}
 .dp2-row2.show{display:flex;animation:pop-bub .25s ease}
+
+/* g21 */
+.dlg-foot{display:flex;gap:10px;margin-top:12px}
+.dlg-foot button{text-align:center;display:flex;align-items:center;justify-content:center;flex:1;height:46px;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer}
+.dlg-back{background:#fff;border:1.5px solid #9CC3EE;color:#2f6fb0}
+.dlg-ok{flex:1.4!important;background:#2378d4;border:0;color:#fff;box-shadow:0 4px 12px #2378d433}
+.dlg-ok:disabled{opacity:.45;box-shadow:none}
+.cc-x{width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.9);background:linear-gradient(135deg,rgba(255,255,255,.85),rgba(200,226,250,.6));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--box-shadow);color:#10304F;font-size:16px;font-weight:800;display:grid;place-items:center;padding:0;cursor:pointer}
+.pm-del{color:#c0392b!important}
+.dp2-row{display:flex;align-items:center;gap:4px}
+.dp2-row input[type=date]{flex:1;min-width:0;width:auto!important;font-size:16px!important}
+.dp2-r1,.dp2-r2{display:flex;flex:none}.dp2-r2{display:none}.dp2.chg .dp2-r1{display:none}.dp2.chg .dp2-r2{display:flex}
+.dp2-t.go{flex-direction:column!important;gap:3px!important;font-size:12px!important;padding:6px 10px!important;min-height:54px!important}
+.dp2-t.go svg{color:#2378d4}
+.dp2-t{min-width:60px!important}
+.std-actions{display:flex!important;gap:8px!important;margin-top:16px;padding:10px;border-radius:20px;background:linear-gradient(135deg,rgba(255,255,255,.75),rgba(214,232,250,.55));border:1px solid rgba(255,255,255,.9);box-shadow:var(--box-shadow)}
+.std-actions .btn{flex:1;grid-column:auto!important;height:44px!important;border-radius:14px!important;font-size:15px!important;font-weight:800!important;background:#fff!important;border:1.5px solid #9CC3EE!important;color:#2f6fb0!important;box-shadow:none!important}
+.std-actions .btn.danger{border-color:#e3a39b!important;color:#c0392b!important}
+.std-actions .btn.primary{flex:1.5;background:#2378d4!important;border-color:#2378d4!important;color:#fff!important;box-shadow:0 4px 12px #2378d433!important}
+html{touch-action:manipulation}
 </style>
