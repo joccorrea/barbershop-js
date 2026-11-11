@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#2378d4">
+<meta name="theme-color" content="#1B1A18">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="manifest" href="/barbershop-js/manifest.json">
 <link rel="apple-touch-icon" href="/barbershop-js/logo.jpg">
 <title>Barber Shop JS · Administração</title>
@@ -410,7 +411,7 @@ function renderAgenda(){
     const start=Number(b.start_min),end=Number(b.end_min);
     const lane=Math.min(laneOf.get(String(b.id))||0,6),off=lane*40;
     const durationSlots=Math.max(1,gridTimes.filter(t=>t>=start&&t<end).length);
-    right.push(`<button class="card appointment-card agenda-appointment ${appointmentCardStatus(b.status)}" data-open-booking="${esc(b.id)}" style="grid-column:2;grid-row:${row} / span ${durationSlots};width:calc(100% - ${off}px);margin-left:${off}px;z-index:${10+lane};box-shadow:${lane?"-4px 3px 12px #00000026":"0 4px 18px #00000009"}"><div class="agenda-appt-main"><b class="agenda-client">${esc(b.client_name)}</b></div><span class="agenda-chevron">›</span></button>`);
+    right.push(`<button class="card appointment-card agenda-appointment ${appointmentCardStatus(b.status)}" data-open-booking="${esc(b.id)}" style="grid-column:2;grid-row:${row} / span ${durationSlots};width:calc(100% - ${off}px);margin-left:${off}px;z-index:${10+lane};box-shadow:${lane?"-4px 3px 12px #00000026":"0 4px 18px #00000009"}"><div class="agenda-appt-main"><b class="agenda-client">${esc(b.client_name)}</b><span class="agenda-sub">${hm(start)} – ${hm(end)} · ${["no_show","nao_compareceu","faltou"].includes(normalizedStatus(b.status))?"Não compareceu":({pending:"Pendente",confirmed:"Confirmado",completed:"Atendido · falta pagar",finalized:"Pago"})[statusClass(b.status)]||statusPortuguese(b.status)}</span></div><span class="agenda-chevron">›</span></button>`);
    });
   }else if(occupying){
   }else if(block){
@@ -424,7 +425,7 @@ function renderAgenda(){
   }
  }
  const out=`<div class="agenda-grid" style="--agenda-step:${step/30}">${times.join("")}${right.join("")}</div><button class="agenda-fab" id="agenda-new-booking" aria-label="Novo agendamento" title="Novo agendamento">＋</button>`;
- shell("Agenda",nav+`<div class="muted agenda-summary">${n} agendamento(s) · ${fm(bookings.reduce((sum,x)=>sum+Number(x.total||0),0))}</div>`+out+`<div class="muted">Toque em um horário para agendar ou bloquear.</div>`);
+ shell("Agenda",nav+`<div class="muted agenda-summary">${n} agendamento(s) · ${fm(bookings.reduce((sum,x)=>sum+Number(x.total||0),0))}${bookings.some(x=>statusClass(x.status)==="completed")?` · <b class="agenda-toreceive">A receber: ${fm(bookings.filter(x=>statusClass(x.status)==="completed").reduce((sum,x)=>sum+Number(x.total||0),0))}</b>`:""}</div><div class="agenda-legend"><span><i style="background:#F3C76B"></i>Pendente</span><span><i style="background:#2F5D8C"></i>Confirmado</span><span><i style="background:#7A4FB0"></i>Falta pagar</span><span><i style="background:#2F6F4B"></i>Pago</span></div>`+out+`<div class="muted">Toque em um horário para agendar ou bloquear.</div>`);
 }
 async function loadClients(){try{clients=await api("clients?select=*&order=name");shell("Clientes",`<div class="row between"><span class="muted">${clients.length} cadastro(s)</span><button class="btn primary" id="new-client">＋ Adicionar novo cliente</button></div><input id="client-search" placeholder="Buscar por nome ou telefone"><div id="client-list">${clientList(clients)}</div>`)}catch(e){shell("Clientes",`<p class="error">${esc(e.message)}</p>`)}}
 function clientList(list){return list.map(c=>`<div class="card"><div class="row between"><div class="grow"><b>${esc(c.name)}</b><div class="muted">${esc(c.nickname||"")} ${c.phone?"· "+esc(c.phone):""}</div><div class="muted">${c.birth_date?"Nascimento: "+esc(c.birth_date):""}</div></div><button class="btn small" data-edit-client="${esc(c.phone)}">Editar</button></div><div class="actions"><a class="btn small" href="https://wa.me/${esc(String(c.phone||"").replace(/\D/g,""))}" target="_blank" rel="noopener">WhatsApp</a><button class="btn small" data-history="${esc(c.phone)}">Agendamentos</button></div></div>`).join("")||`<p class="muted">Nenhum cliente cadastrado.</p>`}
@@ -1089,10 +1090,10 @@ function openStatusPicker(id){
   closeStatusPicker();
   const scrim=document.createElement("div");scrim.className="status-picker-scrim";scrim.id="status-picker-scrim";
   scrim.innerHTML=`<section class="status-picker" role="dialog" aria-modal="true"><h3>Status do atendimento</h3>
-  <button class="status-option-pending" data-set-status="pending">🟠 Pendente — aguarda confirmação</button>
+  <button class="status-option-pending" data-set-status="pending">🟡 Pendente — aguarda confirmação</button>
   <button class="status-option-confirmed" data-set-status="confirmed">🔵 Confirmado</button>
-  <button class="status-option-completed" data-set-status="completed">🟣 Realizado — serviço concluído</button>
-  <button class="status-option-finalized" data-set-status="finalized">🟢 Finalizado — pagamento efetuado</button>
+  <button class="status-option-completed" data-set-status="completed">🟣 Atendido — falta pagar</button>
+  <button class="status-option-finalized" data-set-status="finalized">🟢 Pago — finalizado</button>
   <button class="status-option-noshow" data-set-status="no_show">🔴 Não compareceu / faltou</button>
   <button data-set-status="cancelled">Cancelar agendamento</button>
   <button data-close-status>Fechar</button></section>`;
@@ -1287,4 +1288,47 @@ if(session){const pendingReview=new URLSearchParams(location.search).get("bookin
  background:#ffebeb!important;border:2px solid #d94343!important;color:#922b2b!important;
 }
 </style>
+</style>
+
+<style id="theme-v2">
+/* ===== Novo visual: carvão, creme e dourado ===== */
+:root{--bg:#F6F1E9;--card:#fff;--tx:#1B1A18;--mu:#5E574E;--ac:#B8863B;--bd:#E4DBCD;--danger:#B3342B;--green:#2F6F4B;--blue:#2F5D8C}
+body{background:#F6F1E9!important;color:#1B1A18!important;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif!important}
+.top{background:#1B1A18!important;color:#F6F1E9!important;border-bottom:4px solid #B8863B;box-shadow:none!important}
+.top .btn{background:transparent!important;border-color:#4A463F!important;color:#F6F1E9!important}
+.brand{color:#F6F1E9!important;font-family:"Barlow Condensed",Inter,sans-serif!important;font-size:22px!important;text-transform:uppercase;letter-spacing:.6px;font-weight:700!important}
+.logo{border:2px solid #F6F1E9!important}
+.section-title{font-family:"Barlow Condensed",Inter,sans-serif!important;font-size:26px!important;text-transform:uppercase;letter-spacing:.4px;color:#1B1A18!important;font-weight:700!important}
+.muted,.field label,.booking-range-label{color:#5E574E!important}
+.btn,button,a.btn{border-color:#E4DBCD;color:#1B1A18;border-radius:12px}
+.primary,.booking-savebar button{background:#1B1A18!important;color:#F6F1E9!important;border-color:#1B1A18!important;box-shadow:none!important}
+.danger{background:#FBEAE8!important;border-color:#E3B5B0!important;color:#9A2820!important}
+.card{border:1px solid #E4DBCD!important;border-radius:16px!important;box-shadow:0 2px 10px #1B1A1810!important}
+input,select,textarea{border-color:#CFC4B2!important;color:#1B1A18!important}
+input:focus,select:focus,textarea:focus{outline:2px solid #B8863B66!important;border-color:#B8863B!important}
+.menu{background:#fff!important}.menu button{color:#1B1A18!important;border-color:#E4DBCD!important}.menu button:hover{background:#F6F1E9!important;border-color:#B8863B!important}
+.slot{border-color:#E4DBCD!important;border-radius:14px!important}
+.slot.booked{background:#F6F1E9!important;border-color:#B8863B!important;color:#1B1A18!important}
+.slot.blocked{background:#E9E3D8!important;color:#6F685E!important}
+.slot.lunch{background:#EDE6DA!important;color:#5E574E!important}
+.booking-screen .service-choice:has(input[type="checkbox"]:checked){background:#F3E6C8!important;border:2px solid #B8863B!important;box-shadow:none!important;color:#1B1A18!important}
+.booking-screen .service-choice:has(input[type="checkbox"]:checked) .service-price-edit{color:#7A5416!important}
+.agenda-time-cell{color:#5E574E!important;border-color:#E4DBCD!important;background:#fff!important;font-weight:700!important}
+.agenda-fab{background:#B8863B!important;color:#1B1A18!important;box-shadow:0 8px 20px #0000003d!important}
+.agenda-summary{color:#3C372F!important}
+.agenda-toreceive{color:#6B3FA0}
+.agenda-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:#3C372F;margin:0 0 10px}
+.agenda-legend span{display:flex;align-items:center;gap:6px}.agenda-legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+/* cartões da agenda: uma cor por situação */
+.agenda-appointment{border-radius:12px!important;padding:6px 28px 6px 12px!important;justify-content:flex-start;box-shadow:0 2px 8px #1B1A1824}
+.agenda-appointment .agenda-appt-main{display:flex!important;flex-direction:column;gap:1px;justify-content:center;min-width:0;height:100%}
+.agenda-appointment .agenda-client{font-size:15px!important;line-height:1.2!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agenda-appointment .agenda-sub{display:block;font-size:12px;line-height:1.25;font-weight:500;opacity:.95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agenda-appointment.status-pending-card{background:#F3C76B!important;border:1px solid #D9A93F!important;color:#2B1B00!important}
+.agenda-appointment.status-confirmed-card{background:#2F5D8C!important;border:1px solid #1F4469!important;color:#fff!important}
+.agenda-appointment.status-completed-card{background:#7A4FB0!important;border:2px solid #4F2C80!important;color:#fff!important}
+.agenda-appointment.status-finalized-card{background:#2F6F4B!important;border:1px solid #1D4F33!important;color:#fff!important}
+.agenda-appointment.status-cancelled-card{background:#F3DAD7!important;border:1px solid #D9A5A0!important;color:#7A2119!important}
+.agenda-appointment.status-noshow-card,.agenda-appointment.status-cancelled-card.status-noshow-card{background:#B3342B!important;border:1px solid #7E211A!important;color:#fff!important}
+.agenda-appointment.status-completed-card .agenda-sub{font-weight:700}
 </style>
