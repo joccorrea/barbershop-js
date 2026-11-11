@@ -344,6 +344,12 @@ input[type=date]{display:flex;align-items:center}input[type=date]::-webkit-date-
 button.cb-pill{cursor:pointer;font-family:inherit}
 .pay-incl{margin-top:12px;background:#FFF8EA;border:1px solid #F0C070;border-radius:14px;padding:10px 12px}.pay-incl-h{font-weight:800;color:#7A4300;font-size:14.5px;margin-bottom:6px}.pay-incl-h small{display:block;font-weight:500;font-size:12px}
 .pay-inclrow{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px dashed #F0C070;color:#5a3a00}.pay-inclrow span{flex:1;min-width:0}.pay-inclrow small{display:block;font-size:12px;color:#7A4300}.pay-inclrow input{width:22px;height:22px;accent-color:#E08A00}
+.pay-body{padding-bottom:120px!important}
+.pay-edit-banner{background:#EAF4FF;border:1px solid #9CC7F0;color:#1F4B75;border-radius:12px;padding:9px 12px;font-size:13.5px;font-weight:700;margin-bottom:10px}
+.pay-addprod{width:100%;height:46px;border:1.5px dashed #6FA8DC;background:#F3F9FF;color:#2f6fb0;border-radius:14px;font-weight:800;font-size:15px;margin-top:4px}
+.pay-money{margin-left:auto;width:auto!important;min-width:0;padding:0 4px 0 8px!important;background:transparent!important;border:0!important}
+.pay-money input{width:96px!important;flex:none;text-align:right!important;background:#F3F9FF!important;border:1px solid #C4DFF8!important;border-radius:10px!important;padding:0 10px!important;height:42px!important}
+.pay-amt{padding-right:6px!important}
 .slot.lunch{cursor:pointer}.slot-h{font-size:15px!important;margin:10px 2px 6px!important}
 .slot-card{padding:10px 12px!important;border-radius:14px!important}
 .slot-compact{display:flex!important;flex-wrap:wrap!important;justify-content:space-between;align-items:center!important;gap:8px!important}
@@ -1496,45 +1502,59 @@ const payName=m=>(PAY_METHODS.find(x=>x[0]===m)||[0,m])[1];
 const todayLocal=()=>{const t=new Date();return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0")};
 async function openPaymentScreen(b,opts={}){
   document.querySelector(".pay-screen")?.remove();
+  const el=document.createElement("div");el.className="pay-screen";
+  el.innerHTML=`<header class="pay-head"><button type="button" class="pay-back" id="pay-back" aria-label="Voltar">‹</button><b>Pagamento</b></header><div class="pay-body"><p class="pay-hint">Carregando…</p></div>`;
+  document.body.appendChild(el);document.body.classList.add("sheet-open");
+  const close=()=>{el.remove();document.body.classList.remove("sheet-open")};
+  el.querySelector("#pay-back").onclick=close;
   const total=Math.round(Number(b.total||0)*100)/100;
   let ex=null;try{ex=(await api(`finance_booking_closures?select=*&booking_id=eq.${encodeURIComponent(b.id)}`))[0]||null}catch(e){}
   let catalog=[];try{catalog=await api("finance_products?select=*&active=eq.true&order=name")}catch(e){}
   let credits=[];try{if(b.client_phone)credits=await api(`client_credits?select=*&client_phone=eq.${encodeURIComponent(b.client_phone)}&status=eq.available&remaining_amount=gt.0&order=created_at`)}catch(e){}
-  const creditAvail=Math.round(credits.reduce((a,c)=>a+Number(c.remaining_amount||0),0)*100)/100;
+  let creditAvail=Math.round(credits.reduce((a,c)=>a+Number(c.remaining_amount||0),0)*100)/100;
   let others=[];try{if(b.client_phone){const cs=await clientStats(b.client_phone);others=cs.owing.filter(o=>String(o.b.id)!==String(b.id))}}catch(e){}
   const incl=new Set();
-  const methods=[...PAY_METHODS,...(creditAvail>0?[["credit","Crédito","🎁"]]:[])];
-  const already=ex?Math.round(Number(ex.amount_paid||0)*100)/100:0;
-  const baseRemaining=ex?Math.max(0,Math.round((total+Number(ex.product_total||0)-Number(ex.amount_paid||0))*100)/100):total;
+  const mkMethods=()=>[...PAY_METHODS,...(creditAvail>0?[["credit","Crédito","🎁"]]:[])];
+  let methods=mkMethods();let editing=false;
+  let already=ex?Math.round(Number(ex.amount_paid||0)*100)/100:0;
+  let baseRemaining=ex?Math.max(0,Math.round((total+Number(ex.product_total||0)-Number(ex.amount_paid||0))*100)/100):total;
   const stNow=normalizedStatus(b.status);
   const needsDoneToggle=!["completed","finalized"].includes(statusClass(b.status))&&!["no_show"].includes(stNow);
   let serviceDone=!needsDoneToggle||String(b.date)<=todayLocal();
   let payDate=todayLocal();
   let prods=(opts.prods||[]).map(x=>({...x}));let parts=[],pickerOpen=false;
-  const el=document.createElement("div");el.className="pay-screen";
-  document.body.appendChild(el);document.body.classList.add("sheet-open");
-  const close=()=>{el.remove();document.body.classList.remove("sheet-open")};
   const paid=()=>Math.round(parts.reduce((a,p)=>a+Number(p.amount||0),0)*100)/100;
   const pTotal=()=>Math.round(prods.reduce((a,p)=>a+p.quantity*p.unit_price,0)*100)/100;
   const curRemaining=()=>Math.round((baseRemaining+pTotal())*100)/100;
   const inclSum=()=>others.filter(o=>incl.has(String(o.b.id))).reduce((a,o)=>a+o.v,0);
   const remaining=()=>Math.round((curRemaining()+inclSum())*100)/100;
   const has=m=>parts.find(p=>p.method===m);
+  const enterEdit=()=>{
+    const old=ex;if(!old)return;
+    const merged={};(Array.isArray(old.payment_parts)?old.payment_parts:[]).forEach(p=>{merged[p.method]=Math.round(((merged[p.method]||0)+Number(p.amount||0))*100)/100});
+    parts=Object.entries(merged).map(([method,amount])=>({method,amount}));
+    const dts=(Array.isArray(old.payment_parts)?old.payment_parts:[]).map(p=>p.date).filter(Boolean);if(dts.length)payDate=dts[0];
+    prods=(Array.isArray(old.product_items)?old.product_items:[]).map(x=>({...x}));
+    prods.forEach(p=>{const c=catalog.find(z=>z.id===p.product_id);if(c)c.stock_quantity=Number(c.stock_quantity)+Number(p.quantity)});
+    creditAvail=Math.round((creditAvail+(merged.credit||0))*100)/100;methods=mkMethods();
+    ex=null;already=0;baseRemaining=total;editing=true;draw();
+  };
   const statusInfo=()=>{
     const rem=remaining(),diff=Math.round((rem-paid())*100)/100,pt=pTotal();
     const creditUsed=parts.filter(p=>p.method==="credit").reduce((a,p)=>a+Number(p.amount||0),0);
     const bad=diff<0||(paid()<=0&&pt<=0)||creditUsed>creditAvail+0.001||parts.some(p=>!(Number(p.amount)>0));
     const msg=!parts.length?"":creditUsed>creditAvail+0.001?`Crédito disponível: ${fm(creditAvail)}`:diff===0?"Valor conferido ✓":diff>0?`Valor pendente: ${fm(diff)} — ficará a receber`:`Valor maior que o total (${fm(-diff)} a mais)`;
     const cls=diff===0&&parts.length?"ok":diff<0||creditUsed>creditAvail+0.001?"":"warn";
-    const label=paid()<=0&&pt>0?"Salvar produtos (valor pendente)":diff>0&&!bad?"Confirmar pagamento parcial":"Confirmar pagamento";
+    const label=editing?(diff>0&&!bad?"Salvar alterações (valor pendente)":"Salvar alterações"):paid()<=0&&pt>0?"Salvar produtos (valor pendente)":diff>0&&!bad?"Confirmar pagamento parcial":"Confirmar pagamento";
     return {bad,msg,cls,label};
   };
   const refresh=()=>{const i=statusInfo();const d=el.querySelector("#pay-diff"),ok=el.querySelector("#pay-ok");if(d){d.textContent=i.msg;d.className="pay-diff "+i.cls}if(ok){ok.disabled=i.bad;ok.textContent=i.label}};
   const draw=(focusMethod)=>{
     const rem=remaining(),pt=pTotal(),settled=rem<=0;
     const info=statusInfo();
+    const __sc=el.querySelector(".pay-body");const __top=__sc?__sc.scrollTop:0;
     el.innerHTML=`<header class="pay-head"><button type="button" class="pay-back" id="pay-back" aria-label="Voltar">‹</button><b>Pagamento</b></header>
-    <div class="pay-body"><div class="pay-card"><div class="pay-client">${esc(b.client_name||"Cliente")}</div><div class="pay-sub">${esc(formatBookingDateBR(b.date))} · ${hm(b.start_min)}</div>
+    <div class="pay-body">${editing?`<div class="pay-edit-banner">✎ Alterando pagamento — veja como foi pago, ajuste e confirme.</div>`:""}<div class="pay-card"><div class="pay-client">${esc(b.client_name||"Cliente")}</div><div class="pay-sub">${esc(formatBookingDateBR(b.date))} · ${hm(b.start_min)}</div>
     <div class="pay-total pay-mini"><span>Serviços</span><b>${fm(total)}</b></div>
     ${(ex&&Number(ex.product_total)>0)||pt>0?`<div class="pay-total pay-mini"><span>Produtos</span><b>${fm(Number(ex?.product_total||0)+pt)}</b></div>`:""}
     ${already>0?`<div class="pay-total pay-mini"><span>Já recebido</span><b style="color:#1f8a4c">${fm(already)}</b></div>`:""}
@@ -1543,7 +1563,7 @@ async function openPaymentScreen(b,opts={}){
     ${others.length?`<div class="pay-incl"><div class="pay-incl-h">Incluir agendamentos anteriores <small>este cliente tem ${fm(others.reduce((a,o)=>a+o.v,0))} pendente</small></div>${others.map(o=>`<label class="pay-inclrow"><input type="checkbox" data-incl="${o.b.id}" ${incl.has(String(o.b.id))?"checked":""}><span><b>${esc(o.b.date.split("-").reverse().join("/"))} · ${esc((o.b.services||[]).map(x=>x.name).join(", ")||"Agendamento")}</b><small>${o.v<Number(o.b.total||0)-0.001?"pagamento parcial":"atendido, não pago"}</small></span><b>${fm(o.v)}</b></label>`).join("")}</div>`:""}
     <h3 class="pay-h">Produtos</h3>
     ${prods.length?`<div class="pay-prods">${prods.map((p,i)=>`<div class="pay-prod"><div class="pp-n"><b>${esc(p.name)}</b><span>${fm(p.unit_price)} cada</span></div><div class="pp-q"><button type="button" data-pq="-1" data-i="${i}">−</button><b>${p.quantity}</b><button type="button" data-pq="1" data-i="${i}">+</button></div><div class="pp-t">${fm(p.quantity*p.unit_price)}</div><button type="button" class="pay-x" data-prd="${i}" aria-label="Remover">✕</button></div>`).join("")}</div>`:""}
-    <button type="button" class="pay-link" id="pay-addprod">＋ Adicionar produto</button>
+    <button type="button" class="pay-addprod" id="pay-addprod">＋ Adicionar produto</button>
     ${settled&&pt<=0?`<div class="pay-diff ok" style="margin-top:6px">Atendimento totalmente pago ✓</div>`:`<h3 class="pay-h">Como foi pago?</h3>
     <div class="pay-grid">${methods.map(m=>`<button type="button" class="pay-tile ${has(m[0])?"on":""}" data-pick="${m[0]}"><span>${m[2]}</span>${m[1]}${m[0]==="credit"?`<small>${fm(creditAvail)}</small>`:""}</button>`).join("")}</div>
     ${parts.length?`<div class="pay-amts">${parts.map((p,i)=>{const mm=methods.find(x=>x[0]===p.method);return `<label class="pay-amt"><span>${mm[2]} ${mm[1]}</span><div class="pay-money"><i>R$</i><input data-pa="${i}" type="number" inputmode="decimal" step="0.01" min="0" value="${p.amount}"></div></label>`}).join("")}</div>`:`<p class="pay-hint">Toque na forma de pagamento. Para dividir, toque em mais de uma e informe o valor de cada.</p>`}
@@ -1552,10 +1572,10 @@ async function openPaymentScreen(b,opts={}){
     ${needsDoneToggle?`<label class="pay-optrow"><span>Serviço já realizado?<small>${serviceDone?"O agendamento ficará concluído":"Fica marcado como pago, falta atender"}</small></span><input type="checkbox" id="pay-done" ${serviceDone?"checked":""}></label>`:""}</div>`}
     </div>${settled&&pt<=0?"":`<footer class="pay-foot"><button type="button" class="btn primary pay-confirm" id="pay-ok" ${info.bad?"disabled":""}>${info.label}</button></footer>`}
     ${pickerOpen?`<div class="pay-picker" id="pay-picker"><div class="pay-picker-card"><div class="pay-picker-h"><b>Escolha o produto</b><button type="button" id="pp-close" class="pay-x">✕</button></div>${catalog.length?catalog.map(p=>`<button type="button" class="pp-item" data-pp="${p.id}" ${Number(p.stock_quantity)<=0?"disabled":""}><span><b>${esc(p.name)}</b><small>Estoque: ${p.stock_quantity}</small></span><b>${fm(p.sale_price)}</b></button>`).join(""):`<p class="muted" style="padding:12px">Nenhum produto ativo cadastrado. Cadastre em Configurações › Produtos.</p>`}</div></div>`:""}`;
+    {const nb=el.querySelector(".pay-body");if(nb)nb.scrollTop=__top}
     const q=x=>el.querySelector(x),qa=x=>el.querySelectorAll(x);
     q("#pay-back").onclick=close;
     qa("[data-pick]").forEach(x=>x.onclick=()=>{const m=x.dataset.pick;const i=parts.findIndex(p=>p.method===m);if(i>=0){parts.splice(i,1)}else{let amt=parts.length?Math.max(0,Math.round((remaining()-paid())*100)/100):remaining();if(m==="credit")amt=Math.min(amt,creditAvail);parts.push({method:m,amount:amt})}draw(m)});
-    if(focusMethod&&parts.length>1){const ix=parts.findIndex(p=>p.method===focusMethod);const inp=q(`[data-pa="${ix}"]`);if(inp){inp.focus();inp.select()}}
     qa("[data-incl]").forEach(x=>x.onchange=()=>{if(x.checked)incl.add(x.dataset.incl);else incl.delete(x.dataset.incl);resync();draw()});
     qa("[data-pa]").forEach(x=>x.oninput=()=>{parts[+x.dataset.pa].amount=Math.round(Number(x.value||0)*100)/100;refresh()});
     q("#pay-date")?.addEventListener("change",x=>{payDate=x.target.value||todayLocal()});
@@ -1567,7 +1587,7 @@ async function openPaymentScreen(b,opts={}){
     q("#pp-close")?.addEventListener("click",()=>{pickerOpen=false;draw()});
     q("#pay-picker")?.addEventListener("click",ev=>{if(ev.target.id==="pay-picker"){pickerOpen=false;draw()}});
     qa("[data-pp]").forEach(x=>x.onclick=()=>{const c=catalog.find(z=>String(z.id)===x.dataset.pp);const f=prods.find(p=>p.product_id===c.id);if(f){if(f.quantity+1>Number(c.stock_quantity)){alert("Estoque insuficiente.");return}f.quantity++}else prods.push({product_id:c.id,name:c.name,quantity:1,unit_price:Number(c.sale_price),unit_cost:Number(c.cost_price||0)});pickerOpen=false;resync();draw()});
-    q("#pay-alter")?.addEventListener("click",()=>showAppConfirm("Isso desfaz o pagamento já registrado para você lançar novamente (o estoque dos produtos volta). Continuar?",async()=>{try{const old=await undoPayment(b.id);await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:needsDoneToggle?b.status:"completed"})});close();await loadAgenda();openPaymentScreen({...b,status:needsDoneToggle?b.status:"completed"},{prods:(old?.product_items||[])})}catch(err){alert("Não foi possível alterar: "+err.message)}}));
+    q("#pay-alter")?.addEventListener("click",enterEdit);
     q("#pay-cancel")?.addEventListener("click",()=>showAppConfirm("Tem certeza que deseja cancelar o pagamento já registrado?",async()=>{try{await undoPayment(b.id);if(!needsDoneToggle)await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"completed"})});close();await loadAgenda()}catch(err){alert("Não foi possível cancelar o pagamento: "+err.message)}}));
     q("#pay-ok")?.addEventListener("click",save);
   };
@@ -1576,6 +1596,7 @@ async function openPaymentScreen(b,opts={}){
     try{
       for(const p of prods){const c=catalog.find(z=>z.id===p.product_id);if(!c||p.quantity>Number(c.stock_quantity))throw Error("Estoque insuficiente para "+p.name+".")}
       if(parts.some(p=>p.method==="credit")&&!b.client_phone)throw Error("O agendamento precisa ter telefone para usar crédito.");
+      if(editing){await undoPayment(b.id,{phone:b.client_phone,name:b.client_name});catalog=await api("finance_products?select=*&active=eq.true&order=name");credits=b.client_phone?await api(`client_credits?select=*&client_phone=eq.${encodeURIComponent(b.client_phone)}&status=eq.available&remaining_amount=gt.0&order=created_at`):[]}
       const ds=payDate||todayLocal();
       const p0=paid(),pt=pTotal(),curDue=curRemaining();
       const inclList=others.filter(o=>incl.has(String(o.b.id)));
