@@ -691,10 +691,14 @@ function oweDialog(st,name,curId){
   document.querySelector(".nsm")?.remove();
   const m=document.createElement("div");m.className="nsm";
   m.innerHTML=`<div class="nsm-card"><h3>Valores pendentes</h3><p>${esc(name||"Cliente")} deve ${fm(st.owed)} no total:</p>
-  ${st.owing.map(o=>{const b=o.b,svc=(b.services||[]).map(x=>x.name).join(", ")||"Agendamento";const partial=o.v<Number(b.total||0)-0.001;return `<div class="owe-row"><div><b>${esc(b.date.split("-").reverse().join("/"))} · ${hm(b.start_min)}</b><span>${esc(svc)}</span><small>${String(b.id)===String(curId)?"Este agendamento · ":""}${partial?"pagamento parcial (total "+fm(b.total)+")":"atendido, ainda não pago"}</small></div><b>${fm(o.v)}</b></div>`}).join("")}
+  ${st.owing.map(o=>{const b=o.b,svc=(b.services||[]).map(x=>x.name).join(", ")||"Agendamento";const partial=o.v<Number(b.total||0)-0.001;return `<div class="owe-row" data-oid="${b.id}" data-odate="${b.date}"><div><b>${esc(b.date.split("-").reverse().join("/"))} · ${hm(b.start_min)}</b><span>${esc(svc)}</span><small>${String(b.id)===String(curId)?"Este agendamento · ":""}${partial?"pagamento parcial (total "+fm(b.total)+")":"atendido, ainda não pago"}</small></div><b>${fm(o.v)}</b></div>`}).join("")}
   <button type="button" class="ns-x" data-ns="x">Fechar</button></div>`;
   document.body.appendChild(m);
-  m.addEventListener("click",e=>{if(e.target===m||e.target.closest("[data-ns=x]"))m.remove()});
+  m.addEventListener("click",e=>{
+    if(e.target===m||e.target.closest("[data-ns=x]")){m.remove();return}
+    const r=e.target.closest("[data-oid]");if(!r)return;
+    popMenu(r,[{icon:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',label:"Ir",fn:()=>{m.remove();document.querySelector("#detail-sheet")?.remove();document.body.classList.remove("sheet-open");gotoBooking(r.dataset.oid,r.dataset.odate)}}]);
+  });
 }
 async function fillClientBadge(phone,target,curId,name){
   try{const t=document.querySelector(target);if(!t||!phone)return;const st=await clientStats(phone);const t2=document.querySelector(target);if(t2){t2.innerHTML=badgePills(st);const ob=t2.querySelector("[data-owe]");if(ob)ob.onclick=e=>{e.stopPropagation();oweDialog(st,name,curId)}}}catch(e){}
@@ -2972,6 +2976,7 @@ html{touch-action:manipulation}
 .pkg-card{cursor:pointer}
 .allday-row{display:flex;align-items:center;gap:10px;margin:0 0 6px}
 
+.owe-row[data-oid]{cursor:pointer}.pop-scrim{z-index:7000!important}
 /* g27 */
 .professional-actions .pill{font-weight:700}
 /* g26 */
