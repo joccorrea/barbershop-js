@@ -2487,7 +2487,7 @@ const todayLocal=()=>{const t=new Date();return t.getFullYear()+"-"+String(t.get
 async function openPaymentScreen(b,opts={}){
   document.querySelector(".pay-screen")?.remove();
   const el=document.createElement("div");el.className="pay-screen";
-  el.innerHTML=`<header class="pay-head"><button type="button" class="pay-back" id="pay-back" aria-label="Voltar">‹</button><b>Pagamento</b></header><div class="pay-body"><p class="pay-hint">Carregando…</p></div>`;
+  el.innerHTML=`<header class="pay-head"><span class="pay-pill"><button type="button" class="pay-back" id="pay-back" aria-label="Voltar">‹</button><b>Pagamento</b></span></header><div class="pay-body"><p class="pay-hint">Carregando…</p></div>`;
   document.body.appendChild(el);document.body.classList.add("sheet-open");
   const close=()=>{el.remove();document.body.classList.remove("sheet-open")};
   el.querySelector("#pay-back").onclick=close;
@@ -2541,7 +2541,7 @@ async function openPaymentScreen(b,opts={}){
     const rem=remaining(),pt=pTotal(),settled=rem<=0;
     const info=statusInfo();
     const __sc=el.querySelector(".pay-body");const __top=__sc?__sc.scrollTop:0;
-    el.innerHTML=`<header class="pay-head"><button type="button" class="pay-back" id="pay-back" aria-label="Voltar">‹</button><b>Pagamento</b></header>
+    el.innerHTML=`<header class="pay-head"><span class="pay-pill"><button type="button" class="pay-back" id="pay-back" aria-label="Voltar">‹</button><b>Pagamento</b></span></header>
     <div class="pay-body">${editing?`<div class="pay-edit-banner">✎ Alterando pagamento — veja como foi pago, ajuste e confirme.</div>`:""}<div class="pay-card"><div class="pay-client">${esc(b.client_name||"Cliente")}</div><div class="pay-sub">${esc(formatBookingDateBR(b.date))} · ${hm(b.start_min)}</div>
     <div class="pay-total pay-mini"><span>Serviços</span><b>${fm(total)}</b></div>
     ${pkgSvcs.length?`<div class="pay-total pay-mini"><span>Pacote</span><b>${esc(pkgSvcs.map(x=>x.name+(Number(x.pkgQty)>1?" ×"+x.pkgQty:"")).join(", "))}${pkgRed.length?" ✓":""}</b></div>`:""}
@@ -3756,5 +3756,23 @@ input,select,textarea{background:linear-gradient(145deg,rgba(255,255,255,.10),rg
 
 #app-confirm-wa .cw-btn{background:linear-gradient(145deg,rgba(92,92,98,.92),rgba(24,24,28,.96))!important;color:#fff!important;border:1px solid rgba(255,255,255,.26)!important;box-shadow:0 8px 18px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.3)!important}
 #app-confirm-wa .cw-yes{border-color:rgba(255,255,255,.6)!important}
+
+.pay-screen .pay-head{background:transparent!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;padding:calc(10px + env(safe-area-inset-top)) 14px 4px!important;display:block!important}
+.pay-screen .pay-head::before{content:none!important}
+.pay-screen .pay-head>*{display:inline-flex}
+.pay-screen .pay-head{position:relative}
+.pay-pill{display:inline-flex!important;align-items:center;gap:8px;padding:5px 16px 5px 6px;border-radius:999px;font-size:16px;font-weight:700;-webkit-backdrop-filter:blur(22px) saturate(1.8);backdrop-filter:blur(22px) saturate(1.8)}
+.pay-screen .pay-back{width:30px!important;height:30px!important;border-radius:50%!important;font-size:22px!important;display:inline-flex!important;align-items:center;justify-content:center;padding:0 0 3px!important;box-shadow:none!important}
+.pay-screen .pay-foot{background:transparent!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;padding:8px 16px calc(26px + env(safe-area-inset-bottom))!important;max-width:560px;width:100%;margin:0 auto}
+.pay-screen .pay-foot .pay-confirm{height:50px!important;border-radius:999px!important;font-weight:800!important;opacity:1!important}
+
+.pay-screen .pay-pill{background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.18);color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.pay-screen .pay-back{background:rgba(255,255,255,.1)!important;border:1px solid rgba(255,255,255,.2)!important;color:#fff!important}
+.pay-screen .pay-foot .pay-confirm{background:linear-gradient(180deg,#fff,#D4D4D8)!important;color:#111!important;border:1px solid rgba(255,255,255,.9)!important;box-shadow:0 8px 22px rgba(0,0,0,.5),inset 0 1px 0 #fff!important}
+.pay-screen .pay-foot .pay-confirm:disabled{background:linear-gradient(180deg,#8a8a90,#6c6c72)!important;color:#d8d8dc!important}
+
+.action-sheet .sheet-action.pay,.action-sheet .sheet-action.cancel{background:#1d1d20!important;border:1px solid rgba(255,255,255,0.16)!important;color:#fff!important;box-shadow:var(--box-shadow)!important}
+.action-sheet .sheet-action.pay .sheet-icon{background:rgba(79,148,216,.14)!important;color:#39C66B!important}
+.action-sheet .sheet-action.cancel .sheet-icon{background:rgba(79,148,216,.14)!important;color:#ef8980!important}
 </style>
 
