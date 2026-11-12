@@ -358,7 +358,13 @@ input,select,textarea{background:linear-gradient(145deg,rgba(255,255,255,.10),rg
 #bookingRows .bk .bk-actions button.pen,#bookingRows .bk .bk-actions button.trash{width:38px!important;flex:0 0 38px!important;padding:0!important;display:inline-grid!important;place-items:center}
 #bookingRows .bk .bk-actions button{background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.04))!important;border:1px solid rgba(255,255,255,.16)!important;color:#fff!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.2)!important}
 #bookingRows .bk .bk-actions button.trash{color:#f17e7e!important}
-</style></head>
+
+/* g72 hoje */
+.today-box{margin:0 0 12px;padding:14px;border-radius:22px;border:1px solid var(--tdbd)}
+.today-box .td-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}.today-box .td-head span{font-weight:800;font-size:15px}.today-box .td-head b{font-size:26px}
+.today-box .td-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.today-box .td-grid.two{grid-template-columns:1fr 1fr}
+.today-box .td-grid div{padding:8px 6px;border-radius:14px;text-align:center;background:var(--tdc);border:1px solid var(--tdbd)}.today-box .td-grid span{display:block;font-size:12px;opacity:.75}.today-box .td-grid b{font-size:15px;white-space:nowrap}
+:root{--tdbd:rgba(255,255,255,.16);--tdc:rgba(255,255,255,.06)}.today-box{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.03));color:#fff}</style></head>
 <body>
 <div class="top"><button type="button" id="hamb" aria-label="Abrir menu">☰</button><img class="logo" alt="Logo"><div class="fbrand" id="fin-brand" role="button" tabindex="0">Barber Shop JS</div><button type="button" id="logoutF">Sair</button></div>
 <button class="menu-backdrop" id="menu-backdrop" type="button" aria-label="Fechar menu"></button>
@@ -369,6 +375,7 @@ input,select,textarea{background:linear-gradient(145deg,rgba(255,255,255,.10),rg
 <div id="financeDashboard">
 <h1>Financeiro</h1><p class="muted">Feche atendimentos com pagamentos divididos, controle recebíveis, estoque e resultado mensal.</p>
 <div class="toolbar"><div class="field"><label for="month">Mês de referência</label><input type="month" id="month"></div><button id="refresh">Atualizar</button><button class="secondary" id="exportCsv">Exportar lançamentos CSV</button></div>
+<div class="today-box" id="todayBox"><div class="td-head"><span>Hoje</span><b id="tdTotal">R$ 0,00</b></div><div class="td-grid"><div><span>Dinheiro</span><b id="tdCash">R$ 0,00</b></div><div><span>Cartão</span><b id="tdCard">R$ 0,00</b></div><div><span>Pix</span><b id="tdPix">R$ 0,00</b></div></div><div class="td-grid two"><div><span>Serviços</span><b id="tdSrv">R$ 0,00</b></div><div><span>Produtos</span><b id="tdProd">R$ 0,00</b></div></div></div>
 <div class="cards big3">
 <div class="card"><div class="label">Entrou</div><div class="value green" id="income">R$ 0,00</div></div>
 <div class="card"><div class="label">Saiu</div><div class="value red" id="expense">R$ 0,00</div></div>
@@ -573,7 +580,8 @@ async function load(){msg('');try{
  renderAll();await loadPackages();await loadExtra();
  }catch(e){msg(e.message,true)}}
 function renderAll(){try{renderExtra()}catch(e){console.error(e)}renderMovements();renderProducts();renderCash();renderBookings();renderPending();renderCardsReports();$('permissionInfo').textContent=canEdit?'Acesso autorizado para visualizar e editar.':'Acesso somente leitura. Para editar, o proprietário deve habilitar can_edit no banco.'}
-function renderCardsReports(){
+async function loadToday(){try{const d=fmtDate(now),a=new Date(d+'T00:00:00'),b=new Date(a.getTime()+86400000);const [ms,cl]=await Promise.all([api(`finance_movements?select=amount,kind,payment_method,status&status=eq.paid&kind=eq.income&movement_date=eq.${d}`),api(`finance_booking_closures?select=service_total,product_total,created_at&created_at=gte.${encodeURIComponent(a.toISOString())}&created_at=lt.${encodeURIComponent(b.toISOString())}`)]);const by=m=>sum(ms.filter(x=>x.payment_method===m),x=>x.amount);$('tdTotal').textContent=money(sum(ms,x=>x.amount));$('tdCash').textContent=money(by('cash'));$('tdCard').textContent=money(by('card'));$('tdPix').textContent=money(by('pix'));$('tdSrv').textContent=money(sum(cl,x=>x.service_total));$('tdProd').textContent=money(sum(cl,x=>x.product_total))}catch(e){}}
+function renderCardsReports(){loadToday();
  const paid=movements.filter(x=>x.status==='paid'),sumKind=k=>sum(paid.filter(x=>x.kind===k),x=>x.amount),inc=sumKind('income'),exp=sumKind('expense')+sumKind('refund'),inv=sumKind('investment'),pl=paid.filter(x=>x.kind==='pro_labore'),due=sum(movements.filter(x=>x.status==='pending'&&x.kind==='income'),x=>x.amount),out=exp+inv,resOp=inc-out,res=inc-exp-inv-sumKind('pro_labore');
  $('income').textContent=money(inc);$('expense').textContent=money(out);$('despesas').textContent=money(exp);$('invest').textContent=money(inv);$('result').textContent=money(resOp);$('result').className='value '+(resOp<0?'red':'green');
  const rc=sum(pl.filter(x=>['cash','card'].includes(x.payment_method)),x=>x.amount),rt=sum(pl,x=>x.amount);$('retCaixa').textContent=money(rc);$('retFora').textContent=money(rt-rc);$('retTotal').textContent=money(rt);
