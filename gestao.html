@@ -440,7 +440,7 @@ button.cb-pill{cursor:pointer;font-family:inherit}
 <div class="menu-brand"><img class="logo" alt="Logo"><b>Barber Shop JS</b></div>
 <button data-page="agenda">Agenda</button><button data-page="notifications">Notificações<span class="nt-badge hidden" id="nt-badge"></span></button><button data-page="settings">Configurações</button>
 <button data-page="clients">Clientes</button><button data-page="birthdays">Aniversários</button>
-<button id="finance-menu" type="button">Financeiro</button>
+<button id="cash-menu" type="button">Caixa</button><button id="finance-menu" type="button">Financeiro</button>
 </nav>
 <div id="app"></div>
 </main>
@@ -1688,7 +1688,7 @@ const rpBase=r=>({...DEFAULT_RP[roleKey(r)],...(rolePerms[roleKey(r)]||{})});
 function can(k){const m=window.__me;return !m||m.owner||!!(m.perms&&m.perms[k])}
 function guardPage(p){const m=window.__me;if(!m||m.owner)return p;if(["settings-hours","settings-professionals","settings-messages","settings-payments","settings-roles"].includes(p))return can("catalog_edit")?"settings":"agenda";if((p==="clients"||p==="birthdays")&&!can("clients_view"))return "agenda";if(["settings","services","products","packages","combos","promotions"].includes(p)&&!can("catalog_edit"))return "agenda";return p}
 async function loadMe(){try{const r=await api("rpc/app_me",{method:"POST",body:"{}"});window.__me=r;window.__myBarberId=r&&!r.owner?r.barber_id:null}catch(e){window.__me=null}applyMenuPerms()}
-function applyMenuPerms(){const m=window.__me;const set=(sel,show)=>{const el=$(sel);if(el)el.classList.toggle("hidden",!show)};set('[data-page="settings"]',!m||m.owner||can("catalog_edit"));set('[data-page="clients"]',can("clients_view"));set('[data-page="birthdays"]',can("clients_view"));set("#finance-menu",can("finance_view"))}
+function applyMenuPerms(){const m=window.__me;const set=(sel,show)=>{const el=$(sel);if(el)el.classList.toggle("hidden",!show)};set('[data-page="settings"]',!m||m.owner||can("catalog_edit"));set('[data-page="clients"]',can("clients_view"));set('[data-page="birthdays"]',can("clients_view"));set("#finance-menu",can("finance_view"));set("#cash-menu",can("finance_view"))}
 async function staffCall(action,extra={}){const r=await fetch(SB+"/functions/v1/staff-admin",{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+session.access_token,"Content-Type":"application/json"},body:JSON.stringify({action,...extra})});const j=await r.json().catch(()=>({}));if(!r.ok||j.error)throw Error(j.error||("Falha ("+r.status+")"));return j}
 function permSwitches(cur,pfx){return PERM_DEFS.map(([k,t,h])=>`<label class="perm-row"><span><b>${t}</b>${h?`<small>${h}</small>`:""}</span><input type="checkbox" class="sw" data-${pfx}="${k}" ${cur[k]?"checked":""}></label>`).join("")}
 function bindPermSwitches(host,pfx,cur){host.querySelectorAll(`[data-${pfx}]`).forEach(inp=>inp.onchange=()=>{const k=inp.dataset[pfx];cur[k]=inp.checked;if(k==="finance_edit"&&inp.checked){cur.finance_view=true;const v=host.querySelector(`[data-${pfx}="finance_view"]`);if(v)v.checked=true}if(k==="finance_view"&&!inp.checked){cur.finance_edit=false;const v=host.querySelector(`[data-${pfx}="finance_edit"]`);if(v)v.checked=false}})}
@@ -1964,6 +1964,7 @@ function setMenuOpen(open){$("#menu").classList.toggle("open",open);$("#menu-bac
 $("#hamb").onclick=()=>setMenuOpen(!$("#menu").classList.contains("open"));
 $("#brand-home").onclick=()=>{if(session)navigate("agenda")};
 $("#brand-home").onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&session){e.preventDefault();navigate("agenda")}};
+$("#cash-menu").onclick=()=>{setMenuOpen(false);document.body.style.transition="opacity .16s ease";document.body.style.opacity="0";setTimeout(()=>{location.href="financeiro.html?aba=cash"},150)};
 $("#finance-menu").onclick=()=>{setMenuOpen(false);document.body.style.transition="opacity .16s ease";document.body.style.opacity="0";setTimeout(()=>{location.href="financeiro.html"},150)};
 $("#menu-backdrop").onclick=()=>setMenuOpen(false);
 $("#logout").onclick=()=>{window.__me=null;window.__myBarberId=null;session=null;saveSession();setMenuOpen(false);renderLoginOrPage()};
@@ -2537,7 +2538,7 @@ async function openPaymentScreen(b,opts={}){
     const info=statusInfo();
     const __sc=el.querySelector(".pay-body");const __top=__sc?__sc.scrollTop:0;
     el.innerHTML=`<header class="pay-head"><span class="pay-pill"><button type="button" class="pay-back" id="pay-back" aria-label="Voltar">‹</button><b>Pagamento</b></span></header>
-    <div class="pay-body">${editing?`<div class="pay-edit-banner">✎ Alterando pagamento — veja como foi pago, ajuste e confirme.</div>`:""}<div class="pay-card"><div class="pay-client">${esc(b.client_name||"Cliente")}</div><div class="pay-sub">${esc(formatBookingDateBR(b.date))} · ${hm(b.start_min)}</div>
+    <div class="pay-body">${editing?`<div class="pay-edit-banner">✎ Alterando pagamento — veja como foi pago, ajuste e confirme.</div>`:""}<div class="pay-card"><div class="pay-client">${esc(b.client_name||"Cliente")}</div><div class="pay-sub">${esc(formatBookingDateBR(b.date))} · ${hm(b.start_min)}</div>${(b.services&&b.services.length)?`<div class="pay-svcs">${esc(b.services.map(x=>x.name+(x.qty>1?" ×"+x.qty:"")).join(" · "))}</div>`:""}
     <div class="pay-total pay-mini"><span>Serviços</span><b>${fm(total)}</b></div>
     ${pkgSvcs.length?`<div class="pay-total pay-mini"><span>Pacote</span><b>${esc(pkgSvcs.map(x=>x.name+(Number(x.pkgQty)>1?" ×"+x.pkgQty:"")).join(", "))}${pkgRed.length?" ✓":""}</b></div>`:""}
     ${(ex&&Number(ex.product_total)>0)||pt>0?`<div class="pay-total pay-mini"><span>Produtos</span><b>${fm(Number(ex?.product_total||0)+pt)}</b></div>`:""}
@@ -3874,5 +3875,11 @@ pre.bk-pre{font-size:12px!important;white-space:pre-wrap!important;word-break:br
 
 #app .nt-item.done{background:rgba(255,255,255,.03)!important;opacity:.5!important;box-shadow:none!important}
 #app .nt-item:not(.done){background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.1))!important;opacity:1!important}
+
+.pay-svcs{margin-top:8px;padding:8px 12px;border-radius:14px;font-size:14px;line-height:1.35;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#fff}
+
+.menu{background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.04)),rgba(18,18,21,.55)!important;-webkit-backdrop-filter:blur(30px) saturate(1.8)!important;backdrop-filter:blur(30px) saturate(1.8)!important}
+.menu button{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.03))!important;border:1px solid rgba(255,255,255,.14)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.16)!important}
+.menu button:hover,.menu button.primary,.menu button.current{background:linear-gradient(180deg,rgba(255,255,255,.26),rgba(255,255,255,.1))!important;border-color:rgba(255,255,255,.32)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 4px 14px rgba(0,0,0,.25)!important;color:#fff!important}
 </style>
 
