@@ -1029,7 +1029,6 @@ function showDashboard(){try{$('fin-cash').classList.remove('current');$('fin-ho
  window.scrollTo(0,0);
 }
 function returnToFinanceDashboard(){
- if(history.state&&history.state.aba){history.back();return}
  const p=new URLSearchParams(window.location.search);p.delete('aba');
  history.replaceState({},'',window.location.pathname+(p.toString()?'?'+p.toString():''));
  showDashboard();
