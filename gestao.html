@@ -544,9 +544,10 @@ async function showBookingReview(id,from){
   $("#review-confirm")&&($("#review-confirm").onclick=async()=>{
    const btn=$("#review-confirm");btn.disabled=true;
    try{
+    const sendWa=await askConfirmWhatsApp();
+    if(sendWa===null){btn.disabled=false;return}
     await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"confirmed"})});
     day=new Date(b.date+"T12:00:00");history.replaceState({},"","/barbershop-js/gestao.html");
-    const sendWa=await askConfirmWhatsApp();
     if(from==="notif")await navigate("notifications");else await loadAgenda();
     if(sendWa)window.location.href="https://wa.me/"+phone+"?text="+encodeURIComponent(msg);
    }catch(err){btn.disabled=false;alert("Não foi possível confirmar: "+err.message)}
@@ -2427,10 +2428,10 @@ function askConfirmWhatsApp(){
   return new Promise(res=>{
     document.querySelector("#app-confirm-wa")?.remove();
     const sc=document.createElement("div");sc.id="app-confirm-wa";sc.className="app-confirm-scrim";sc.style.touchAction="none";
-    sc.innerHTML=`<section class="app-confirm" role="dialog" aria-modal="true"><p><b>Agendamento confirmado!</b><br><span style="font-weight:500">Deseja enviar a confirmação no WhatsApp?</span></p><div class="cw-row"><button type="button" class="cw-btn cw-no" data-no>Não</button><button type="button" class="cw-btn cw-yes" data-yes>Sim, enviar</button></div></section>`;
+    sc.innerHTML=`<section class="app-confirm" role="dialog" aria-modal="true"><p><b>Confirmar agendamento</b><br><span style="font-weight:500">Deseja enviar a confirmação no WhatsApp?</span></p><div class="cw-row"><button type="button" class="cw-btn cw-no" data-no>Não</button><button type="button" class="cw-btn cw-yes" data-yes>Sim, enviar</button></div></section>`;
     document.body.appendChild(sc);
     ["touchstart","touchmove","pointerdown","mousedown"].forEach(ev=>sc.addEventListener(ev,e=>{e.stopPropagation();if(ev==="touchmove")e.preventDefault()},{passive:false}));
-    sc.addEventListener("click",e=>{e.stopPropagation();if(e.target.closest("[data-yes]")){sc.remove();res(true)}else if(e.target.closest("[data-no]")){sc.remove();res(false)}});
+    sc.addEventListener("click",e=>{e.stopPropagation();if(e.target.closest("[data-yes]")){sc.remove();res(true)}else if(e.target.closest("[data-no]")){sc.remove();res(false)}else if(!e.target.closest(".app-confirm")){sc.remove();res(null)}});
   });
 }
 function askSendCancelWhatsApp(url){
@@ -3752,5 +3753,8 @@ input,select,textarea{background:linear-gradient(145deg,rgba(255,255,255,.10),rg
 #app .rv-b.rv-yes,#app .rv-b.rv-no{border:1px solid rgba(255,255,255,.28)!important}
 #app .rv-chips span{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#fff}
 #app .rv-b.rv-yes,#app .rv-b.rv-no{background:linear-gradient(145deg,rgba(92,92,98,.92),rgba(24,24,28,.96))!important;color:#fff!important;box-shadow:0 8px 18px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.3)!important}
+
+#app-confirm-wa .cw-btn{background:linear-gradient(145deg,rgba(92,92,98,.92),rgba(24,24,28,.96))!important;color:#fff!important;border:1px solid rgba(255,255,255,.26)!important;box-shadow:0 8px 18px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.3)!important}
+#app-confirm-wa .cw-yes{border-color:rgba(255,255,255,.6)!important}
 </style>
 
