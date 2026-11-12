@@ -632,7 +632,8 @@ function renderAgendaColumns(nav){
  agendaAfterRender();
 }
 let agendaScrollY=0,agendaDayKey=null;
-function agendaAfterRender(){if(window.__agCap)return;const k=key(day);const y=agendaDayKey===k?agendaScrollY:0;agendaDayKey=k;requestAnimationFrame(()=>window.scrollTo(0,y))}
+function agTodayBtn(){try{const old=document.getElementById("agenda-today");if(old)old.remove();if(!document.querySelector(".agenda-head"))return;if(key(day)===key(new Date()))return;const b=document.createElement("button");b.type="button";b.id="agenda-today";b.className="agenda-today";b.textContent="Hoje";b.setAttribute("aria-label","Ir para hoje");b.onclick=()=>{day=new Date();loadAgenda()};document.getElementById("app").appendChild(b)}catch(e){}}
+function agendaAfterRender(){if(window.__agCap)return;agTodayBtn();const k=key(day);const y=agendaDayKey===k?agendaScrollY:0;agendaDayKey=k;requestAnimationFrame(()=>window.scrollTo(0,y))}
 window.addEventListener("scroll",()=>{if(document.querySelector(".agenda-grid")&&!document.body.classList.contains("sheet-open")&&!document.querySelector(".booking-screen,.client-picker-screen"))agendaScrollY=window.scrollY},{passive:true});
 let pendingBal={},paidAmt={};
 var agCache={};
@@ -3945,5 +3946,10 @@ pre.bk-pre{font-size:12px!important;white-space:pre-wrap!important;word-break:br
 
 #swipe-under .agenda-sticky,#swipe-under .agenda-sticky *{background:transparent!important;box-shadow:none!important}
 #swipe-under .agenda-sticky::before{display:none!important}
+
+/* g80: salvar do agendamento cinza com símbolo branco + botão Hoje */
+html #app .booking-savebar button.btn,html #app .booking-savebar button.btn.primary.primary,html #app .booking-savebar button.bb-btn.bb-save.bb-save.bb-save{--bbi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'%3E%3Cpath d='M4 3h13l4 4v14H3V3h1zm2 2v5h10V5H6zm0 9v5h12v-5H6zm8-8h2v3h-2V6z'/%3E%3C/svg%3E");background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'%3E%3Cpath d='M4 3h13l4 4v14H3V3h1zm2 2v5h10V5H6zm0 9v5h12v-5H6zm8-8h2v3h-2V6z'/%3E%3C/svg%3E") center/24px 24px no-repeat,linear-gradient(135deg,rgba(255,255,255,.30) 0%,rgba(255,255,255,.05) 46%,rgba(255,255,255,.10) 100%),rgba(72,72,78,.82)!important;border:1px solid rgba(255,255,255,.28)!important;color:#fff!important;box-shadow:0 10px 24px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.5)!important;-webkit-backdrop-filter:blur(16px) saturate(1.5);backdrop-filter:blur(16px) saturate(1.5)}
+html #app .booking-savebar button svg{display:none!important}
+#app button.agenda-today,#app button#agenda-today.agenda-today.agenda-today{position:fixed!important;left:max(20px,calc((100vw - 730px)/2 + 20px))!important;right:auto!important;bottom:calc(35px + env(safe-area-inset-bottom))!important;z-index:1500;height:44px!important;min-height:0!important;width:auto!important;min-width:84px!important;padding:0 20px!important;margin:0!important;border-radius:999px!important;font-size:15px!important;font-weight:700!important;line-height:1!important;font-family:inherit!important;letter-spacing:.2px;color:#fff!important;background:linear-gradient(135deg,rgba(255,255,255,.30) 0%,rgba(255,255,255,.05) 46%,rgba(255,255,255,.10) 100%),rgba(72,72,78,.82)!important;border:1px solid rgba(255,255,255,.28)!important;box-shadow:0 10px 24px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.5)!important;-webkit-backdrop-filter:blur(16px) saturate(1.5);backdrop-filter:blur(16px) saturate(1.5);display:flex;align-items:center;justify-content:center;text-indent:0!important}
 </style>
 
