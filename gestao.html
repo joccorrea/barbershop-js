@@ -3774,5 +3774,42 @@ input,select,textarea{background:linear-gradient(145deg,rgba(255,255,255,.10),rg
 .action-sheet .sheet-action.pay,.action-sheet .sheet-action.cancel{background:#1d1d20!important;border:1px solid rgba(255,255,255,0.16)!important;color:#fff!important;box-shadow:var(--box-shadow)!important}
 .action-sheet .sheet-action.pay .sheet-icon{background:rgba(79,148,216,.14)!important;color:#39C66B!important}
 .action-sheet .sheet-action.cancel .sheet-icon{background:rgba(79,148,216,.14)!important;color:#ef8980!important}
+
+/* g70 pagamento flutuante */
+.pay-screen .pay-head{position:absolute!important;top:0;left:0;right:0;z-index:3;pointer-events:none;background:none!important;border:0!important;padding:calc(10px + env(safe-area-inset-top)) 14px 0!important}
+.pay-screen .pay-head .pay-pill{pointer-events:auto}
+.pay-screen .pay-foot{position:absolute!important;bottom:0;left:0;right:0;z-index:3;pointer-events:none;background:none!important;border:0!important;margin:0 auto!important}
+.pay-screen .pay-foot .pay-confirm{pointer-events:auto}
+.pay-screen .pay-body{position:absolute!important;top:0;bottom:0;left:0;right:0;margin:0 auto!important;padding-top:calc(70px + env(safe-area-inset-top))!important;padding-bottom:calc(120px + env(safe-area-inset-bottom))!important}
+/* g70 horario de atendimento */
+#app .period-editor-page{padding-bottom:90px}
+#app .period-editor-page .settings-back-row{margin:0 0 8px}
+#app .period-editor-page>.card{padding:12px 14px!important;margin:0 0 8px!important;border-radius:22px!important}
+#app .period-editor-page>.card h3{font-size:15px!important;margin:0 0 8px!important}
+#app .period-range{gap:8px!important;align-items:start}
+#app .period-range .field{margin:0!important;min-width:0}
+#app .period-range .field label{font-size:12px!important;margin:0 0 4px 4px!important;display:block}
+#app .period-range input[type=date]{width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box;height:40px!important;padding:0 10px!important;font-size:14px!important;border-radius:999px!important;text-align:center;-webkit-appearance:none;appearance:none;display:block}
+#app .period-range .lnk{display:block!important;margin:6px auto 0!important;padding:5px 12px!important;font-size:12px!important;border-radius:999px!important;min-height:0!important;width:auto!important}
+#app .period-edit-card{padding:10px 12px!important;margin:8px 0!important;border-radius:22px!important}
+#app .period-edit-card>div:first-child{min-height:34px}
+#app .period-edit-card>div:first-child b{font-size:15px;text-transform:capitalize}
+#app .period-copy{width:34px!important;height:34px!important;border-radius:50%!important;display:grid!important;place-items:center;padding:0!important}
+#app .period-copy svg{width:17px;height:17px}
+#app .period-interval{grid-template-columns:minmax(0,1fr) 10px minmax(0,1fr) 32px 32px!important;gap:5px!important;align-items:center!important;padding:6px!important;margin:6px 0 0!important;border-radius:999px!important}
+#app .period-interval .field label{display:none!important}
+#app .period-interval .arrow{padding:0!important;font-size:11px;opacity:.7}
+#app .period-interval input{height:36px!important;padding:0 4px!important;font-size:15px!important;font-weight:600;text-align:center;border-radius:999px!important;-webkit-appearance:none;appearance:none;display:block;box-sizing:border-box;margin:0!important}
+#app .period-interval button{width:32px!important;height:32px!important;padding:0!important;border-radius:50%!important;display:grid!important;place-items:center}
+#app .period-interval button svg{width:18px!important;height:18px!important}
+#app .period-add{width:auto!important;display:block;margin:8px auto 2px!important;padding:7px 18px!important;font-size:13px!important;border-radius:999px!important;border-style:dashed!important;background:transparent!important}
+#app .period-savebar .btn{min-width:0!important;min-height:0!important;height:46px!important;padding:0 22px!important;font-size:15px!important;letter-spacing:.3px!important;border-radius:999px!important}
+
+#app .period-range input[type=date],#app .period-interval input,#app .period-range .lnk{background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.04))!important;border:1px solid rgba(255,255,255,.16)!important;color:#fff!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+#app .period-interval{background:rgba(255,255,255,.04)!important;border:1px solid rgba(255,255,255,.1)}
+#app .period-interval button{background:rgba(255,255,255,.08)!important;border:1px solid rgba(255,255,255,.14)!important;color:#fff!important}
+#app .period-interval button[data-remove-range]{color:#f17e7e!important}
+#app .period-copy{background:rgba(255,255,255,.08)!important;border:1px solid rgba(255,255,255,.14)!important;color:#fff!important}
+#app .period-add{border-color:rgba(255,255,255,.28)!important;color:#fff!important}
 </style>
 
