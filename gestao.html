@@ -534,11 +534,13 @@ async function showBookingReview(id,from){
   const phone=whatsappBrazilNumber(b.client_phone);
   const msg=applyBookingMessage(getBookingMessages().confirmed,b);
   const fmtPh=(p)=>{const d=String(p||"").replace(/\D/g,"").replace(/^55(?=\d{10,11}$)/,"");return d.length===11?`(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`:d.length===10?`(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`:String(p||"")};
+  const dshort=DW[new Date(b.date+"T12:00:00").getDay()].slice(0,3)+", "+String(b.date).slice(8,10)+"/"+String(b.date).slice(5,7);
+  const svcChips=(b.services||[]).map(x=>`<span>${esc(x.name)}${Number(x.qty||1)>1?`<i>×${Number(x.qty)}</i>`:""}</span>`).join("")||"<span>—</span>";
   const svcList=(b.services||[]).map(x=>`<li><span>${esc(x.name)}</span><i>× ${Number(x.qty||1)}</i></li>`).join("");
   const I_PH='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg>';
   const I_CAL='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>';
   const I_CLK='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
-  shell("Detalhes do agendamento",`<div class="card rv-card"><div class="rv-top"><span class="pill ${b.status==="pending"?"pending":""}">${statusPortuguese(b.status)}</span></div><h2 class="rv-name">${esc(b.client_name)}</h2><a class="rv-phone" href="tel:${esc(String(b.client_phone||"").replace(/\D/g,""))}">${I_PH}<span>${esc(fmtPh(b.client_phone))}</span></a><div class="rv-grid"><div class="rv-tile"><small>${I_CAL}Data</small><b>${date}</b></div><div class="rv-tile"><small>${I_CLK}Horário</small><b>${time} – ${end}</b></div></div><div class="rv-sec"><small>Serviços</small><ul class="rv-svc">${svcList||"<li><span>—</span></li>"}</ul></div><div class="rv-total"><span>Valor</span><b>${fm(b.total)}</b></div>${b.status==="pending"?`<div class="rv-row"><div class="rv-col"><button type="button" data-bb="x" class="rv-b rv-no" id="review-cancel" data-id="${esc(b.id)}" aria-label="Cancelar agendamento"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span>Cancelar</span></div><div class="rv-col"><button type="button" data-bb="x" class="rv-b rv-yes" id="review-confirm" data-id="${esc(b.id)}" aria-label="Confirmar agendamento"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button><span>Confirmar</span></div></div>`:""}</div><div class="bb-row"><button type="button" class="bb-btn bb-back" data-bb="back" id="review-back" aria-label="Voltar" title="Voltar">Voltar</button></div>`);
+  shell("Detalhes do agendamento",`<div class="card rv-card"><div class="rv-top"><span class="pill ${b.status==="pending"?"pending":""}">${statusPortuguese(b.status)}</span></div><h2 class="rv-name">${esc(b.client_name)}</h2><a class="rv-phone" href="tel:${esc(String(b.client_phone||"").replace(/\D/g,""))}">${I_PH}<span>${esc(fmtPh(b.client_phone))}</span></a><div class="rv-grid"><div class="rv-tile">${I_CAL}<b>${dshort}</b></div><div class="rv-tile">${I_CLK}<b>${time} – ${end}</b></div></div><div class="rv-chips">${svcChips}</div><div class="rv-total"><span>Valor</span><b>${fm(b.total)}</b></div>${b.status==="pending"?`<div class="rv-row"><div class="rv-col"><button type="button" data-bb="x" class="rv-b rv-no" id="review-cancel" data-id="${esc(b.id)}" aria-label="Cancelar agendamento"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span>Cancelar</span></div><div class="rv-col"><button type="button" data-bb="x" class="rv-b rv-yes" id="review-confirm" data-id="${esc(b.id)}" aria-label="Confirmar agendamento"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button><span>Confirmar</span></div></div>`:""}</div><div class="bb-row"><button type="button" class="bb-btn bb-back" data-bb="back" id="review-back" aria-label="Voltar" title="Voltar">Voltar</button></div>`);
   $("#review-confirm")&&($("#review-confirm").onclick=async()=>{
    const btn=$("#review-confirm");btn.disabled=true;
    try{
@@ -3727,5 +3729,28 @@ input,select,textarea{background:linear-gradient(145deg,rgba(255,255,255,.10),rg
 .rv-total{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:#fff}
 .cw-no{background:rgba(255,255,255,.07);color:#fff;border-color:rgba(255,255,255,.2)}
 #app-confirm-wa .cw-yes{background:linear-gradient(135deg,#46be82,#19965f)!important;color:#fff!important;border-color:rgba(255,255,255,.55)!important}
+
+/* review compacto */
+#app .rv-card{padding:14px!important}
+#app .rv-name{font-size:21px!important;margin:8px 0 6px!important}
+#app .rv-top{display:inline-block;float:right}
+#app .rv-phone{font-size:13.5px;padding:5px 10px;gap:6px}
+#app .rv-phone svg{width:15px;height:15px}
+#app .rv-grid{gap:8px;margin:10px 0 8px}
+#app .rv-tile{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:14px}
+#app .rv-tile svg{flex:none;opacity:.75}
+#app .rv-tile b{font-size:14px;white-space:nowrap}
+#app .rv-chips{display:flex;flex-wrap:wrap;gap:6px}
+#app .rv-chips span{padding:6px 11px;border-radius:999px;font-size:13.5px;font-weight:700}
+#app .rv-chips span i{font-style:normal;opacity:.7;margin-left:5px}
+#app .rv-total{margin:8px 0 0;padding:9px 13px;border-radius:14px}
+#app .rv-total b{font-size:19px}
+#app .rv-card .rv-row{gap:34px!important;margin:14px 0 0!important}
+#app .rv-col{font-size:12px;gap:4px}
+#app .rv-b{width:52px!important;height:52px!important}
+#app .rv-b svg{width:22px;height:22px}
+#app .rv-b.rv-yes,#app .rv-b.rv-no{border:1px solid rgba(255,255,255,.28)!important}
+#app .rv-chips span{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#fff}
+#app .rv-b.rv-yes,#app .rv-b.rv-no{background:linear-gradient(145deg,rgba(92,92,98,.92),rgba(24,24,28,.96))!important;color:#fff!important;box-shadow:0 8px 18px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.3)!important}
 </style>
 
