@@ -1041,7 +1041,21 @@ window.__openSection=function(tab){
  history.replaceState({aba:tab},'',window.location.pathname+'?'+p.toString());
  showFinanceSection(tab);window.scrollTo(0,0);
 };
-(function(){let edge=false;document.addEventListener('touchstart',e=>{edge=e.touches.length===1&&e.touches[0].clientX<24;if(edge&&e.cancelable)e.preventDefault()},{passive:false});document.addEventListener('touchmove',e=>{if(edge&&e.cancelable)e.preventDefault()},{passive:false});document.addEventListener('touchend',()=>{edge=false},{passive:true})})();
+(function(){let sx=0,sy=0,st=0,mode=0,els=[];
+ const inSection=()=>{const h=document.getElementById('sectionViewHeader');return h&&!h.classList.contains('hidden')};
+ const blocked=()=>document.querySelector('.td-scrim,.stk-scrim,.pop-scrim,.pop');
+ const setT=(dx,anim)=>els.forEach(e=>{e.style.transition=anim||'none';e.style.transform=dx?'translate3d('+dx+'px,0,0)':''});
+ const reset=()=>{els.forEach(e=>{e.style.transition='';e.style.transform=''});els=[];mode=0};
+ document.addEventListener('touchstart',e=>{mode=0;if(e.touches.length!==1)return;const t=e.touches[0];if(t.clientX>=28)return;if(e.cancelable)e.preventDefault();
+  if(inSection()&&!blocked()){mode=2;sx=t.clientX;sy=t.clientY;st=Date.now()}else mode=1},{passive:false});
+ document.addEventListener('touchmove',e=>{if(!mode)return;if(e.cancelable)e.preventDefault();if(mode===1||!e.touches.length)return;const dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
+  if(mode===2){if(dx>10&&dx>Math.abs(dy)){mode=3;els=[document.querySelector('.section.active'),document.getElementById('sectionViewHeader')].filter(Boolean)}else return}
+  setT(Math.max(0,dx))},{passive:false});
+ document.addEventListener('touchend',e=>{if(mode!==3){mode=0;return}const dx=(e.changedTouches[0]||{}).clientX-sx,fast=Date.now()-st<260;
+  if(dx>90||(dx>40&&fast)){setT(window.innerWidth,'transform .24s cubic-bezier(.3,.1,.25,1)');setTimeout(()=>{returnToFinanceDashboard();setTimeout(reset,140)},250)}
+  else{setT(0,'transform .3s cubic-bezier(.3,.1,.25,1)');setTimeout(reset,320)}},{passive:true});
+ document.addEventListener('touchcancel',()=>{if(mode===3){setT(0,'transform .3s ease');setTimeout(reset,320)}else mode=0},{passive:true});
+})();
 window.addEventListener('popstate',function(){
  const a=new URLSearchParams(window.location.search).get('aba');
  if(a&&document.getElementById('section-'+a)){showFinanceSection(a);window.scrollTo(0,0)}else showDashboard();
