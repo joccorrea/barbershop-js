@@ -384,6 +384,8 @@ button.cb-pill{cursor:pointer;font-family:inherit}
 .pm-res{margin-top:6px;font-size:13px;color:#136C45;font-weight:700}
 .pm-dates{display:flex;gap:8px}.pm-dates .field{flex:1;min-width:0}
 .promo-tag{display:inline-block;background:#E5484D;color:#fff;border-radius:8px;padding:0 6px;font-size:11px;font-weight:800;margin-left:6px}
+.pay-plus{color:#2f6fdb!important;font-size:26px!important;font-weight:700;line-height:1}
+.sheet-scrim.pd-sheet{z-index:6200!important}.pd-f select{width:100%;height:44px;border-radius:12px;border:1.5px solid #C4DFF8;background:#fff;color:#10304F;padding:0 10px;font-size:16px}
 .pay-addprod{width:100%;height:46px;border:1.5px dashed #6FA8DC;background:#F3F9FF;color:#2f6fb0;border-radius:14px;font-weight:800;font-size:15px;margin-top:4px}
 .pay-money{margin-left:auto;width:auto!important;min-width:0;padding:0 4px 0 8px!important;background:transparent!important;border:0!important}
 .pay-money input{width:96px!important;flex:none;text-align:right!important;background:#F3F9FF!important;border:1px solid #C4DFF8!important;border-radius:10px!important;padding:0 10px!important;height:42px!important}
@@ -995,13 +997,15 @@ function pdClose(d){
  if(sheet&&pdOpen!==null){pdOpen=null;pdRender()}
 }
 document.addEventListener("click",e=>{if(pdOpen!==null&&page==="products"&&!e.target.closest(".pd-item,.sheet-scrim,.pd-scrim")){pdOpen=null;pdRender()}});
-function pdForm(id){
+function pdForm(id,onDone){
  const p=id?products.find(x=>x.id===id):null;let cat=p?pdCat(p):"";
  const d=pdModal(`<h3>${p?"Editar produto":"Cadastrar produto"}</h3>
  <div class="pd-f"><label>Nome *</label><input id="pf-name" maxlength="120" value="${esc(p?.name||"")}"></div>
  <div class="pd-f"><label>Categoria</label><button type="button" class="pd-catbtn" id="pf-cat"></button></div>
  <div class="pd-row"><div class="pd-f"><label>Preço de venda</label><input id="pf-sale" type="number" inputmode="decimal" min="0" step=".01" placeholder="0,00" value="${p?p.sale_price:""}"></div><div class="pd-f"><label>Custo unitário</label><input id="pf-cost" type="number" inputmode="decimal" min="0" step=".01" placeholder="0,00" value="${p?p.cost_price:""}"></div></div>
  <div class="pd-row">${p?"":`<div class="pd-f"><label>Estoque inicial</label><input id="pf-qty" type="number" inputmode="numeric" min="0" step="1" placeholder="0"></div>`}<div class="pd-f"><label>Estoque mínimo</label><input id="pf-min" type="number" inputmode="numeric" min="0" step="1" placeholder="0" value="${p?p.min_stock:""}"></div></div>
+
+ ${p?"":`<div class="pd-f"><label>Campanha (opcional)</label><select id="pf-promo"><option value="">Não participa de campanha</option></select></div><div id="pf-pbox" class="hidden"><div class="pd-row"><div class="pd-f"><label>Desconto</label><select id="pf-ptype"><option value="price">Preço final</option><option value="amount">R$ de desconto</option><option value="percent">% de desconto</option></select></div><div class="pd-f"><label>Valor</label><input id="pf-pval" type="number" inputmode="decimal" min="0" step=".01" placeholder="0,00"></div></div></div>`}
  <div class="pd-err" id="pf-err"></div>
  <button type="button" class="pd-ok" id="pf-ok">${p?"Salvar":"Cadastrar produto"}</button>${p?'<button type="button" class="pd-del" id="pf-del">Remover produto da lista</button>':""}<button type="button" class="pd-x" id="pf-x">Voltar</button>`);
  const q=s=>d.querySelector(s);
@@ -1009,6 +1013,10 @@ function pdForm(id){
  q("#pf-x").onclick=()=>pdClose(d);
  q("#pf-cat").onclick=()=>pdCatPicker(cat,v=>{cat=v;showCat()});
  const err=t=>{q("#pf-err").textContent=t};
+ if(!p&&q("#pf-promo")){
+  api(`promotions?select=id,name,starts_on,ends_on&ends_on=gte.${key(new Date())}&order=starts_on`).then(l=>{q("#pf-promo").insertAdjacentHTML("beforeend",l.map(x=>`<option value="${x.id}">${esc(x.name)} (${pkgDateBR(x.starts_on)} a ${pkgDateBR(x.ends_on)})</option>`).join(""))}).catch(()=>{});
+  q("#pf-promo").onchange=()=>q("#pf-pbox").classList.toggle("hidden",!q("#pf-promo").value);
+ }
  if(p)q("#pf-del").onclick=async()=>{if(!confirm('Remover "'+p.name+'" da lista de produtos?'))return;try{await api(`finance_products?id=eq.${p.id}`,{method:"PATCH",body:JSON.stringify({active:false,updated_at:new Date().toISOString()})});pdClose(d);pdOpen=null;await loadProducts()}catch(e){err(e.message)}};
  q("#pf-ok").onclick=async e=>{
   const btn=e.target;
@@ -1019,8 +1027,10 @@ function pdForm(id){
    if(row.sale_price<0||row.cost_price<0||row.min_stock<0)throw Error("Valores não podem ser negativos.");
    btn.disabled=true;btn.textContent="Salvando…";
    if(p)await api(`finance_products?id=eq.${p.id}`,{method:"PATCH",body:JSON.stringify({...row,updated_at:new Date().toISOString()})});
-   else{const qty=Math.round(n("#pf-qty"));if(qty<0)throw Error("Estoque inicial inválido.");const made=await api("finance_products",{method:"POST",body:JSON.stringify({...row,stock_quantity:qty,active:true})});const it=made?.[0];if(it&&qty>0)await api("finance_stock_movements",{method:"POST",body:JSON.stringify({product_id:it.id,movement_type:"adjustment",quantity:qty,unit_cost:row.cost_price,description:"Estoque inicial",movement_date:todayLocal(),created_by:uid()})})}
-   pdClose(d);await loadProducts();
+   else{const qty=Math.round(n("#pf-qty"));if(qty<0)throw Error("Estoque inicial inválido.");const made=await api("finance_products",{method:"POST",body:JSON.stringify({...row,stock_quantity:qty,active:true})});const it=made?.[0];if(it&&qty>0)await api("finance_stock_movements",{method:"POST",body:JSON.stringify({product_id:it.id,movement_type:"adjustment",quantity:qty,unit_cost:row.cost_price,description:"Estoque inicial",movement_date:todayLocal(),created_by:uid()})});
+    if(it&&q("#pf-promo")?.value){const pv=Number(q("#pf-pval").value);if(!(pv>0)){/* produto já criado; avisa sem perder */alert("Produto cadastrado, mas a campanha não foi aplicada: informe o valor do desconto editando a promoção.")}else{await api("promotion_items",{method:"POST",body:JSON.stringify([{promotion_id:Number(q("#pf-promo").value),product_id:it.id,discount_type:q("#pf-ptype").value,value:pv}])});__promoCache=null}}
+    window.__lastNewProduct=it||null}
+   pdClose(d);if(onDone)await onDone(window.__lastNewProduct);else await loadProducts();
   }catch(er){err(er.message);btn.disabled=false;btn.textContent=p?"Salvar":"Cadastrar produto"}
  };
 }
@@ -1129,11 +1139,12 @@ async function editPromotion(id){
   const m=document.createElement("div");m.className="nsm";
   const used=new Set(items.map(i=>i.kind+i.ref));
   const rows=[...prods.map(x=>({kind:"p",ref:x.id,name:x.name,price:Number(x.sale_price),tag:"Produto"})),...svcs.map(x=>({kind:"s",ref:x.id,name:x.name,price:Number(x.price),tag:"Serviço"}))].filter(r=>!used.has(r.kind+r.ref));
-  m.innerHTML=`<div class="nsm-card"><h3>Adicionar à promoção</h3><input id="pm-q" type="search" placeholder="Buscar…" autocomplete="off" style="width:100%;margin-bottom:8px"><div id="pm-list" style="max-height:48vh;overflow:auto"></div><div class="bb-row"><button type="button" class="bb-btn bb-back" data-bb="back" id="pm-b" aria-label="Voltar" title="Voltar">Voltar</button></div></div>`;
+  m.innerHTML=`<div class="nsm-card"><h3>Adicionar à promoção</h3><div class="row between" style="margin:0 0 8px"><span class="muted">Produtos e serviços</span><button type="button" class="pay-x pay-plus" id="pm-newp" aria-label="Cadastrar produto" title="Cadastrar produto">＋</button></div><input id="pm-q" type="search" placeholder="Buscar…" autocomplete="off" style="width:100%;margin-bottom:8px"><div id="pm-list" style="max-height:48vh;overflow:auto"></div><div class="bb-row"><button type="button" class="bb-btn bb-back" data-bb="back" id="pm-b" aria-label="Voltar" title="Voltar">Voltar</button></div></div>`;
   document.body.appendChild(m);
   const list=()=>{const q=normalizeSearch($("#pm-q").value);$("#pm-list").innerHTML=rows.filter(r=>!q||normalizeSearch(r.name).includes(q)).map(r=>`<button type="button" class="pp-item" data-r="${r.kind}${r.ref}"><span><b>${esc(r.name)}</b><small>${r.tag}</small></span><b>${fm(r.price)}</b></button>`).join("")||`<p class="muted">Nada encontrado.</p>`;
    $("#pm-list").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const r=rows.find(x=>x.kind+x.ref===b.dataset.r);items.push({kind:r.kind,ref:r.ref,type:"price",value:Math.round(r.price*100)/100});m.remove();draw()})};
   list();$("#pm-q").oninput=list;$("#pm-b").onclick=()=>m.remove();
+  $("#pm-newp").onclick=()=>{products=prods;pdForm(null,async np=>{try{prods=await api("finance_products?select=id,name,sale_price&active=eq.true&order=name")}catch(e){}if(np)items.push({kind:"p",ref:np.id,type:"price",value:Math.round(Number(np.sale_price||0)*100)/100});m.remove();draw()})};
   m.addEventListener("click",e=>{if(e.target===m)m.remove()});
  };
  $("#promo-form").onsubmit=async e=>{
@@ -2436,7 +2447,7 @@ async function openPaymentScreen(b,opts={}){
     <div class="pay-opts"><label class="pay-optrow"><span>Data do pagamento</span><input type="date" id="pay-date" value="${payDate}"></label>
     ${needsDoneToggle?`<label class="pay-optrow"><span>Serviço já realizado?<small>${serviceDone?"O agendamento ficará concluído":"Fica marcado como pago, falta atender"}</small></span><input type="checkbox" id="pay-done" ${serviceDone?"checked":""}></label>`:""}</div>`}
     </div>${settled&&pt<=0&&!pkgPending?"":`<footer class="pay-foot"><button type="button" class="btn primary pay-confirm" id="pay-ok" ${info.bad?"disabled":""}>${info.label}</button></footer>`}
-    ${pickerOpen?`<div class="pay-picker" id="pay-picker"><div class="pay-picker-card"><div class="pay-picker-h"><b>Escolha o produto</b><button type="button" id="pp-close" class="pay-x">✕</button></div>${catalog.length?catalog.map(p=>`<button type="button" class="pp-item" data-pp="${p.id}" ${Number(p.stock_quantity)<=0?"disabled":""}><span><b>${esc(p.name)}</b><small>Estoque: ${p.stock_quantity}${p.promo?` · <span class="promo-tag">${esc(p.promo)}</span>`:""}</small></span><b>${p.promo?`<s style="opacity:.5;font-weight:500">${fm(p.orig_price)}</s> `:""}${fm(p.sale_price)}</b></button>`).join(""):`<p class="muted" style="padding:12px">Nenhum produto ativo cadastrado. Cadastre em Configurações › Produtos.</p>`}</div></div>`:""}`;
+    ${pickerOpen?`<div class="pay-picker" id="pay-picker"><div class="pay-picker-card"><div class="pay-picker-h"><b>Escolha o produto</b><button type="button" id="pp-add" class="pay-x pay-plus" aria-label="Cadastrar produto" title="Cadastrar produto">＋</button></div>${catalog.length?catalog.map(p=>`<button type="button" class="pp-item" data-pp="${p.id}" ${Number(p.stock_quantity)<=0?"disabled":""}><span><b>${esc(p.name)}</b><small>Estoque: ${p.stock_quantity}${p.promo?` · <span class="promo-tag">${esc(p.promo)}</span>`:""}</small></span><b>${p.promo?`<s style="opacity:.5;font-weight:500">${fm(p.orig_price)}</s> `:""}${fm(p.sale_price)}</b></button>`).join(""):`<p class="muted" style="padding:12px">Nenhum produto ativo cadastrado. Cadastre em Configurações › Produtos.</p>`}</div></div>`:""}`;
     {const nb=el.querySelector(".pay-body");if(nb)nb.scrollTop=__top}
     const q=x=>el.querySelector(x),qa=x=>el.querySelectorAll(x);
     q("#pay-back").onclick=close;
@@ -2451,6 +2462,7 @@ async function openPaymentScreen(b,opts={}){
     q("#pay-addprod").onclick=()=>{pickerOpen=true;draw()};
     q("#pay-sellpkg")?.addEventListener("click",sellPkgHere);
     q("#pp-close")?.addEventListener("click",()=>{pickerOpen=false;draw()});
+    q("#pp-add")?.addEventListener("click",()=>{products=catalog;pdForm(null,async()=>{try{catalog=await api("finance_products?select=*&active=eq.true&order=name");await applyPromosToProducts(catalog)}catch(e){}draw()})});
     q("#pay-picker")?.addEventListener("click",ev=>{if(ev.target.id==="pay-picker"){pickerOpen=false;draw()}});
     qa("[data-pp]").forEach(x=>x.onclick=()=>{const c=catalog.find(z=>String(z.id)===x.dataset.pp);const f=prods.find(p=>p.product_id===c.id);if(f){if(f.quantity+1>Number(c.stock_quantity)){alert("Estoque insuficiente.");return}f.quantity++}else prods.push({product_id:c.id,name:c.name,quantity:1,unit_price:Number(c.sale_price),unit_cost:Number(c.cost_price||0),promo:c.promo||"",orig:c.orig_price});pickerOpen=false;resync();draw()});
     q("#pay-alter")?.addEventListener("click",enterEdit);
