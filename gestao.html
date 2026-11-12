@@ -2825,7 +2825,26 @@ function openStatusPicker(id){
 }
 let apptHoldT=null,apptSink=null,apptXY=null;
 const apptClear=()=>{clearTimeout(appointmentHoldTimer);clearTimeout(apptSink);apptSink=null;document.querySelectorAll(".holding").forEach(c=>c.classList.remove("holding"))};
-document.addEventListener("change",e=>{if(e.target.id!=="booking-allday")return;const on=e.target.checked,st=$("#booking-start"),en=$("#booking-end"),ed=$("#booking-end-date"),sd=$("#booking-date");if(!st||!en)return;if(on){e.target.dataset.s=st.value;e.target.dataset.e=en.value;st.value="00:00";en.value="23:59";if(sd&&ed)ed.value=sd.value}else{if(e.target.dataset.s!==undefined)st.value=e.target.dataset.s;if(e.target.dataset.e!==undefined)en.value=e.target.dataset.e}[st,en].forEach(x=>{const f=x.closest(".field");if(f)f.style.display=on?"none":""});const bl=[...document.querySelectorAll(".booking-range-label")];bl.forEach(l=>{if(/^(Início|Fim)$/.test(l.textContent.trim())&&l.nextElementSibling&&l.nextElementSibling.querySelector("#booking-start,#booking-end"))l.nextElementSibling.querySelectorAll(".field").forEach(()=>{})})});
+async function __dayBounds(dateStr){
+ const wd=new Date(dateStr+"T12:00:00").getDay();
+ try{
+  const per=(await api("business_hour_periods?select=start_date,end_date,active,schedule&active=eq.true")).filter(p=>p.start_date<=dateStr&&(!p.end_date||p.end_date>=dateStr)).sort((a,b)=>b.start_date.localeCompare(a.start_date)||b.id-a.id)[0];
+  let r=[];
+  if(per)r=normalizeSchedule(per.schedule)[wd]||[];
+  else{const h=(await api(`business_hours?select=*&weekday=eq.${wd}`))[0];if(h&&h.open_min!=null)r=[{start_min:Number(h.open_min),end_min:Number(h.close_min)}]}
+  if(!r.length)return null;
+  return{a:Math.min(...r.map(x=>Number(x.start_min))),b:Math.max(...r.map(x=>Number(x.end_min)))}
+ }catch(e){return null}
+}
+async function __fillAllDay(){
+ const cb=document.getElementById("booking-allday");if(!cb||!cb.checked)return;
+ const st=document.getElementById("booking-start"),en=document.getElementById("booking-end"),sd=document.getElementById("booking-date"),ed=document.getElementById("booking-end-date");if(!st||!en||!sd)return;
+ const bd=await __dayBounds(sd.value);if(!cb.checked)return;
+ if(bd){st.value=hm(bd.a);en.value=hm(bd.b)}else{st.value="00:00";en.value="23:59"}
+ if(ed)ed.value=sd.value;
+}
+document.addEventListener("change",e=>{if(e.target.id==="booking-date")__fillAllDay()});
+document.addEventListener("change",e=>{if(e.target.id!=="booking-allday")return;const on=e.target.checked,st=$("#booking-start"),en=$("#booking-end"),ed=$("#booking-end-date"),sd=$("#booking-date");if(!st||!en)return;if(on){e.target.dataset.s=st.value;e.target.dataset.e=en.value;st.value="00:00";en.value="23:59";if(sd&&ed)ed.value=sd.value;__fillAllDay()}else{if(e.target.dataset.s!==undefined)st.value=e.target.dataset.s;if(e.target.dataset.e!==undefined)en.value=e.target.dataset.e}[st,en].forEach(x=>{const f=x.closest(".field");if(f)f.style.display=on?"none":""});const bl=[...document.querySelectorAll(".booking-range-label")];bl.forEach(l=>{if(/^(Início|Fim)$/.test(l.textContent.trim())&&l.nextElementSibling&&l.nextElementSibling.querySelector("#booking-start,#booking-end"))l.nextElementSibling.querySelectorAll(".field").forEach(()=>{})})});
 document.addEventListener("pointerdown",e=>{
   const card=e.target.closest(".agenda-appointment[data-open-booking],.ag-appt[data-open-booking]");if(!card)return;
   appointmentHoldTriggered=false;appointmentHoldTarget=card;apptXY=[e.clientX,e.clientY];
@@ -3581,6 +3600,11 @@ input,select,textarea{background:linear-gradient(145deg,rgba(255,255,255,.10),rg
 :is(html,#app) button.bb-btn.bb-btn{box-shadow:0 10px 24px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.4),inset 0 -6px 12px rgba(255,255,255,.04)!important;-webkit-backdrop-filter:blur(18px) saturate(1.8);backdrop-filter:blur(18px) saturate(1.8)}
 /* excluir cliente embaixo à esquerda */
 #client-form button.cf-del{position:fixed!important;left:18px!important;right:auto!important;bottom:calc(18px + env(safe-area-inset-bottom))!important;margin:0!important;z-index:60}
+/* Salvar sempre suspenso embaixo à direita (telas de página, não modais) */
+#app main button.bb-btn.bb-save:not(.cf-save),#app button.bb-btn.bb-save:not(.cf-save):not(:is(.nsm-card *,.app-confirm *,.pay-foot *,[role=dialog] *,.sheet *,.modal *)){position:fixed!important;right:18px!important;left:auto!important;bottom:calc(18px + env(safe-area-inset-bottom))!important;margin:0!important;z-index:60;box-shadow:0 10px 24px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.7)!important}
+#app :is(.nsm-card,.app-confirm,.pay-foot,[role=dialog],.sheet,.modal) button.bb-btn.bb-save{position:static!important}
+#app:has(button.bb-save){padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+
 .agenda-grid .agenda-slot,#app .agenda-slot{background:linear-gradient(145deg,rgba(255,255,255,.11),rgba(255,255,255,.035))!important;border:1px solid rgba(255,255,255,.15)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.2)!important}
 .logo,.menu-brand .logo,header img,.top img{background:transparent!important;filter:brightness(0) invert(1)!important;border-color:#fff!important}
 #current-time-indicator{background:#d4d4d8!important;box-shadow:0 0 6px rgba(255,255,255,.35)}#current-time-indicator:before{background:#d4d4d8!important}
