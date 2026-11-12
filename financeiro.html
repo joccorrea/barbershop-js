@@ -71,7 +71,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid #4F94D866;border-color
 .tile small{font-weight:400;color:#BDBDBD;font-size:11.5px;line-height:1.3}
 .tile:active{transform:scale(.97)}
 .big3{grid-template-columns:repeat(3,minmax(0,1fr))!important}
-.big3 .value{font-size:clamp(17px,5vw,28px)!important;font-weight:800}
+.big3{gap:8px!important}.big3 .card{padding:10px!important;min-width:0}.big3 .label{font-size:11.5px}.big3 .value{font-size:clamp(14px,4.3vw,19px)!important;font-weight:800;white-space:nowrap;letter-spacing:-.2px}
+.ret{margin:12px 0;padding:12px 14px}.ret h2{margin:0 0 8px;font-size:14px}.ret .rl{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;font-size:14px;border-top:1px solid rgba(255,255,255,0.07)}.ret h2+.rl{border-top:0}.ret .rl small{display:block;font-size:11.5px;opacity:.75}.ret .rl b{white-space:nowrap}
+.mv-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 10px}.mv-tabs button{padding:9px 4px;border-radius:12px;font-size:13px;font-weight:700;background:#1d1d20!important;color:#fff!important;border:1px solid rgba(255,255,255,0.16)!important;box-shadow:none}.mv-tabs button.on{background:#4F94D8!important;color:#fff!important;border-color:#4F94D8!important}.mv-tabs button i{font-style:normal;font-weight:600;opacity:.85;margin-left:3px;font-size:12px}
 .fold{margin:12px 0}
 .fold>summary{cursor:pointer;font-weight:700;padding:10px 14px;border-radius:14px;background:#1d1d20;border:1px solid rgba(255,255,255,0.16);color:#fff;list-style:none;display:flex;justify-content:space-between;align-items:center;user-select:none}
 .fold>summary::-webkit-details-marker{display:none}
@@ -344,6 +346,9 @@ input,select,textarea{background:linear-gradient(145deg,rgba(255,255,255,.10),rg
 .cashsum div{background:rgba(255,255,255,.07)!important;color:#fff!important}
 .cashToday .label{color:#BDBDBD!important}
 .cashToday button{background:linear-gradient(180deg,#fff,#d4d4d8)!important;color:#111!important;border:0!important}
+.ret .rl{border-top-color:rgba(255,255,255,.12)!important}
+.mv-tabs button{background:rgba(255,255,255,.06)!important;color:#fff!important;border:1px solid rgba(255,255,255,.14)!important}
+.mv-tabs button.on{background:linear-gradient(180deg,#fff,#d4d4d8)!important;color:#111!important;border-color:#fff!important}
 
 </style></head>
 <body>
@@ -369,14 +374,15 @@ input,select,textarea{background:linear-gradient(145deg,rgba(255,255,255,.10),rg
 <div class="card"><div class="label">Contas a receber</div><div class="value" id="sumDue">R$ 0,00</div></div>
 </div>
 <div class="cards">
-<div class="card"><div class="label">Investimentos (separado)</div><div class="value" id="invest">R$ 0,00</div></div>
-<div class="card"><div class="label">Sobrou depois de investir</div><div class="value" id="resultInv">R$ 0,00</div></div>
+<div class="card"><div class="label">Despesas</div><div class="value red" id="despesas">R$ 0,00</div></div>
+<div class="card"><div class="label">Investimentos</div><div class="value" id="invest">R$ 0,00</div></div>
 </div>
 </details>
 <div class="panel cashToday" id="cashToday"><div><div class="label">Caixa de hoje</div><div class="ct-state" id="ctState">Carregando…</div><div class="small" id="ctSub"></div></div><button type="button" id="ctBtn" data-tab="cash">Abrir caixa</button></div>
-<div class="tiles"><button type="button" class="tile" data-tab="appointments"><span class="ico">✂</span>Atendimentos<small>Fechar e receber</small></button><button type="button" class="tile" data-tab="cash"><span class="ico">◉</span>Caixa<small>Abertura e fechamento</small></button><button type="button" class="tile" data-tab="movements"><span class="ico">⇅</span>Lançamentos e Contas<small>Entradas, saídas e pendências</small></button><button type="button" class="tile" data-tab="stock"><span class="ico">▣</span>Estoque<small>Produtos e reposição</small></button><button type="button" class="tile" data-tab="commissions"><span class="ico">％</span>Comissões<small>Por profissional</small></button></div>
+<div class="panel ret" id="retBox"><h2>Retiradas do proprietário (pró-labore)</h2><div class="rl"><span>Pelo caixa<small>dinheiro e cartão</small></span><b id="retCaixa">R$ 0,00</b></div><div class="rl"><span>Por fora<small>Pix e outras formas</small></span><b id="retFora">R$ 0,00</b></div><div class="rl"><span><b>Total retirado</b></span><b id="retTotal">R$ 0,00</b></div></div>
+<div class="tiles"><button type="button" class="tile" data-tab="appointments"><span class="ico">✂</span>Atendimentos<small>Fechar e receber</small></button><button type="button" class="tile" data-tab="cash"><span class="ico">◉</span>Caixa<small>Abertura e fechamento</small></button><button type="button" class="tile" data-tab="movements"><span class="ico">⇅</span>Lançamentos e Contas<small>Pago, a pagar e a receber</small></button><button type="button" class="tile" data-tab="stock"><span class="ico">▣</span>Estoque<small>Produtos e reposição</small></button><button type="button" class="tile" data-tab="commissions"><span class="ico">％</span>Comissões<small>Por profissional</small></button></div>
 <details class="fold" id="detMais"><summary>Mais</summary>
-<div class="tiles"><button type="button" class="tile" data-tab="pending"><span class="ico">⏳</span>Contas pendentes<small>A receber e a pagar</small></button><button type="button" class="tile" data-tab="packages"><span class="ico">❖</span>Pacotes<small>Venda e saldo</small></button><button type="button" class="tile" data-tab="fixed"><span class="ico">↻</span>Despesas fixas<small>Aluguel, luz, etc.</small></button><button type="button" class="tile" data-tab="cashflow"><span class="ico">≈</span>Fluxo de caixa<small>Previsão de 30 dias</small></button><button type="button" class="tile" data-tab="rankings"><span class="ico">★</span>Rankings<small>Serviços e clientes</small></button><button type="button" class="tile" data-tab="reports"><span class="ico">▤</span>Relatórios<small>PDF e Excel</small></button><button type="button" class="tile" data-tab="settings"><span class="ico">⚙</span>Configurações<small>Metas e taxas</small></button></div>
+<div class="tiles"><button type="button" class="tile" data-tab="packages"><span class="ico">❖</span>Pacotes<small>Venda e saldo</small></button><button type="button" class="tile" data-tab="fixed"><span class="ico">↻</span>Despesas fixas<small>Aluguel, luz, etc.</small></button><button type="button" class="tile" data-tab="cashflow"><span class="ico">≈</span>Fluxo de caixa<small>Previsão de 30 dias</small></button><button type="button" class="tile" data-tab="rankings"><span class="ico">★</span>Rankings<small>Serviços e clientes</small></button><button type="button" class="tile" data-tab="reports"><span class="ico">▤</span>Relatórios<small>PDF e Excel</small></button><button type="button" class="tile" data-tab="settings"><span class="ico">⚙</span>Configurações<small>Metas e taxas</small></button></div>
 </details>
 
 <details class="fold insights" id="detIns"><summary>Comparativo, indicadores e gráficos</summary><h2>Comparativo com o mês anterior</h2><div class="cards" id="cmpCards"></div>
@@ -410,6 +416,7 @@ input,select,textarea{background:linear-gradient(145deg,rgba(255,255,255,.10),rg
 <div id="bookingRows" class="bk-list"><div class="empty">Carregando…</div></div></div>
 </section>
 <section class="section" id="section-movements">
+<div class="mv-tabs" id="mvTabs"><button type="button" data-mvt="paid">Pago<i id="mvtP"></i></button><button type="button" data-mvt="pay">A pagar<i id="mvtA"></i></button><button type="button" data-mvt="recv">A receber<i id="mvtR"></i></button></div>
 <div class="mv-bar"><div class="field"><label>Filtrar tipo</label><select id="filter"><option value="">Todos</option><option value="income">Receitas</option><option value="expense">Despesas</option><option value="investment">Investimentos</option><option value="pro_labore">Pró-labore</option><option value="refund">Reembolsos</option></select></div></div>
 <div class="mv-sum" id="mvSum"></div>
 <div id="rows" class="bk-list"></div>
@@ -559,18 +566,26 @@ async function load(){msg('');try{
  }catch(e){msg(e.message,true)}}
 function renderAll(){try{renderExtra()}catch(e){console.error(e)}renderMovements();renderProducts();renderCash();renderBookings();renderPending();renderCardsReports();$('permissionInfo').textContent=canEdit?'Acesso autorizado para visualizar e editar.':'Acesso somente leitura. Para editar, o proprietário deve habilitar can_edit no banco.'}
 function renderCardsReports(){
- const paid=movements.filter(x=>x.status==='paid'),sumKind=k=>sum(paid.filter(x=>x.kind===k),x=>x.amount),inc=sumKind('income'),exp=sumKind('expense')+sumKind('pro_labore')+sumKind('refund'),inv=sumKind('investment'),due=sum(movements.filter(x=>x.status==='pending'&&x.kind==='income'),x=>x.amount),res=inc-exp-inv;
- $('income').textContent=money(inc);$('expense').textContent=money(exp);$('invest').textContent=money(inv);const resOp=inc-exp;$('result').textContent=money(resOp);$('result').className='value '+(resOp<0?'red':'green');$('resultInv').textContent=money(res);$('resultInv').className='value '+(res<0?'red':'green');
+ const paid=movements.filter(x=>x.status==='paid'),sumKind=k=>sum(paid.filter(x=>x.kind===k),x=>x.amount),inc=sumKind('income'),exp=sumKind('expense')+sumKind('refund'),inv=sumKind('investment'),pl=paid.filter(x=>x.kind==='pro_labore'),due=sum(movements.filter(x=>x.status==='pending'&&x.kind==='income'),x=>x.amount),out=exp+inv,resOp=inc-out,res=inc-exp-inv-sumKind('pro_labore');
+ $('income').textContent=money(inc);$('expense').textContent=money(out);$('despesas').textContent=money(exp);$('invest').textContent=money(inv);$('result').textContent=money(resOp);$('result').className='value '+(resOp<0?'red':'green');
+ const rc=sum(pl.filter(x=>['cash','card'].includes(x.payment_method)),x=>x.amount),rt=sum(pl,x=>x.amount);$('retCaixa').textContent=money(rc);$('retFora').textContent=money(rt-rc);$('retTotal').textContent=money(rt);
  $('sumPix').textContent=money(sum(paid.filter(x=>x.kind==='income'&&x.payment_method==='pix'),x=>x.amount));$('sumCash').textContent=money(sum(paid.filter(x=>x.kind==='income'&&x.payment_method==='cash'),x=>x.amount));$('sumCard').textContent=money(sum(paid.filter(x=>x.kind==='income'&&x.payment_method==='card'),x=>x.amount));$('sumDue').textContent=money(due);
  $('reportMethods').innerHTML=pmLabels(paid.filter(x=>x.kind==='income')).map(m=>`<div class="pill">${esc(m)} <b style="float:right">${money(sum(paid.filter(x=>x.kind==='income'&&mLabel(x)===m),x=>x.amount))}</b></div>`).join('');
- $('reportSummary').innerHTML=`<div class="pill">Receitas: <b>${money(inc)}</b></div><div class="pill">Despesas + pró-labore + reembolsos: <b>${money(exp)}</b></div><div class="pill">Investimentos: <b>${money(inv)}</b></div><div class="pill">Resultado após investimentos: <b>${money(res)}</b></div><div class="pill">Recebíveis pendentes: <b>${money(due)}</b></div>`;
+ $('reportSummary').innerHTML=`<div class="pill">Receitas: <b>${money(inc)}</b></div><div class="pill">Despesas + reembolsos: <b>${money(exp)}</b></div><div class="pill">Retiradas (pró-labore): <b>${money(sum(pl,x=>x.amount))}</b></div><div class="pill">Investimentos: <b>${money(inv)}</b></div><div class="pill">Resultado após investimentos e retiradas: <b>${money(res)}</b></div><div class="pill">Recebíveis pendentes: <b>${money(due)}</b></div>`;
  $('reportProLabore').innerHTML=`<div class="pill">Retiradas lançadas como pró-labore: <b>${money(sum(paid.filter(x=>x.kind==='pro_labore'),x=>x.amount))}</b></div><div class="pill">Pró-labore mensal de referência: <b>${money(settings?.pro_labore_monthly||0)}</b></div>`;
 }
-function renderMovements(){const list=movements.filter(x=>x.status!=='cancelled'&&(!$('filter').value||x.kind===$('filter').value));
- const ent=sum(list.filter(x=>x.status==='paid'&&x.kind==='income'),x=>x.amount),sai=sum(list.filter(x=>x.status==='paid'&&x.kind!=='income'),x=>x.amount);
- $('mvSum').innerHTML=stat('Entradas',money(ent),'green')+stat('Saídas',money(sai),'red');
- $('rows').innerHTML=list.length?list.map(x=>{const inc=x.kind==='income',tg=x.status==='pending'?'<span class="tag warn">Pendente</span>':'';
-  return `<div class="bk" data-mv="${x.id}"><div class="bk-top">${dayBox(x.movement_date)}<div class="bk-main"><b>${esc(x.description)}</b><div class="small">${esc(x.category||'')} · ${esc(mLabel(x)||'')}</div></div><div class="bk-side"><b class="${inc?'green':'red'}">${inc?'+':'−'} ${money(x.amount)}</b><span class="tag">${kindName(x.kind)}</span></div></div>${tg?`<div class="bk-foot">${tg}</div>`:''}</div>`}).join(''):emptyBox('Nenhum lançamento neste mês.')}
+let mvTab='paid';
+function mvSetTab(t){mvTab=t;try{renderMovements()}catch(e){}}
+function renderMovements(){const today=fmtDate(now),all=movements.filter(x=>x.status!=='cancelled'),fk=$('filter').value,isP=x=>x.status==='pending',tabOf=x=>!isP(x)?'paid':(x.kind==='income'?'recv':'pay');
+ const cnt=t=>all.filter(x=>tabOf(x)===t).length;$('mvtP').textContent=cnt('paid');$('mvtA').textContent=cnt('pay');$('mvtR').textContent=cnt('recv');
+ document.querySelectorAll('#mvTabs [data-mvt]').forEach(b=>b.classList.toggle('on',b.dataset.mvt===mvTab));
+ let list=all.filter(x=>tabOf(x)===mvTab&&(!fk||x.kind===fk));
+ if(mvTab!=='paid')list=list.sort((a,b)=>String(a.due_date||a.movement_date).localeCompare(String(b.due_date||b.movement_date)));
+ if(mvTab==='paid'){const ent=sum(list.filter(x=>x.kind==='income'),x=>x.amount),sai=sum(list.filter(x=>x.kind!=='income'),x=>x.amount);$('mvSum').innerHTML=stat('Entradas',money(ent),'green')+stat('Saídas',money(sai),'red')}
+ else{const tot=sum(list,x=>x.amount),late=sum(list.filter(x=>String(x.due_date||x.movement_date).slice(0,10)<today),x=>x.amount);$('mvSum').innerHTML=stat(mvTab==='recv'?'A receber':'A pagar',money(tot),mvTab==='recv'?'green':'red')+stat('Vencido',money(late),late?'red':'')}
+ $('rows').innerHTML=list.length?list.map(x=>{const inc=x.kind==='income',pend=isP(x),d=x.due_date||x.movement_date,late=pend&&d&&String(d).slice(0,10)<today;
+  return `<div class="bk" data-mv="${x.id}"><div class="bk-top">${dayBox(pend?d:x.movement_date,late?'late':'')}<div class="bk-main"><b>${esc(x.description)}</b><div class="small">${esc(x.category||'')} · ${esc(mLabel(x)||'')}${pend?' · vence '+dateBR(d):''}</div></div><div class="bk-side"><b class="${inc?'green':'red'}">${inc?'+':'−'} ${money(x.amount)}</b>${late?'<span class="tag late">Vencida</span>':`<span class="tag">${kindName(x.kind)}</span>`}</div></div></div>`}).join(''):emptyBox(mvTab==='paid'?'Nenhum lançamento pago neste mês.':mvTab==='recv'?'Nada a receber. Toque numa conta para ver as opções.':'Nada a pagar. Toque numa conta para ver as opções.')}
+document.addEventListener('click',e=>{const b=e.target.closest('#mvTabs [data-mvt]');if(b)mvSetTab(b.dataset.mvt)});
 function renderProducts(){renderStock()}
 /* ===== Estoque (lista por categoria + toque no produto) ===== */
 let stkOpen=null,stkExtraCats=[];
@@ -741,7 +756,7 @@ function mvItems(x){const items=[];if(x.booking_id)items.push({label:'Atendiment
  if(canEdit){if(x.status==='pending')items.push({label:x.kind==='income'?'Recebido':'Pago',icon:ICO.check,cls:'ok',fn:()=>markMovementPaid(x)});items.push({label:'Editar',icon:ICO.edit,fn:()=>editMovement(x)});items.push({label:'Cancelar',icon:ICO.x,cls:'danger',fn:()=>cancelMovement(x)})}
  return items}
 $('cfRows').onclick=e=>{const c=e.target.closest('[data-cf]');if(!c)return;const x=allPending.find(v=>String(v.id)===c.dataset.cf);if(!x)return;
- const items=[{label:'Ir para pendentes',icon:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',fn:()=>{window.__openSection('pending');setTimeout(()=>{const t=document.querySelector('#pendingRows [data-mv="'+x.id+'"]');if(t){t.scrollIntoView({block:'center',behavior:'smooth'});t.classList.add('row-flash');setTimeout(()=>t.classList.remove('row-flash'),2400)}},250)}}];
+ const items=[{label:'Ver em Lançamentos',icon:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',fn:()=>{mvSetTab(x.kind==='income'?'recv':'pay');window.__openSection('movements');setTimeout(()=>{const t=document.querySelector('#rows [data-mv="'+x.id+'"]');if(t){t.scrollIntoView({block:'center',behavior:'smooth'});t.classList.add('row-flash');setTimeout(()=>t.classList.remove('row-flash'),2400)}},250)}}];
  if(x.booking_id)items.push({label:'Atendimento',icon:ICO.eye,fn:()=>{go('gestao.html?booking='+encodeURIComponent(x.booking_id))}});
  popMenu(c,items)};
 $('rows').onclick=e=>{const c=e.target.closest('[data-mv]');if(!c)return;const x=movements.find(v=>String(v.id)===c.dataset.mv);if(x)popMenu(c,mvItems(x))};
@@ -920,8 +935,9 @@ $('exportCsv').onclick=()=>csvDownload('barber-shop-js-lancamentos.csv',[['Data'
 $('exportReport').onclick=()=>csvDownload('barber-shop-js-resumo.csv',[['Indicador','Valor'],['Receitas',sum(movements.filter(x=>x.status==='paid'&&x.kind==='income'),x=>x.amount)],['Despesas',sum(movements.filter(x=>x.status==='paid'&&['expense','pro_labore','refund'].includes(x.kind)),x=>x.amount)],['Investimentos',sum(movements.filter(x=>x.status==='paid'&&x.kind==='investment'),x=>x.amount)],['Pix',sum(movements.filter(x=>x.status==='paid'&&x.kind==='income'&&x.payment_method==='pix'),x=>x.amount)],['Dinheiro',sum(movements.filter(x=>x.status==='paid'&&x.kind==='income'&&x.payment_method==='cash'),x=>x.amount)],['Cartão',sum(movements.filter(x=>x.status==='paid'&&x.kind==='income'&&x.payment_method==='card'),x=>x.amount)]]);
 const params=new URLSearchParams(window.location.search);
 const requestedTab=params.get('aba');
-const sectionTitles={appointments:'Atendimentos',movements:'Lançamentos',cash:'Caixa',stock:'Estoque',pending:'Contas pendentes',reports:'Relatórios',settings:'Configurações',packages:'Pacotes',cashflow:'Fluxo de caixa',commissions:'Comissões',fixed:'Despesas fixas',rankings:'Rankings'};
+const sectionTitles={appointments:'Atendimentos',movements:'Lançamentos e Contas',cash:'Caixa',stock:'Estoque',pending:'Contas pendentes',reports:'Relatórios',settings:'Configurações',packages:'Pacotes',cashflow:'Fluxo de caixa',commissions:'Comissões',fixed:'Despesas fixas',rankings:'Rankings'};
 function showFinanceSection(tab){
+ if(tab==='pending'){tab='movements';mvTab='pay';try{renderMovements()}catch(e){}}
  const target=document.getElementById('section-'+tab);
  if(!target)return;
  document.querySelectorAll('.section').forEach(x=>x.classList.toggle('active',x===target));
@@ -944,6 +960,7 @@ function returnToFinanceDashboard(){
  showDashboard();
 }
 window.__openSection=function(tab){
+ if(tab==='pending'){tab='movements';mvTab='pay';try{renderMovements()}catch(e){}}
  if(!document.getElementById('section-'+tab))return;
  const p=new URLSearchParams(window.location.search);p.set('aba',tab);
  history.pushState({aba:tab},'',window.location.pathname+'?'+p.toString());
