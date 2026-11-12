@@ -635,9 +635,18 @@ let agendaScrollY=0,agendaDayKey=null;
 function agendaAfterRender(){const k=key(day);const y=agendaDayKey===k?agendaScrollY:0;agendaDayKey=k;requestAnimationFrame(()=>window.scrollTo(0,y))}
 window.addEventListener("scroll",()=>{if(document.querySelector(".agenda-grid")&&!document.body.classList.contains("sheet-open")&&!document.querySelector(".booking-screen,.client-picker-screen"))agendaScrollY=window.scrollY},{passive:true});
 let pendingBal={},paidAmt={};
-(()=>{let sx=0,sy=0,st=0,ok=false;
- document.addEventListener("touchstart",e=>{ok=false;if(e.touches.length!==1)return;const t=e.target;if(!document.querySelector(".agenda-head")||document.body.classList.contains("sheet-open")||document.querySelector(".booking-screen,.client-picker-screen,.nsm,.pop-scrim,.app-confirm-scrim,.pay-screen"))return;if(t.closest&&t.closest("input,textarea,select"))return;sx=e.touches[0].clientX;sy=e.touches[0].clientY;st=Date.now();ok=true},{passive:true});
- document.addEventListener("touchend",e=>{if(!ok)return;ok=false;const c=e.changedTouches[0],dx=c.clientX-sx,dy=c.clientY-sy;if(Date.now()-st>700||Math.abs(dx)<70||Math.abs(dx)<Math.abs(dy)*1.8)return;const b=document.querySelector('.agenda-arrow[data-day="'+(dx<0?"1":"-1")+'"]');if(b)b.click()},{passive:true});
+(()=>{let sx=0,sy=0,st=0,ok=false,drag=false,els=[];
+ const guard=t=>!document.querySelector(".agenda-head")||document.body.classList.contains("sheet-open")||document.querySelector(".booking-screen,.client-picker-screen,.nsm,.pop-scrim,.app-confirm-scrim,.pay-screen")||(t.closest&&t.closest("input,textarea,select"));
+ const setT=(dx,anim)=>els.forEach(e=>{e.style.transition=anim||"none";e.style.transform=dx?`translate3d(${dx}px,0,0)`:""});
+ const clear=()=>{els.forEach(e=>{e.style.transition="";e.style.transform="";e.style.opacity=""});els=[];drag=false};
+ document.addEventListener("touchstart",e=>{ok=false;drag=false;if(e.touches.length!==1)return;if(guard(e.target))return;sx=e.touches[0].clientX;sy=e.touches[0].clientY;st=Date.now();ok=true},{passive:true});
+ document.addEventListener("touchmove",e=>{if(!ok||!e.touches.length)return;const dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;if(!drag){if(Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.4){drag=true;els=[document.querySelector(".agenda-datebtn"),document.querySelector(".agenda-grid"),document.querySelector(".agenda-meta"),document.querySelector(".agenda-chips")].filter(Boolean)}else return}
+  if(e.cancelable)e.preventDefault();setT(dx*0.9)},{passive:false});
+ document.addEventListener("touchend",e=>{if(!ok)return;ok=false;if(!drag)return;const c=e.changedTouches[0],dx=c.clientX-sx,dy=c.clientY-sy;const go=Math.abs(dx)>=70&&Math.abs(dx)>=Math.abs(dy)*1.5&&Date.now()-st<900;
+  if(!go){setT(0,"transform .2s ease");setTimeout(clear,210);return}
+  const b=document.querySelector('.agenda-arrow[data-day="'+(dx<0?"1":"-1")+'"]');const out=(dx<0?-1:1)*window.innerWidth*0.6;els.forEach(x=>{x.style.transition="transform .14s ease,opacity .14s ease";x.style.transform=`translate3d(${out}px,0,0)`;x.style.opacity="0"});
+  setTimeout(()=>{if(b)b.click();clear()},140)},{passive:true});
+ document.addEventListener("touchcancel",()=>{if(drag){setT(0,"transform .2s ease");setTimeout(clear,210)}ok=false},{passive:true});
 })();
 
 function stkBgSetup(){
@@ -3881,5 +3890,7 @@ pre.bk-pre{font-size:12px!important;white-space:pre-wrap!important;word-break:br
 .menu{background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.04)),rgba(18,18,21,.55)!important;-webkit-backdrop-filter:blur(30px) saturate(1.8)!important;backdrop-filter:blur(30px) saturate(1.8)!important}
 .menu button{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.03))!important;border:1px solid rgba(255,255,255,.14)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.16)!important}
 .menu button:hover,.menu button.primary,.menu button.current{background:linear-gradient(180deg,rgba(255,255,255,.26),rgba(255,255,255,.1))!important;border-color:rgba(255,255,255,.32)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 4px 14px rgba(0,0,0,.25)!important;color:#fff!important}
+
+#app button.agenda-fab,#app button.agenda-fab.bb-plus{background:linear-gradient(135deg,rgba(255,255,255,.34) 0%,rgba(255,255,255,.05) 46%,rgba(255,255,255,.12) 100%),linear-gradient(#fff,#fff) center/20px 3px no-repeat,linear-gradient(#fff,#fff) center/3px 20px no-repeat,radial-gradient(circle at 30% 20%,rgba(255,255,255,.3),transparent 55%),rgba(70,70,76,.62)!important;border:1px solid rgba(255,255,255,.3)!important;box-shadow:0 10px 26px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.55),inset 0 -8px 14px rgba(255,255,255,.06)!important;-webkit-backdrop-filter:blur(18px) saturate(1.6);backdrop-filter:blur(18px) saturate(1.6)}
 </style>
 
