@@ -2073,7 +2073,7 @@ app.addEventListener("input",e=>{
   if(chosen&&Number.isFinite(value)&&value>=0){chosen.price=value;refreshBookingTotals()}
  }
  if((e.target.id==="adj-discount"||e.target.id==="adj-surcharge")&&bookingDraft){readBookingInputs();refreshBookingTotals()}
- if(e.target.id==="booking-start"&&bookingDraft){const [h,m]=e.target.value.split(":").map(Number);bookingDraft.start=h*60+m;if(!bookingDraft.endManuallyChanged){const dur=selectedServicesDuration(bookingDraft.services);bookingDraft.end=bookingDraft.start+dur;const endEl=$("#booking-end");if(endEl)endEl.value=hm(bookingDraft.end%1440)}}
+ if(e.target.id==="booking-start"&&bookingDraft){const [h,m]=e.target.value.split(":").map(Number);bookingDraft.start=h*60+m;if(!bookingDraft.endManuallyChanged&&bookingDraft.mode!=="block"){const dur=selectedServicesDuration(bookingDraft.services);bookingDraft.end=bookingDraft.start+dur;const endEl=$("#booking-end");if(endEl)endEl.value=hm(bookingDraft.end%1440)}}
  if(e.target.id==="booking-end"&&bookingDraft){bookingDraft.endManuallyChanged=true;readBookingInputs()}
  if(e.target.id==="booking-client-search"&&bookingDraft){bookingDraft.query=e.target.value;const box=$("#booking-client-options");const q=normalizeSearch(bookingDraft.query);const filtered=bookingDraft.clients.filter(c=>normalizeSearch(c.name).includes(q)||(c.phone||"").includes(bookingDraft.query));box.innerHTML=filtered.map(c=>`<button class="btn client-select-btn" data-pick-client="${esc(c.phone)}">${esc(c.name)} · ${esc(c.phone)}</button>`).join(" ")||'<span class="muted">Nenhum cliente encontrado.</span>'}
  if((e.target.id==="booking-new-name"||e.target.id==="booking-new-phone")&&bookingDraft)readBookingInputs();
