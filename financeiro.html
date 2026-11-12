@@ -364,24 +364,38 @@ input,select,textarea{background:linear-gradient(145deg,rgba(255,255,255,.10),rg
 .today-box .td-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}.today-box .td-head span{font-weight:800;font-size:15px}.today-box .td-head b{font-size:26px}
 .today-box .td-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.today-box .td-grid.two{grid-template-columns:1fr 1fr}
 .today-box .td-grid div{padding:8px 6px;border-radius:14px;text-align:center;background:var(--tdc);border:1px solid var(--tdbd)}.today-box .td-grid span{display:block;font-size:12px;opacity:.75}.today-box .td-grid b{font-size:15px;white-space:nowrap}
-:root{--tdbd:rgba(255,255,255,.16);--tdc:rgba(255,255,255,.06)}.today-box{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.03));color:#fff}</style></head>
+:root{--tdbd:rgba(255,255,255,.16);--tdc:rgba(255,255,255,.06)}.today-box{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.03));color:#fff}
+.today-box .tdb{display:block;width:100%;padding:8px 6px;border-radius:14px;text-align:center;background:var(--tdc);border:1px solid var(--tdbd);color:inherit;font:inherit;cursor:pointer;min-height:0}
+.today-box .tdb.on{outline:2px solid currentColor;outline-offset:-2px}
+.today-box .tdb span{display:block;font-size:12px;opacity:.75}.today-box .tdb b{font-size:15px;white-space:nowrap}
+.today-box .td-list{margin-top:8px;display:flex;flex-direction:column;gap:6px}.today-box .td-list.hidden{display:none}
+.today-box .td-it{padding:8px 10px;border-radius:12px;background:var(--tdc);border:1px solid var(--tdbd);font-size:13px;display:flex;flex-direction:column;gap:2px}.today-box .td-it span{opacity:.8}
+.today-box .td-note{margin-top:8px;font-size:11.5px;opacity:.6;text-align:center}
+
+#section-cash #ctBtn{display:none}
+#detMes .cards.big3{margin:10px 0}
+
+.menu{background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.04)),rgba(18,18,21,.55)!important;-webkit-backdrop-filter:blur(30px) saturate(1.8)!important;backdrop-filter:blur(30px) saturate(1.8)!important}
+.menu button{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.03))!important;border:1px solid rgba(255,255,255,.14)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.16)!important}
+.menu button:hover,.menu button.primary,.menu button.current{background:linear-gradient(180deg,rgba(255,255,255,.26),rgba(255,255,255,.1))!important;border-color:rgba(255,255,255,.32)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 4px 14px rgba(0,0,0,.25)!important;color:#fff!important}
+</style></head>
 <body>
 <div class="top"><button type="button" id="hamb" aria-label="Abrir menu">☰</button><img class="logo" alt="Logo"><div class="fbrand" id="fin-brand" role="button" tabindex="0">Barber Shop JS</div><button type="button" id="logoutF">Sair</button></div>
 <button class="menu-backdrop" id="menu-backdrop" type="button" aria-label="Fechar menu"></button>
 <nav class="menu" id="menu"><div class="menu-brand"><img class="logo" alt="Logo"><b>Barber Shop JS</b></div>
-<button type="button" data-gpage="agenda">Agenda</button><button type="button" data-gpage="settings">Configurações</button><button type="button" data-gpage="clients">Clientes</button><button type="button" data-gpage="birthdays">Aniversários</button><button type="button" class="current" id="fin-home">Financeiro</button></nav>
+<button type="button" data-gpage="agenda">Agenda</button><button type="button" data-gpage="settings">Configurações</button><button type="button" data-gpage="clients">Clientes</button><button type="button" data-gpage="birthdays">Aniversários</button><button type="button" id="fin-cash">Caixa</button><button type="button" class="current" id="fin-home">Financeiro</button></nav>
 <main>
 <div id="status" role="status"></div>
 <div id="financeDashboard">
 <h1>Financeiro</h1><p class="muted">Feche atendimentos com pagamentos divididos, controle recebíveis, estoque e resultado mensal.</p>
 <div class="toolbar"><div class="field"><label for="month">Mês de referência</label><input type="month" id="month"></div><button id="refresh">Atualizar</button><button class="secondary" id="exportCsv">Exportar lançamentos CSV</button></div>
-<div class="today-box" id="todayBox"><div class="td-head"><span>Hoje</span><b id="tdTotal">R$ 0,00</b></div><div class="td-grid"><div><span>Dinheiro</span><b id="tdCash">R$ 0,00</b></div><div><span>Cartão</span><b id="tdCard">R$ 0,00</b></div><div><span>Pix</span><b id="tdPix">R$ 0,00</b></div></div><div class="td-grid two"><div><span>Serviços</span><b id="tdSrv">R$ 0,00</b></div><div><span>Produtos</span><b id="tdProd">R$ 0,00</b></div></div></div>
+<div class="today-box" id="todayBox"><div class="td-head"><span>Hoje</span><b id="tdTotal">R$ 0,00</b></div><div class="td-grid"><div><span>Dinheiro</span><b id="tdCash">R$ 0,00</b></div><div><span>Cartão</span><b id="tdCard">R$ 0,00</b></div><div><span>Pix</span><b id="tdPix">R$ 0,00</b></div></div><div class="td-grid two"><button type="button" class="tdb" data-td="srv"><span>Serviços</span><b id="tdSrv">R$ 0,00</b></button><button type="button" class="tdb" data-td="prod"><span>Produtos</span><b id="tdProd">R$ 0,00</b></button></div><div class="td-list hidden" id="tdList"></div><div class="td-note">Serviços e produtos já com desconto, pelo valor recebido. Toque para ver o que foi feito.</div></div>
+<details class="fold" id="detMes"><summary>Ver detalhes do mês</summary>
 <div class="cards big3">
 <div class="card"><div class="label">Entrou</div><div class="value green" id="income">R$ 0,00</div></div>
 <div class="card"><div class="label">Saiu</div><div class="value red" id="expense">R$ 0,00</div></div>
 <div class="card"><div class="label">Sobrou no mês</div><div class="value" id="result">R$ 0,00</div></div>
 </div>
-<details class="fold" id="detMes"><summary>Ver detalhes do mês</summary>
 <div class="cards">
 <div class="card"><div class="label">Recebido em Pix</div><div class="value" id="sumPix">R$ 0,00</div></div>
 <div class="card"><div class="label">Recebido em dinheiro</div><div class="value" id="sumCash">R$ 0,00</div></div>
@@ -393,7 +407,6 @@ input,select,textarea{background:linear-gradient(145deg,rgba(255,255,255,.10),rg
 <div class="card"><div class="label">Investimentos</div><div class="value" id="invest">R$ 0,00</div></div>
 </div>
 </details>
-<div class="panel cashToday" id="cashToday"><div><div class="label">Caixa de hoje</div><div class="ct-state" id="ctState">Carregando…</div><div class="small" id="ctSub"></div></div><button type="button" id="ctBtn" data-tab="cash">Abrir caixa</button></div>
 <div class="panel ret" id="retBox"><h2>Retiradas do proprietário (pró-labore)</h2><div class="rl"><span>Pelo caixa<small>dinheiro e cartão</small></span><b id="retCaixa">R$ 0,00</b></div><div class="rl"><span>Por fora<small>Pix e outras formas</small></span><b id="retFora">R$ 0,00</b></div><div class="rl"><span><b>Total retirado</b></span><b id="retTotal">R$ 0,00</b></div></div>
 <div class="tiles"><button type="button" class="tile" data-tab="appointments"><span class="ico">✂</span>Atendimentos<small>Fechar e receber</small></button><button type="button" class="tile" data-tab="cash"><span class="ico">◉</span>Caixa<small>Abertura e fechamento</small></button><button type="button" class="tile" data-tab="movements"><span class="ico">⇅</span>Lançamentos e Contas<small>Pago, a pagar e a receber</small></button><button type="button" class="tile" data-tab="stock"><span class="ico">▣</span>Estoque<small>Produtos e reposição</small></button><button type="button" class="tile" data-tab="commissions"><span class="ico">％</span>Comissões<small>Por profissional</small></button></div>
 <details class="fold" id="detMais"><summary>Mais</summary>
@@ -444,7 +457,8 @@ input,select,textarea{background:linear-gradient(145deg,rgba(255,255,255,.10),rg
 <div class="fs-err" id="fsErrMov"></div>
 <div class="actions"><button id="save">Salvar lançamento</button><button type="button" class="secondary" id="clear">Cancelar</button></div></form></div>
 </section>
-<section class="section" id="section-cash"><div class="two">
+<section class="section" id="section-cash"><div class="panel cashToday" id="cashToday"><div><div class="label">Caixa de hoje</div><div class="ct-state" id="ctState">Carregando…</div><div class="small" id="ctSub"></div></div><button type="button" id="ctBtn" data-tab="cash">Abrir caixa</button></div>
+<div class="two">
 <div class="panel"><h2>Abertura de caixa</h2><form id="openCash"><div class="field"><label>Valor inicial em dinheiro (R$)</label><input id="opening" type="number" min="0" step=".01" value="0" required></div><div class="field"><label>Observação</label><input id="openNote" maxlength="250"></div><div class="actions"><button>Abrir caixa</button></div></form></div>
 <div class="panel"><h2>Fechamento de caixa</h2><form id="closeCash"><div class="field"><label>Dinheiro contado (R$)</label><input id="counted" type="number" min="0" step=".01" required></div><div class="field"><label>Observação</label><input id="closeNote" maxlength="250"></div><div class="actions"><button>Fechar caixa</button></div><div id="cashInfo" class="small"></div></form></div></div>
 <div class="panel" style="margin-top:12px"><h2>Histórico de caixas</h2><div class="tablewrap"><table><thead><tr><th>Abertura</th><th>Fundo inicial</th><th>Fechamento</th><th>Contado</th><th>Esperado</th><th>Diferença</th></tr></thead><tbody id="cashRows"></tbody></table></div></div></section>
@@ -580,7 +594,10 @@ async function load(){msg('');try{
  renderAll();await loadPackages();await loadExtra();
  }catch(e){msg(e.message,true)}}
 function renderAll(){try{renderExtra()}catch(e){console.error(e)}renderMovements();renderProducts();renderCash();renderBookings();renderPending();renderCardsReports();$('permissionInfo').textContent=canEdit?'Acesso autorizado para visualizar e editar.':'Acesso somente leitura. Para editar, o proprietário deve habilitar can_edit no banco.'}
-async function loadToday(){try{const d=fmtDate(now),a=new Date(d+'T00:00:00'),b=new Date(a.getTime()+86400000);const [ms,cl]=await Promise.all([api(`finance_movements?select=amount,kind,payment_method,status&status=eq.paid&kind=eq.income&movement_date=eq.${d}`),api(`finance_booking_closures?select=service_total,product_total,created_at&created_at=gte.${encodeURIComponent(a.toISOString())}&created_at=lt.${encodeURIComponent(b.toISOString())}`)]);const by=m=>sum(ms.filter(x=>x.payment_method===m),x=>x.amount);$('tdTotal').textContent=money(sum(ms,x=>x.amount));$('tdCash').textContent=money(by('cash'));$('tdCard').textContent=money(by('card'));$('tdPix').textContent=money(by('pix'));$('tdSrv').textContent=money(sum(cl,x=>x.service_total));$('tdProd').textContent=money(sum(cl,x=>x.product_total))}catch(e){}}
+let tdData={srv:[],prod:[]},tdOpen='';
+function tdRenderList(){const box=$('tdList');if(!box)return;document.querySelectorAll('[data-td]').forEach(b=>b.classList.toggle('on',b.dataset.td===tdOpen));if(!tdOpen){box.innerHTML='';box.classList.add('hidden');return}const L=tdData[tdOpen];box.classList.remove('hidden');box.innerHTML=L.length?L.map(r=>`<div class="td-it"><b>${esc(r.who)}</b><span>${esc(r.text)}</span></div>`).join(''):'<div class="td-it"><span>Nada registrado hoje.</span></div>'}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-td]');if(!b)return;tdOpen=tdOpen===b.dataset.td?'':b.dataset.td;tdRenderList()});
+async function loadToday(){try{const d=fmtDate(now),a=new Date(d+'T00:00:00'),b=new Date(a.getTime()+86400000);const [ms,cl]=await Promise.all([api(`finance_movements?select=amount,kind,payment_method,status&status=eq.paid&kind=eq.income&movement_date=eq.${d}`),api(`finance_booking_closures?select=booking_id,service_total,product_total,amount_paid,product_items,created_at&created_at=gte.${encodeURIComponent(a.toISOString())}&created_at=lt.${encodeURIComponent(b.toISOString())}`)]);const ids=cl.map(c=>c.booking_id).filter(Boolean);const bk=ids.length?await api(`bookings?select=id,client_name,services&id=in.(${ids.map(encodeURIComponent).join(',')})`):[];const by=m=>sum(ms.filter(x=>x.payment_method===m),x=>x.amount);$('tdTotal').textContent=money(sum(ms,x=>x.amount));$('tdCash').textContent=money(by('cash'));$('tdCard').textContent=money(by('card'));$('tdPix').textContent=money(by('pix'));let sv=0,pv=0;tdData={srv:[],prod:[]};cl.forEach(c=>{const st=Number(c.service_total||0),pt=Number(c.product_total||0),g=st+pt,k=g>0?Number(c.amount_paid||0)/g:0;sv+=st*k;pv+=pt*k;const B=bk.find(x=>String(x.id)===String(c.booking_id))||{};const who=B.client_name||'Cliente';if(st>0)tdData.srv.push({who,text:serviceNames(B)});(Array.isArray(c.product_items)?c.product_items:[]).forEach(p=>tdData.prod.push({who,text:`${p.name||'Produto'} ×${p.quantity||1}`}))});$('tdSrv').textContent=money(sv);$('tdProd').textContent=money(pv);tdRenderList()}catch(e){}}
 function renderCardsReports(){loadToday();
  const paid=movements.filter(x=>x.status==='paid'),sumKind=k=>sum(paid.filter(x=>x.kind===k),x=>x.amount),inc=sumKind('income'),exp=sumKind('expense')+sumKind('refund'),inv=sumKind('investment'),pl=paid.filter(x=>x.kind==='pro_labore'),due=sum(movements.filter(x=>x.status==='pending'&&x.kind==='income'),x=>x.amount),out=exp+inv,resOp=inc-out,res=inc-exp-inv-sumKind('pro_labore');
  $('income').textContent=money(inc);$('expense').textContent=money(out);$('despesas').textContent=money(exp);$('invest').textContent=money(inv);$('result').textContent=money(resOp);$('result').className='value '+(resOp<0?'red':'green');
@@ -937,6 +954,7 @@ const LOGO="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAACgCAYAAACLz2ctAA
 let __menuLock=false;function setMenu(o){$('menu').classList.toggle('open',o);$('menu-backdrop').classList.toggle('open',o);if(o&&!__menuLock){__menuLock=true;lockBody(true)}else if(!o&&__menuLock){__menuLock=false;lockBody(false)}}
 $('hamb').onclick=()=>setMenu(!$('menu').classList.contains('open'));$('menu-backdrop').onclick=()=>setMenu(false);
 document.querySelectorAll('[data-gpage]').forEach(b=>{b.onclick=()=>{go('gestao.html?page='+b.dataset.gpage)}});
+$('fin-cash').onclick=()=>{setMenu(false);if(window.__openSection)window.__openSection('cash')};
 $('fin-home').onclick=()=>{setMenu(false);if(new URLSearchParams(location.search).get('aba')){const p=new URLSearchParams(location.search);p.delete('aba');history.replaceState({},'',location.pathname+(p.toString()?'?'+p.toString():''));showDashboard()}};
 $('fin-brand').onclick=()=>{go('gestao.html?page=agenda')};
 $('logoutF').onclick=()=>{try{localStorage.removeItem('bsjs_admin_session')}catch(e){}go('gestao.html')};
