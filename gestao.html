@@ -2501,7 +2501,7 @@ async function openWalkin(existing=null,start=null,barberPre=null){
  <p class="error" id="wk-err" style="display:none;margin:8px 2px"></p>
  ${existing?"":`<div class="pay-actions" style="margin-top:8px"><button type="button" class="pay-sm" id="wk-save">Só registrar (sem receber agora)</button></div>`}
  </div><footer class="pay-foot"><button type="button" class="btn primary pay-confirm" id="wk-ok">${existing?"Salvar":"Receber"}</button></footer>`;
- const drawSvcs=()=>{q("#wk-svcs").innerHTML=cat.map(c=>{const n=sel[String(c.id)]||0;return `<div class="wk-svc ${n?"on":""}" data-s="${esc(c.id)}" role="button"><b>${esc(c.name)}</b><small>${fm(c.price)}</small>${n?`<span class="wk-q"><i data-m="${esc(c.id)}">−</i><b>${n}</b><i data-p="${esc(c.id)}">+</i></span>`:""}</div>`}).join("")||`<p class="pay-hint">Nenhum serviço cadastrado.</p>`;
+ const drawSvcs=()=>{q("#wk-svcs").innerHTML=cat.map(c=>{const n=sel[String(c.id)]||0;return `<div class="wk-svc ${n?"on":""}" data-s="${esc(c.id)}" role="button"><b>${esc(c.name)}</b><div class="wk-bot"><small>${fm(c.price)}</small>${n?`<span class="wk-q"><i data-m="${esc(c.id)}">−</i><b>${n}</b><i data-p="${esc(c.id)}">+</i></span>`:""}</div></div>`}).join("")||`<p class="pay-hint">Nenhum serviço cadastrado.</p>`;
   q("#wk-total").textContent=fm(total())};
  drawSvcs();
  q("#wk-svcs").addEventListener("click",e=>{const m=e.target.closest("[data-m]"),p=e.target.closest("[data-p]"),t=e.target.closest("[data-s]");
@@ -4036,5 +4036,6 @@ html #app .booking-savebar button svg{display:none!important}
 .wk-screen .wk-f .pay-money{width:100%;box-sizing:border-box}.wk-screen .pay-money input{flex:1;text-align:left}
 .wk-screen .pay-body{padding-bottom:130px!important}
 .wk-screen .wk-f .pay-money{width:100%!important;max-width:none!important;margin:0!important;flex:none!important;box-sizing:border-box!important}.wk-screen .wk-f .pay-money input{width:100%!important;text-align:left!important}
+.wk-bot{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:26px}.wk-svc .wk-q{position:static!important;right:auto;top:auto}
 </style>
 
