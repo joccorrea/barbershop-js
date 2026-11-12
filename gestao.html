@@ -533,17 +533,22 @@ async function showBookingReview(id,from){
   const time=hm(b.start_min),end=hm(b.end_min);
   const phone=whatsappBrazilNumber(b.client_phone);
   const msg=applyBookingMessage(getBookingMessages().confirmed,b);
-  shell("Detalhes do agendamento",`<div class="card booking-review-card"><span class="pill ${b.status==="pending"?"pending":""}">${statusPortuguese(b.status)}</span><h2>${esc(b.client_name)}</h2><p><b>WhatsApp:</b> ${esc(b.client_phone)}</p><p><b>Data:</b> ${date}</p><p><b>Horário:</b> ${time} às ${end}</p><p><b>Serviços:</b><br>${services}</p><p><b>Valor:</b> ${fm(b.total)}</p>${b.status==="pending"?`<div class="rv-row"><div class="rv-col"><button type="button" data-bb="x" class="rv-b rv-no" id="review-cancel" data-id="${esc(b.id)}" aria-label="Cancelar agendamento"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span>Cancelar</span></div><div class="rv-col"><button type="button" data-bb="x" class="rv-b rv-yes" id="review-confirm" data-id="${esc(b.id)}" aria-label="Confirmar agendamento"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button><span>Confirmar</span></div></div>`:""}</div><div class="bb-row"><button type="button" class="bb-btn bb-back" data-bb="back" id="review-back" aria-label="Voltar" title="Voltar">Voltar</button></div>`);
-  $("#review-confirm").onclick=async()=>{
-   const waWindow=window.open("about:blank","_blank");
+  const fmtPh=(p)=>{const d=String(p||"").replace(/\D/g,"").replace(/^55(?=\d{10,11}$)/,"");return d.length===11?`(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`:d.length===10?`(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`:String(p||"")};
+  const svcList=(b.services||[]).map(x=>`<li><span>${esc(x.name)}</span><i>× ${Number(x.qty||1)}</i></li>`).join("");
+  const I_PH='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg>';
+  const I_CAL='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>';
+  const I_CLK='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  shell("Detalhes do agendamento",`<div class="card rv-card"><div class="rv-top"><span class="pill ${b.status==="pending"?"pending":""}">${statusPortuguese(b.status)}</span></div><h2 class="rv-name">${esc(b.client_name)}</h2><a class="rv-phone" href="tel:${esc(String(b.client_phone||"").replace(/\D/g,""))}">${I_PH}<span>${esc(fmtPh(b.client_phone))}</span></a><div class="rv-grid"><div class="rv-tile"><small>${I_CAL}Data</small><b>${date}</b></div><div class="rv-tile"><small>${I_CLK}Horário</small><b>${time} – ${end}</b></div></div><div class="rv-sec"><small>Serviços</small><ul class="rv-svc">${svcList||"<li><span>—</span></li>"}</ul></div><div class="rv-total"><span>Valor</span><b>${fm(b.total)}</b></div>${b.status==="pending"?`<div class="rv-row"><div class="rv-col"><button type="button" data-bb="x" class="rv-b rv-no" id="review-cancel" data-id="${esc(b.id)}" aria-label="Cancelar agendamento"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span>Cancelar</span></div><div class="rv-col"><button type="button" data-bb="x" class="rv-b rv-yes" id="review-confirm" data-id="${esc(b.id)}" aria-label="Confirmar agendamento"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button><span>Confirmar</span></div></div>`:""}</div><div class="bb-row"><button type="button" class="bb-btn bb-back" data-bb="back" id="review-back" aria-label="Voltar" title="Voltar">Voltar</button></div>`);
+  $("#review-confirm")&&($("#review-confirm").onclick=async()=>{
+   const btn=$("#review-confirm");btn.disabled=true;
    try{
     await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"confirmed"})});
     day=new Date(b.date+"T12:00:00");history.replaceState({},"","/barbershop-js/gestao.html");
-    const url="https://wa.me/"+phone+"?text="+encodeURIComponent(msg);
-    if(waWindow)waWindow.location.href=url;else alert("Agendamento confirmado. Abra o WhatsApp para enviar a confirmação ao cliente.");
+    const sendWa=await askConfirmWhatsApp();
     if(from==="notif")await navigate("notifications");else await loadAgenda();
-   }catch(err){if(waWindow)waWindow.close();alert("Não foi possível confirmar: "+err.message)}
-  };
+    if(sendWa)window.location.href="https://wa.me/"+phone+"?text="+encodeURIComponent(msg);
+   }catch(err){btn.disabled=false;alert("Não foi possível confirmar: "+err.message)}
+  });
   $("#review-cancel").onclick=async()=>{
    if(!(await appConfirmP("Deseja realmente cancelar este agendamento?","Cancelar agendamento")))return;
    await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});
@@ -2416,6 +2421,16 @@ function appConfirmP(message,okLabel){
     sc.addEventListener("click",e=>{e.stopPropagation();if(e.target.closest("[data-yes]")){sc.remove();res(true)}else if(e.target.closest("[data-no]")){sc.remove();res(false)}});
   });
 }
+function askConfirmWhatsApp(){
+  return new Promise(res=>{
+    document.querySelector("#app-confirm-wa")?.remove();
+    const sc=document.createElement("div");sc.id="app-confirm-wa";sc.className="app-confirm-scrim";sc.style.touchAction="none";
+    sc.innerHTML=`<section class="app-confirm" role="dialog" aria-modal="true"><p><b>Agendamento confirmado!</b><br><span style="font-weight:500">Deseja enviar a confirmação no WhatsApp?</span></p><div class="cw-row"><button type="button" class="cw-btn cw-no" data-no>Não</button><button type="button" class="cw-btn cw-yes" data-yes>Sim, enviar</button></div></section>`;
+    document.body.appendChild(sc);
+    ["touchstart","touchmove","pointerdown","mousedown"].forEach(ev=>sc.addEventListener(ev,e=>{e.stopPropagation();if(ev==="touchmove")e.preventDefault()},{passive:false}));
+    sc.addEventListener("click",e=>{e.stopPropagation();if(e.target.closest("[data-yes]")){sc.remove();res(true)}else if(e.target.closest("[data-no]")){sc.remove();res(false)}});
+  });
+}
 function askSendCancelWhatsApp(url){
   document.querySelector("#app-confirm-scrim")?.remove();
   const sc=document.createElement("div");sc.id="app-confirm-scrim";sc.className="app-confirm-scrim";
@@ -3683,5 +3698,34 @@ input,select,textarea{background:linear-gradient(145deg,rgba(255,255,255,.10),rg
 .agenda-sticky{position:sticky;top:var(--topH,66px);z-index:200;margin:0 -12px 6px;padding:4px 12px 2px;}
 .agenda-sticky .agenda-head{margin-top:0!important}
 @supports (overflow:clip){#app{overflow-x:clip!important;overflow-y:visible!important}}
+.rv-card{padding:18px!important}
+.rv-top{display:flex;justify-content:space-between;align-items:center}
+.rv-name{font-size:26px!important;margin:12px 0 6px!important;line-height:1.1}
+.rv-phone{display:inline-flex;align-items:center;gap:8px;color:#1F4B75;font-weight:700;font-size:15px;text-decoration:none;padding:7px 12px;border-radius:999px;background:rgba(79,148,216,.12);border:1px solid #C4DFF8}
+.rv-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 12px}
+.rv-tile{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:11px 12px;min-width:0}
+.rv-tile small,.rv-sec small{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#4A6B8C;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.rv-tile b{font-size:15px;color:#10304F;display:block;line-height:1.25;word-break:break-word}
+.rv-sec{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:11px 12px}
+.rv-svc{list-style:none;margin:0;padding:0}
+.rv-svc li{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid #E1EFFD;font-size:15px;color:#10304F;font-weight:600}
+.rv-svc li:first-child{border-top:0;padding-top:2px}
+.rv-svc li i{font-style:normal;color:#4A6B8C;font-weight:700}
+.rv-total{display:flex;justify-content:space-between;align-items:center;margin:12px 0 0;padding:12px 14px;border-radius:16px;background:linear-gradient(135deg,#E8F3FE,#CFE5FA);border:1.5px solid #8DBDEB;color:#10304F;font-weight:700}
+.rv-total b{font-size:22px}
+.rv-card .rv-row{gap:40px!important;margin:20px 0 2px!important}
+.cw-row{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:16px}
+.cw-btn{height:48px;border-radius:999px;font-size:16px;font-weight:800;border:1px solid rgba(255,255,255,.8)}
+.cw-no{background:#fff;color:#10304F;border-color:#C4DFF8}
+.cw-yes{background:linear-gradient(135deg,rgba(70,190,130,.97),rgba(25,150,95,.92));color:#fff;box-shadow:0 8px 20px rgba(25,150,95,.3)}
+.rv-phone{color:#EDEDED;background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.16)}
+.rv-tile,.rv-sec{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14)}
+.rv-tile small,.rv-sec small{color:#BDBDBD}
+.rv-tile b,.rv-svc li{color:#fff}
+.rv-svc li{border-top-color:rgba(255,255,255,.1)}
+.rv-svc li i{color:#BDBDBD}
+.rv-total{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:#fff}
+.cw-no{background:rgba(255,255,255,.07);color:#fff;border-color:rgba(255,255,255,.2)}
+#app-confirm-wa .cw-yes{background:linear-gradient(135deg,#46be82,#19965f)!important;color:#fff!important;border-color:rgba(255,255,255,.55)!important}
 </style>
 
