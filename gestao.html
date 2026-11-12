@@ -36,7 +36,7 @@ input,select,textarea{background:#1d1d20;border:1px solid rgba(255,255,255,0.16)
 input:focus,select:focus,textarea:focus{outline:2px solid #2378d42a;border-color:#2378d4}
 .field label{font-size:13px;font-weight:600}
 .slot{background:#1d1d20;border-color:rgba(255,255,255,0.16);border-radius:14px;min-height:54px;padding:12px 14px;box-shadow:0 3px 9px rgba(0,0,0,0.22)}
-.agenda-blockcard{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;height:auto!important;min-height:0;border:2px solid rgba(255,255,255,0.16)!important;border-radius:14px}
+.agenda-blockcard{border-color:#6b7684!important;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;height:auto!important;min-height:0;border:2px solid rgba(255,255,255,0.16)!important;border-radius:14px}
 .agenda-blockcard b{font-size:16px}.agenda-blockcard span{font-size:14px}.agenda-blockcard small{font-size:12px;opacity:.8}
 .slot.blocked{background:#2c2c31;border-color:rgba(255,255,255,0.16);color:#BDBDBD;opacity:1}
 .slot.lunch{background:#26262a;border-color:rgba(255,255,255,0.16);color:#BDBDBD}
@@ -647,10 +647,10 @@ function renderAgenda(){
  const gridSet=new Set();
  // Dois horários antes da abertura, todos os intervalos até o fechamento
  // (incluindo cada horário do almoço) e um horário depois do fechamento.
- {let lo=firstStart,hi=lastEnd;bookings.forEach(b=>{if(Number.isFinite(Number(b.start_min)))lo=Math.min(lo,Number(b.start_min));if(Number.isFinite(Number(b.end_min)))hi=Math.max(hi,Number(b.end_min))});const m0=firstStart-Math.ceil((firstStart-lo)/step)*step;for(let m=m0;m<hi;m+=step)gridSet.add(m)}
+ {let lo=firstStart,hi=lastEnd;[...bookings,...blocks].forEach(b=>{if(Number.isFinite(Number(b.start_min)))lo=Math.min(lo,Number(b.start_min));if(Number.isFinite(Number(b.end_min)))hi=Math.max(hi,Number(b.end_min))});const m0=firstStart-Math.ceil((firstStart-lo)/step)*step;for(let m=m0;m<hi;m+=step)gridSet.add(m)}
  // Garante a exibição exata dos inícios e finais cadastrados, mesmo quando
  // não coincidem com o múltiplo do intervalo selecionado.
- validRanges.forEach(r=>{gridSet.add(r.start_min);gridSet.add(r.end_min)});
+ validRanges.forEach(r=>{gridSet.add(r.start_min)});
  bookings.forEach(b=>gridSet.add(Number(b.start_min)));
  blocks.forEach(b=>gridSet.add(Number(b.start_min)));
  const gridTimes=[...gridSet].filter(m=>Number.isFinite(m)&&m>=0&&m<1440).sort((a,b)=>a-b);
@@ -734,16 +734,16 @@ let clientBackTo=null;
 const setSub=(go,key)=>{window.__subBack={go,key}};
 let clientFromAgenda=false;
 const backFromClient=()=>clientBackTo?showClientCard(clientBackTo):loadClients();
-async function editClient(phone=null){editClientPhone=phone;let c=clients.find(x=>x.phone===phone)||{name:"",phone:"",nickname:"",birth_date:""},profile={};if(phone){try{profile=(await api(`client_profiles?select=*&phone=eq.${encodeURIComponent(phone)}`))[0]||{}}catch(e){profile={}}}let history=[];if(phone){try{history=await api(`bookings?select=id,date,start_min,end_min,status,services,total,client_name,client_phone&client_phone=eq.${encodeURIComponent(phone)}&order=date.desc`)}catch(e){}}
+async function editClient(phone=null,pre=""){editClientPhone=phone;let c=clients.find(x=>x.phone===phone)||{name:"",phone:phone||"",nickname:"",birth_date:""},profile={};if(phone){try{const fr=(await api(`clients?select=*&phone=eq.${encodeURIComponent(phone)}`))[0];if(fr)c={...c,...fr}}catch(e){}}else if(pre){const q=String(pre).trim();if(q){if(/^[\d\s()+-]+$/.test(q))c={...c,phone:q.replace(/\D/g,"")};else c={...c,name:q}}}if(phone){try{profile=(await api(`client_profiles?select=*&phone=eq.${encodeURIComponent(phone)}`))[0]||{}}catch(e){profile={}}}let history=[];if(phone){try{history=await api(`bookings?select=id,date,start_min,end_min,status,services,total,client_name,client_phone&client_phone=eq.${encodeURIComponent(phone)}&order=date.desc`)}catch(e){}}
 shell(phone?"Editar cliente":"Novo cliente",`<div class="subnav"><button type="button" class="btn small on" data-formtab="cadastro">Cadastro</button><button type="button" class="btn small" data-formtab="endereco">Endereço</button><button type="button" class="btn small" data-formtab="fotos">Fotos</button><button type="button" class="btn small" data-formtab="historico">Agenda</button>${phone?`<button type="button" class="btn small" data-formtab="pacotes">Pacotes</button>`:""}</div><form id="client-form"><div id="client-form-body"><div class="grid">${field("Nome completo","c-name",c.name)}${field("Telefone/WhatsApp","c-phone",c.phone,"tel",phone?"readonly":"")}${field("Apelido","c-nickname",c.nickname||"")}<div class="field"><label>Data de nascimento</label>${birthPicker("c-birth",c.birth_date)}</div></div></div><div class="form-actions cf-actions">${phone?`<button class="cf-del" type="button" id="delete-client" aria-label="Excluir cliente" title="Excluir cliente"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></button>`:""}<button class="btn primary cf-save" type="submit">Salvar cliente</button></div><p class="muted cf-note">Fotos: use links públicos de imagens (upload direto ainda não disponível).</p></form>`);
 setSub(backFromClient,clientBackTo?"card":"clients");
-let formtab="cadastro";const draw=()=>{app.querySelectorAll("[data-formtab]").forEach(x=>x.classList.toggle("on",x.dataset.formtab===formtab));const body=$("#client-form-body");if(formtab==="cadastro")body.innerHTML=`<div class="grid">${field("Nome completo","c-name",c.name)}${field("Telefone/WhatsApp","c-phone",c.phone,"tel",phone?"readonly":"")}${field("Apelido","c-nickname",c.nickname||"")}<div class="field"><label>Data de nascimento</label>${birthPicker("c-birth",c.birth_date)}</div></div>`;
+let formtab="cadastro";const syncForm=()=>{const g=id=>document.getElementById(id);if(g("c-name")){c.name=val("c-name");c.nickname=val("c-nickname");if(!phone)c.phone=val("c-phone");c.birth_date=val("c-birth")||null}if(g("p-street")){profile.street=val("p-street");profile.number=val("p-number");profile.complement=val("p-complement");profile.neighborhood=val("p-neighborhood");profile.city=val("p-city");profile.state=val("p-state");profile.postal_code=val("p-postal")}if(g("p-notes"))profile.notes=val("p-notes");if(g("p-photos"))profile.photos=val("p-photos").split("\n").map(s=>s.trim()).filter(Boolean)};const draw=()=>{app.querySelectorAll("[data-formtab]").forEach(x=>x.classList.toggle("on",x.dataset.formtab===formtab));const body=$("#client-form-body");if(formtab==="cadastro")body.innerHTML=`<div class="grid">${field("Nome completo","c-name",c.name)}${field("Telefone/WhatsApp","c-phone",c.phone,"tel",phone?"readonly":"")}${field("Apelido","c-nickname",c.nickname||"")}<div class="field"><label>Data de nascimento</label>${birthPicker("c-birth",c.birth_date)}</div></div>`;
 if(formtab==="endereco")body.innerHTML=`<div class="grid">${field("Rua","p-street",profile.street)}${field("Número","p-number",profile.number)}${field("Complemento","p-complement",profile.complement)}${field("Bairro","p-neighborhood",profile.neighborhood)}${field("Cidade","p-city",profile.city)}${field("Estado","p-state",profile.state)}${field("CEP","p-postal",profile.postal_code)}</div>${area("Observações","p-notes",profile.notes)}`;
 if(formtab==="fotos")body.innerHTML=`${area("URLs das fotos (uma por linha)","p-photos",(profile.photos||[]).join("\n"))}<p class="muted">Use links públicos de imagens. As URLs serão guardadas no cadastro.</p>`;
 if(formtab==="pacotes"){const ld=()=>clientPkgsHtml(phone,true).then(h=>{if(formtab==="pacotes"){body.innerHTML=h;bindPkgCards(body,phone,ld)}});body.innerHTML=`<div class="muted">Carregando…</div>`;ld()}
 if(formtab==="historico")body.innerHTML=history.filter(notCancelled).length?histRows(history.filter(notCancelled)):`<p class="muted">Nenhum agendamento encontrado.</p>`};
-draw();$("#client-form").onsubmit=async e=>{e.preventDefault();try{let ph=String(val("c-phone")||c.phone||"").replace(/\D/g,""),name=String(val("c-name")||c.name||"").trim();if(name.length<2||ph.length<10)throw Error("Informe nome e telefone com DDD.");let bd=val("c-birth")||c.birth_date||null;await api("clients?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify({phone:ph,name,nickname:val("c-nickname")||c.nickname||"",birth_date:bd})});let prof={phone:ph,street:val("p-street")||profile.street||"",number:val("p-number")||profile.number||"",complement:val("p-complement")||profile.complement||"",neighborhood:val("p-neighborhood")||profile.neighborhood||"",city:val("p-city")||profile.city||"",state:val("p-state")||profile.state||"",postal_code:val("p-postal")||profile.postal_code||"",notes:val("p-notes")||profile.notes||"",photos:(val("p-photos")?val("p-photos").split("\n").map(s=>s.trim()).filter(Boolean):(profile.photos||[])),updated_at:new Date().toISOString()};await api("client_profiles?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify(prof)});if(clientBackTo){await showClientCard(clientBackTo)}else await loadClients();notice="Cliente salvo com sucesso.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};
-app.querySelectorAll("[data-formtab]").forEach(b=>b.onclick=()=>{formtab=b.dataset.formtab;draw()});const deleteButton=$("#delete-client");if(deleteButton)deleteButton.onclick=async()=>{if(!phone)return;if(!confirm(`Tem certeza que deseja excluir o cliente ${c.name||phone}? Os agendamentos antigos serão mantidos no histórico.`))return;deleteButton.disabled=true;try{await api(`client_profiles?phone=eq.${encodeURIComponent(phone)}`,{method:"DELETE"});await api(`clients?phone=eq.${encodeURIComponent(phone)}`,{method:"DELETE"});await loadClients();notice="Cliente excluído com sucesso.";renderNotice("success")}catch(err){deleteButton.disabled=false;const n=$("#notice");if(n)n.innerHTML=`<div class="notice error">Não foi possível excluir o cliente: ${esc(err.message)}</div>`}}}
+draw();$("#client-form").onsubmit=async e=>{e.preventDefault();try{syncForm();let ph=String(val("c-phone")||c.phone||"").replace(/\D/g,""),name=String(val("c-name")||c.name||"").trim();if(name.length<2||ph.length<10)throw Error("Informe nome e telefone com DDD.");let bd=val("c-birth")||c.birth_date||null;await api("clients?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify({phone:ph,name,nickname:val("c-nickname")||c.nickname||"",birth_date:bd})});let prof={phone:ph,street:val("p-street")||profile.street||"",number:val("p-number")||profile.number||"",complement:val("p-complement")||profile.complement||"",neighborhood:val("p-neighborhood")||profile.neighborhood||"",city:val("p-city")||profile.city||"",state:val("p-state")||profile.state||"",postal_code:val("p-postal")||profile.postal_code||"",notes:val("p-notes")||profile.notes||"",photos:(val("p-photos")?val("p-photos").split("\n").map(s=>s.trim()).filter(Boolean):(profile.photos||[])),updated_at:new Date().toISOString()};await api("client_profiles?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify(prof)});if(clientBackTo){await showClientCard(clientBackTo)}else await loadClients();notice="Cliente salvo com sucesso.";renderNotice("success")}catch(err){$("#notice").innerHTML=`<div class="notice error">${esc(err.message)}</div>`}};
+app.querySelectorAll("[data-formtab]").forEach(b=>b.onclick=()=>{syncForm();formtab=b.dataset.formtab;draw()});const deleteButton=$("#delete-client");if(deleteButton)deleteButton.onclick=async()=>{if(!phone)return;if(!confirm(`Tem certeza que deseja excluir o cliente ${c.name||phone}? Os agendamentos antigos serão mantidos no histórico.`))return;deleteButton.disabled=true;try{await api(`client_profiles?phone=eq.${encodeURIComponent(phone)}`,{method:"DELETE"});await api(`clients?phone=eq.${encodeURIComponent(phone)}`,{method:"DELETE"});await loadClients();notice="Cliente excluído com sucesso.";renderNotice("success")}catch(err){deleteButton.disabled=false;const n=$("#notice");if(n)n.innerHTML=`<div class="notice error">Não foi possível excluir o cliente: ${esc(err.message)}</div>`}}}
 async function showHistory(phone){try{let h=await api(`bookings?select=id,date,start_min,end_min,status,services,total,client_name,client_phone&client_phone=eq.${encodeURIComponent(phone)}&order=date.desc`);shell("Histórico de agendamentos",`<button class="btn" id="back-clients">← ${clientBackTo?"Cliente":"Clientes"}</button>`+(histRows(h.filter(notCancelled))||`<p class="muted">Nenhum agendamento.</p>`));setSub(backFromClient,clientBackTo?"card":"clients");$("#back-clients").onclick=backFromClient}catch(e){shell("Histórico",`<p class="error">${esc(e.message)}</p>`)}}
 
 async function clientStats(phone){
@@ -828,19 +828,53 @@ async function mergeClientDialog(c){
     draw();$("#mg-q").oninput=draw;$("#mg-x").onclick=()=>m.remove();
     $("#mg-list").onclick=e=>{const b=e.target.closest("[data-mg]");if(!b)return;const o=all.find(x=>String(x.phone)===b.dataset.mg);if(o)stepKeep(o)};
   };
-  const stepKeep=o=>{
-    m.innerHTML=`<div class="nsm-card"><h3>Qual cadastro deve ficar?</h3><p>O outro será unido a ele e removido. Agendamentos, pacotes e créditos passam para o cadastro que ficar.</p>
-    <button type="button" class="mg-it" data-keep="a"><b>${esc(c.name)}</b><span>${esc(fmtPhoneBR(c.phone))}</span></button>
-    <button type="button" class="mg-it" data-keep="b"><b>${esc(o.name)}</b><span>${esc(fmtPhoneBR(o.phone))}</span></button>
-    <div class="bb-row"><button type="button" class="bb-btn bb-back" data-bb="back" id="mg-b" aria-label="Voltar" title="Voltar">Voltar</button></div></div>`;
+  const stepKeep=async o=>{
+    m.innerHTML=`<div class="nsm-card"><h3>Mesclar cadastros</h3><p>Carregando…</p></div>`;
+    let rows=[],prof=[];
+    try{const inl=`(${encodeURIComponent(c.phone)},${encodeURIComponent(o.phone)})`;rows=await api(`clients?select=*&phone=in.${inl}`);prof=await api(`client_profiles?select=*&phone=in.${inl}`)}catch(e){}
+    const A=rows.find(x=>String(x.phone)===String(c.phone))||c,B=rows.find(x=>String(x.phone)===String(o.phone))||o;
+    const pA=prof.find(x=>String(x.phone)===String(c.phone))||{},pB=prof.find(x=>String(x.phone)===String(o.phone))||{};
+    const fD=d=>d?String(d).split("-").reverse().join("/"):"";
+    const addr=p=>[p.street,p.number,p.complement,p.neighborhood,p.city,p.state,p.postal_code].map(x=>String(x||"").trim()).filter(Boolean).join(", ");
+    const F=[
+      {k:"phone",l:"Celular principal",a:fmtPhoneBR(A.phone),b:fmtPhoneBR(B.phone),always:1},
+      {k:"name",l:"Nome",a:A.name||"",b:B.name||""},
+      {k:"nick",l:"Apelido",a:A.nickname||"",b:B.nickname||""},
+      {k:"birth",l:"Data de nascimento",a:fD(A.birth_date),b:fD(B.birth_date)},
+      {k:"addr",l:"Endereço",a:addr(pA),b:addr(pB)}
+    ];
+    const sel={};
+    F.forEach(f=>{f.show=f.always||(f.a&&f.b&&f.a!==f.b);sel[f.k]=(!f.a&&f.b)?"b":"a"});
+    m.innerHTML=`<div class="nsm-card"><h3>Mesclar cadastros</h3><p>O outro cadastro será unido a este e removido. Agendamentos, pacotes e créditos passam para o que ficar. Escolha o que manter:</p>
+    ${F.filter(f=>f.show).map(f=>`<div class="mg-fr"><div class="mg-fl">${f.l}</div><div class="mg-two">${["a","b"].map(s=>`<button type="button" class="mg-op ${sel[f.k]===s?"on":""}" data-f="${f.k}" data-s="${s}"><small>${s==="a"?"Cadastro 1":"Cadastro 2"}${f.k==="phone"?" · fica como principal":""}</small>${esc(f[s]||"—")}</button>`).join("")}</div></div>`).join("")}
+    <label class="mg-old"><input type="checkbox" id="mg-old" checked><span>Guardar o outro número nas observações, marcado como <b>antigo</b></span></label>
+    <div class="bb-row"><button type="button" class="bb-btn bb-back" data-bb="back" id="mg-b" aria-label="Voltar" title="Voltar">Voltar</button><button type="button" class="bb-btn bb-ok" data-bb="ok" id="mg-go" aria-label="Mesclar" title="Mesclar">Mesclar</button></div></div>`;
+    m.querySelectorAll(".mg-op").forEach(bt=>bt.onclick=()=>{sel[bt.dataset.f]=bt.dataset.s;m.querySelectorAll(`.mg-op[data-f="${bt.dataset.f}"]`).forEach(x=>x.classList.toggle("on",x===bt))});
     $("#mg-b").onclick=stepPick;
-    m.querySelectorAll("[data-keep]").forEach(bt=>bt.onclick=()=>{
-      const keep=bt.dataset.keep==="a"?c:o,rem=bt.dataset.keep==="a"?o:c;
+    $("#mg-go").onclick=()=>{
+      const keepA=sel.phone==="a",keep=keepA?A:B,rem=keepA?B:A,kP=keepA?pA:pB,rP=keepA?pB:pA;
+      const nm=(sel.name==="a"?A.name:B.name)||keep.name,nk=(sel.nick==="a"?A.nickname:B.nickname)||"",bd=(sel.birth==="a"?A.birth_date:B.birth_date)||null,wantOld=$("#mg-old").checked;
+      const useRemAddr=(sel.addr==="a")!==keepA&&addr(pA)&&addr(pB);
       m.remove();
-      showAppConfirm(`Unir <b>${esc(rem.name)}</b> em <b>${esc(keep.name)}</b>?<br><small style="font-weight:500;color:#9CC7F0;font-size:14px">${esc(fmtPhoneBR(rem.phone))} será removido e guardado nas observações. Não dá para desfazer.</small>`,async()=>{
-        try{await api("rpc/merge_clients",{method:"POST",body:JSON.stringify({p_keep:keep.phone,p_remove:rem.phone})});await showClientCard(keep.phone)}catch(err){alert("Não foi possível mesclar: "+err.message)}
+      showAppConfirm(`Unir <b>${esc(rem.name)}</b> em <b>${esc(nm)}</b>?<br><small style="font-weight:500;color:#9CC7F0;font-size:14px">Celular principal: ${esc(fmtPhoneBR(keep.phone))}.${wantOld?` ${esc(fmtPhoneBR(rem.phone))} fica guardado como antigo.`:""} Não dá para desfazer.</small>`,async()=>{
+        try{
+          await api("rpc/merge_clients",{method:"POST",body:JSON.stringify({p_keep:keep.phone,p_remove:rem.phone})});
+          const enc=encodeURIComponent(keep.phone);
+          try{await api(`clients?phone=eq.${enc}`,{method:"PATCH",body:JSON.stringify({name:nm,nickname:nk,birth_date:bd})})}catch(e){}
+          if(nm!==keep.name){for(const tb of["bookings","client_packages","client_credits"]){try{await api(`${tb}?${tb==="bookings"?"client_phone":"client_phone"}=eq.${enc}`,{method:"PATCH",body:JSON.stringify(tb==="bookings"?{client_name:nm}:{client_name:nm})})}catch(e){}}}
+          try{
+            const cur=(await api(`client_profiles?select=*&phone=eq.${enc}`))[0]||{};
+            const upd={updated_at:new Date().toISOString()};
+            if(useRemAddr)["street","number","complement","neighborhood","city","state","postal_code"].forEach(k=>{upd[k]=rP[k]||""});
+            const lines=String(cur.notes||"").split("\n").filter(l=>l.trim()!==`Outro número: ${rem.phone}`);
+            if(wantOld)lines.push(`Número antigo: ${fmtPhoneBR(rem.phone)}`);
+            upd.notes=lines.filter(Boolean).join("\n")||null;
+            await api(`client_profiles?phone=eq.${enc}`,{method:"PATCH",body:JSON.stringify(upd)});
+          }catch(e){}
+          await showClientCard(keep.phone)
+        }catch(err){alert("Não foi possível mesclar: "+err.message)}
       });
-    });
+    };
   };
   m.addEventListener("click",e=>{if(e.target===m)m.remove()});
   stepPick();
@@ -1918,7 +1952,7 @@ if(b.id==="client-picker-contacts"){await pickPhoneContact();return}
 if(b.id==="booking-save"){await saveBookingForm();return}
 if(b.id==="booking-save-block"){readBookingInputs();const d=bookingDraft;if(!$("#booking-start").value){const err=$("#booking-error");err.textContent="Escolha o horário de início do agendamento.";err.classList.remove("hidden");$("#booking-start").focus();return}const st=$("#booking-start").value.split(":").map(Number),en=$("#booking-end").value.split(":").map(Number);const start=st[0]*60+st[1],end=en[0]*60+en[1];if(end<=start)throw Error("O fim do bloqueio deve ser depois do início.");const barber=d.barbers.find(x=>Number(x.id)===Number(d.barberId))||d.barbers[0];if(!barber)throw Error("Cadastre um profissional ativo.");const payload={barber_id:d.blockAll?null:barber.id,date:key(d.date),start_min:start,end_min:end,reason:d.reason||""};if(d.editingBlockId){await api(`blocked_slots?id=eq.${encodeURIComponent(d.editingBlockId)}`,{method:"PATCH",body:JSON.stringify(payload)})}else{await api("blocked_slots",{method:"POST",body:JSON.stringify(payload)})}bookingDraft=null;await loadAgenda();return}
 if(b.dataset.cancel){let id=b.dataset.cancel;if(confirmCancel!==id){confirmCancel=id;renderAgenda();return}await api(`bookings?id=eq.${encodeURIComponent(id)}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});confirmCancel=null;await loadAgenda();return}
-if(b.id==="new-client"){editClient();return}
+if(b.id==="new-client"){editClient(null,$("#client-search")?.value||"");return}
 if(b.dataset.editClient){clientBackTo=b.closest(".cc-head")?b.dataset.editClient:null;editClient(b.dataset.editClient);return}
 if(b.dataset.clientCard){showClientCard(b.dataset.clientCard);return}
 if(b.dataset.history){clientBackTo=b.closest(".cc-head")?b.dataset.history:null;showHistory(b.dataset.history);return}
@@ -2010,7 +2044,7 @@ function renderClientPicker(){const d=bookingDraft;if(!d)return;swipeBackSnapsho
 
 async function renderBookingClientRegistration(){
  const d=bookingDraft;if(!d)return;
- const state={name:"",nickname:"",birth_date:"",phone:"",street:"",number:"",complement:"",neighborhood:"",city:"",state:"",postal_code:"",notes:""};
+ const state={name:"",nickname:"",birth_date:"",phone:"",street:"",number:"",complement:"",neighborhood:"",city:"",state:"",postal_code:"",notes:""};{const q0=String(d.query||"").trim();if(q0){if(/^[\d\s()+-]+$/.test(q0))state.phone=q0.replace(/\D/g,"");else state.name=q0}}
  let tab="cadastro",history=[];
  const draw=()=>{
   app.innerHTML=`<section class="client-picker-screen">
@@ -2035,7 +2069,7 @@ async function renderBookingClientRegistration(){
   const saveState=()=>{
    for(const [k,id] of Object.entries({name:"reg-name",nickname:"reg-nickname",birth_date:"reg-birth",phone:"reg-phone",street:"reg-street",number:"reg-number",complement:"reg-complement",neighborhood:"reg-neighborhood",city:"reg-city",state:"reg-state",postal_code:"reg-postal",notes:"reg-notes"})){const el=$("#"+id);if(el)state[k]=el.value}
   };
-  $("#booking-client-reg-back").onclick=()=>{saveState();d.query=state.name;renderClientPicker()};
+  $("#booking-client-reg-back").onclick=()=>{saveState();d.query=state.name||state.phone||d.query;renderClientPicker()};
   $("#reg-tab-cadastro")?.addEventListener("click",()=>{saveState();tab="cadastro";draw()});
   $("#reg-tab-agendamentos")?.addEventListener("click",async()=>{saveState();tab="agendamentos";const ph=state.phone.replace(/\D/g,"");history=[];if(ph.length>=10){try{history=await api(`bookings?select=id,date,start_min,end_min,status,services,total,client_name,client_phone&client_phone=eq.${encodeURIComponent(ph)}&order=date.desc`)}catch(e){}}draw()});
   $("#booking-client-reg-form")?.addEventListener("submit",async e=>{
@@ -2219,7 +2253,7 @@ async function openBooking(start,mode='book',existing=null){
  try{
   if(!$(".booking-screen")){swipeBackSnapshot=app.innerHTML;swipeBackScrollY=window.scrollY}
   let [cs,ss,bs,cbs,cbi]=await Promise.all([api("clients?select=phone,name&order=name"),api("services?select=id,name,price,is_cut,duration_min,active&active=eq.true&order=sort"),api("rpc/agenda_barbers",{method:"POST",body:"{}"}),api("service_combos?select=*&active=eq.true").catch(()=>[]),api("service_combo_items?select=*").catch(()=>[])]);const combosList=cbs.map(c=>({...c,items:cbi.filter(i=>String(i.combo_id)===String(c.id))}));ss=await applyPromosToServices(ss);
-  const ddate=existing?.date?new Date(existing.date+"T12:00:00"):new Date(day.getFullYear(),day.getMonth(),day.getDate());const savedServices=existing?.services||[];const __nb=window.__newBarber;window.__newBarber=null;const __ns=(()=>{if(existing||start!=null)return null;const stp=Math.max(5,Number(slotStep)||30),n=new Date(),isToday=ddate.toDateString()===n.toDateString();let m=isToday?Math.ceil((n.getHours()*60+n.getMinutes())/stp)*stp:((dayRanges&&dayRanges[0]&&Number(dayRanges[0].start_min))||540);return Math.min(m,1440-stp)})();if(__ns!=null)start=__ns;
+  const ddate=existing?.date?new Date(existing.date+"T12:00:00"):new Date(day.getFullYear(),day.getMonth(),day.getDate());const savedServices=existing?.services||[];const __nb=window.__newBarber;window.__newBarber=null;const __ns=(()=>{if(existing||start!=null)return null;const stp=Math.max(5,Number(slotStep)||30),n=new Date(),isToday=ddate.toDateString()===n.toDateString();const rg0=(dayRanges||[]).map(r=>({s:Number(r.start_min),e:Number(r.end_min)})).filter(r=>Number.isFinite(r.s)&&Number.isFinite(r.e)&&r.e>r.s),lo0=rg0.length?Math.min(...rg0.map(r=>r.s)):540,hi0=rg0.length?Math.max(...rg0.map(r=>r.e)):1080;const bid=__nb!=null?String(__nb):(agendaBarber&&agendaBarber!=="all"?String(agendaBarber):null);const busy=m=>(bookings||[]).some(x=>notCancelled(x)&&(bid==null||x.barber_id==null||String(x.barber_id)===bid)&&Number(x.start_min)<=m&&Number(x.end_min)>m)||(blocks||[]).some(x=>(bid==null||x.barber_id==null||String(x.barber_id)===bid)&&Number(x.start_min)<=m&&Number(x.end_min)>m);let base=isToday?Math.max(Math.ceil((n.getHours()*60+n.getMinutes())/stp)*stp,lo0):lo0;let m=base;while(m<hi0&&busy(m))m+=stp;if(m>=hi0)m=base;return Math.min(m,1440-stp)})();if(__ns!=null)start=__ns;
   bookingDraft={pkgs:[],pkgId:(existing?.services||[]).find(x=>x&&x.pkg)?.pkg||null,usePkg:existing?!!(existing.services||[]).some(x=>x&&x.pkg):true,barberId:(existing?.barber_id!=null?Number(existing.barber_id):(__nb!=null?Number(__nb):(agendaBarber&&agendaBarber!=="all"?Number(agendaBarber):(bs[0]?.id||null)))),blockAll:existing?(existing.blockId?existing.barber_id==null:false):agendaBarber==="all",mode,start:existing?.start_min!=null?Number(existing.start_min):(start==null?null:Number(start)),date:ddate,clients:cs,catalog:ss,barbers:bs,services:savedServices.map(x=>({...x,id:x.id??ss.find(y=>y.name===x.name)?.id})),query:'',newName:'',newPhone:'',selectedPhone:existing?.client_phone||null,addingClient:false,end:existing?.end_min!=null?Number(existing.end_min):(start==null?null:Number(start)+30),endDate:ddate,editingId:existing?.id||null,editingBlockId:existing?.blockId||null,reason:existing?.reason||'',notes:existing?.notes||'',existingStatus:existing?.status||"confirmed",endManuallyChanged:false,combos:combosList,discount:Number(existing?.discount||0),surcharge:Number(existing?.surcharge||0),comboOff:!!existing&&Number(existing?.combo_discount||0)===0&&savedServices.length>0&&!!(()=>{try{return bookingCombo({services:savedServices.map(x=>({id:x.id??ss.find(y=>y.name===x.name)?.id})),combos:combosList})}catch(e){return null}})()};
   renderBookingScreen();loadBookingPkgs();
  }catch(e){alert("Não foi possível abrir o formulário: "+e.message)}
@@ -2887,8 +2921,8 @@ if(session){const pendingReview=new URLSearchParams(location.search).get("bookin
 </style>
 <style>
 /* v35: linha vermelha começa no topo do horário, sem ficar no meio da marcação */
-#current-time-indicator{position:absolute!important;left:0!important;right:0!important;height:2px!important;background:rgba(198,57,57,0.30)!important;z-index:80!important;pointer-events:none!important;display:none}
-#current-time-indicator:before{content:"";position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:rgba(198,57,57,0.30)}
+#current-time-indicator{position:absolute!important;left:0!important;right:0!important;height:2px!important;background:#6b7280!important;z-index:80!important;pointer-events:none!important;display:none}
+#current-time-indicator:before{content:"";position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:#6b7280}
 </style>
 <script>
 (function(){
@@ -3468,6 +3502,21 @@ select.pro-sel{border:0!important;background:transparent!important;box-shadow:no
 .action-sheet .sheet-action.pay{background:rgba(57,198,107,0.22)!important;border-color:rgba(39,150,83,.35)!important}
 .action-sheet .sheet-action.pay .sheet-icon{background:rgba(39,150,83,.16)!important;color:#8ae5b0}
 .action-sheet .sheet-divider{display:none}
+
+#client-form button.cf-del{position:fixed!important;left:18px!important;right:auto!important;bottom:calc(18px + env(safe-area-inset-bottom))!important;margin:0!important;z-index:60}
+
+.agenda-blockcard,button.agenda-blockcard.blocked{border:2px solid #6b7684!important}
+.nsm-card .pay-optrow{margin:8px 0}
+.nsm-card .pay-optrow>span{flex:1 1 auto;min-width:0}
+.nsm-card .pay-optrow input[type=date]{flex:0 0 auto;width:158px;max-width:none!important;min-width:0;font-size:14.5px;padding:0 8px;text-align:center;white-space:nowrap}
+.nsm-card .pay-optrow .pay-money{flex:0 0 auto}
+.mg-fr{margin:8px 0 10px}.mg-fl{font-size:13px;font-weight:800;color:#9CC7F0;margin:0 0 4px}
+.mg-two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mg-op{display:block;text-align:left;width:100%;border:1.5px solid rgba(255,255,255,0.16);background:#1d1d20;color:#fff;border-radius:12px;padding:9px 10px;font-size:14px;font-weight:700;line-height:1.25;word-break:break-word}
+.mg-op small{display:block;font-weight:500;font-size:11.5px;color:#9CC7F0;margin-bottom:2px}
+.mg-op.on{border-color:#2378d4;box-shadow:0 0 0 2px rgba(0,0,0,0.50) inset;background:#26262a}
+.mg-old{display:flex;gap:10px;align-items:flex-start;margin:6px 0 10px;font-size:13.5px;font-weight:600;color:#fff}
+.mg-old input{width:22px;height:22px;flex:0 0 22px;margin-top:1px}
 </style>
 <style id="dark-grafite">
 /* TEMA ESCURO · GRAFITE COM VIDRO */
@@ -3533,5 +3582,10 @@ input,select,textarea{background:linear-gradient(145deg,rgba(255,255,255,.10),rg
 /* excluir cliente embaixo à esquerda */
 #client-form button.cf-del{position:fixed!important;left:18px!important;right:auto!important;bottom:calc(18px + env(safe-area-inset-bottom))!important;margin:0!important;z-index:60}
 .agenda-grid .agenda-slot,#app .agenda-slot{background:linear-gradient(145deg,rgba(255,255,255,.11),rgba(255,255,255,.035))!important;border:1px solid rgba(255,255,255,.15)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.2)!important}
+.logo,.menu-brand .logo,header img,.top img{background:transparent!important;filter:brightness(0) invert(1)!important;border-color:#fff!important}
+#current-time-indicator{background:#d4d4d8!important;box-shadow:0 0 6px rgba(255,255,255,.35)}#current-time-indicator:before{background:#d4d4d8!important}
+.agenda-blockcard,button.agenda-blockcard.blocked{border:2px solid #8e8e93!important;background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.02))!important}
+.mg-op{background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.04))!important;border-color:rgba(255,255,255,.2)!important;color:#fff!important}
+.mg-op small,.mg-fl,.mg-old{color:#BDBDBD!important}.mg-op.on{border-color:#fff!important;box-shadow:0 0 0 1px #fff inset!important}
 </style>
 
