@@ -1116,7 +1116,7 @@ function pdForm(id,onDone){
  <div class="pd-f"><label>Nome *</label><input id="pf-name" maxlength="120" value="${esc(p?.name||"")}"></div>
  <div class="pd-f"><label>Categoria</label><button type="button" class="pd-catbtn" id="pf-cat"></button></div>
  <div class="pd-row"><div class="pd-f"><label>Preço de venda</label><input id="pf-sale" type="number" inputmode="decimal" min="0" step=".01" placeholder="0,00" value="${p?p.sale_price:""}"></div><div class="pd-f"><label>Custo unitário</label><input id="pf-cost" type="number" inputmode="decimal" min="0" step=".01" placeholder="0,00" value="${p?p.cost_price:""}"></div></div>
- <div class="pd-row">${p?"":`<div class="pd-f"><label>Estoque inicial</label><input id="pf-qty" type="number" inputmode="numeric" min="0" step="1" placeholder="0"></div>`}<div class="pd-f"><label>Estoque mínimo</label><input id="pf-min" type="number" inputmode="numeric" min="0" step="1" placeholder="0" value="${p?p.min_stock:""}"></div></div>
+ <div class="pd-row">${p?`<div class="pd-f"><label>Estoque atual</label><input id="pf-stock" type="number" inputmode="numeric" min="0" step="1" value="${Number(p.stock_quantity||0)}"></div>`:`<div class="pd-f"><label>Estoque inicial</label><input id="pf-qty" type="number" inputmode="numeric" min="0" step="1" placeholder="0"></div>`}<div class="pd-f"><label>Estoque mínimo</label><input id="pf-min" type="number" inputmode="numeric" min="0" step="1" placeholder="0" value="${p?p.min_stock:""}"></div></div>
 
  ${p?"":`<div class="pd-f"><label>Campanha (opcional)</label><select id="pf-promo"><option value="">Não participa de campanha</option></select></div><div id="pf-pbox" class="hidden"><div class="pd-row"><div class="pd-f"><label>Desconto</label><select id="pf-ptype"><option value="price">Preço final</option><option value="amount">R$ de desconto</option><option value="percent">% de desconto</option></select></div><div class="pd-f"><label>Valor</label><input id="pf-pval" type="number" inputmode="decimal" min="0" step=".01" placeholder="0,00"></div></div></div>`}
  <div class="pd-err" id="pf-err"></div>
@@ -1139,7 +1139,9 @@ function pdForm(id,onDone){
    const row={name,category:cat||"Geral",sale_price:n("#pf-sale"),cost_price:n("#pf-cost"),min_stock:Math.round(n("#pf-min"))};
    if(row.sale_price<0||row.cost_price<0||row.min_stock<0)throw Error("Valores não podem ser negativos.");
    btn.disabled=true;btn.textContent="Salvando…";
-   if(p)await api(`finance_products?id=eq.${p.id}`,{method:"PATCH",body:JSON.stringify({...row,updated_at:new Date().toISOString()})});
+   if(p){const ns=Math.round(Number(q("#pf-stock")?.value===""||q("#pf-stock")==null?p.stock_quantity:q("#pf-stock").value)),old=Number(p.stock_quantity||0);if(!(ns>=0))throw Error("Estoque inválido.");const patch={...row,updated_at:new Date().toISOString()};if(ns!==old)patch.stock_quantity=ns;
+    await api(`finance_products?id=eq.${p.id}`,{method:"PATCH",body:JSON.stringify(patch)});
+    if(ns!==old)await api("finance_stock_movements",{method:"POST",body:JSON.stringify({product_id:p.id,movement_type:ns>old?"adjustment":"loss",quantity:Math.abs(ns-old),unit_cost:Number(row.cost_price||0),description:"Correção de estoque",movement_date:todayLocal(),created_by:uid()})})}
    else{const qty=Math.round(n("#pf-qty"));if(qty<0)throw Error("Estoque inicial inválido.");const made=await api("finance_products",{method:"POST",body:JSON.stringify({...row,stock_quantity:qty,active:true})});const it=made?.[0];if(it&&qty>0)await api("finance_stock_movements",{method:"POST",body:JSON.stringify({product_id:it.id,movement_type:"adjustment",quantity:qty,unit_cost:row.cost_price,description:"Estoque inicial",movement_date:todayLocal(),created_by:uid()})});
     if(it&&q("#pf-promo")?.value){const pv=Number(q("#pf-pval").value);if(!(pv>0)){/* produto já criado; avisa sem perder */alert("Produto cadastrado, mas a campanha não foi aplicada: informe o valor do desconto editando a promoção.")}else{await api("promotion_items",{method:"POST",body:JSON.stringify([{promotion_id:Number(q("#pf-promo").value),product_id:it.id,discount_type:q("#pf-ptype").value,value:pv}])});__promoCache=null}}
     window.__lastNewProduct=it||null}
@@ -4044,5 +4046,24 @@ html #app #login-card input:focus{border-color:rgba(255,255,255,.5)!important;ou
 html #app #login-card label{color:rgba(255,255,255,.7)!important}
 html #app #login-card button#do-login.btn.primary{height:50px!important;border-radius:999px!important;color:#fff!important;font-weight:800!important;font-size:16px!important;letter-spacing:.3px;background:linear-gradient(135deg,rgba(255,255,255,.30) 0%,rgba(255,255,255,.05) 46%,rgba(255,255,255,.10) 100%),rgba(72,72,78,.85)!important;border:1px solid rgba(255,255,255,.3)!important;box-shadow:0 10px 24px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.5)!important;-webkit-backdrop-filter:blur(16px) saturate(1.5);backdrop-filter:blur(16px) saturate(1.5);text-shadow:0 1px 2px rgba(0,0,0,.35)}
 html #app #login-card button#do-login:active{transform:scale(.98)}
+/* g88: seletor de produto vidro */
+html .pay-picker{background:rgba(0,0,0,.45)!important;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding:0 10px calc(10px + env(safe-area-inset-bottom))!important}
+html .pay-picker .pay-picker-card{border-radius:30px!important;max-height:72vh;padding:10px 14px 14px!important;background:linear-gradient(145deg,rgba(255,255,255,.2),rgba(255,255,255,.06)),rgba(30,30,34,.72)!important;border:1px solid rgba(255,255,255,.26)!important;color:#fff!important;-webkit-backdrop-filter:blur(26px) saturate(1.6);backdrop-filter:blur(26px) saturate(1.6);box-shadow:0 24px 60px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.4)!important}
+html .pay-picker .pay-picker-card::before{content:"";display:block;width:40px;height:5px;border-radius:3px;background:rgba(255,255,255,.3);margin:2px auto 6px}
+html .pay-picker .pay-picker-h{padding:6px 2px 4px!important}html .pay-picker .pay-picker-h b{font-size:18px;color:#fff}
+html .pay-picker #pp-add.pay-x.pay-plus.pay-plus{width:44px!important;height:44px!important;min-width:0!important;padding:0!important;border-radius:50%!important;font-size:24px!important;line-height:1!important;color:#fff!important;background:linear-gradient(135deg,rgba(255,255,255,.30),rgba(255,255,255,.05) 46%,rgba(255,255,255,.10)),rgba(72,72,78,.85)!important;border:1px solid rgba(255,255,255,.3)!important;box-shadow:0 8px 18px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.5)!important}
+html .pay-picker .pp-item{display:flex!important;align-items:center;justify-content:space-between;gap:12px;width:100%;margin-top:8px;padding:12px 14px 12px 16px!important;border-radius:22px!important;background:rgba(255,255,255,.08)!important;border:1px solid rgba(255,255,255,.16)!important;color:#fff!important;text-align:left;box-shadow:inset 0 1px 0 rgba(255,255,255,.18)!important}
+html .pay-picker .pp-item:active{transform:scale(.98)}html .pay-picker .pp-item:disabled{opacity:.4}
+html .pay-picker .pp-item>span{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}html .pay-picker .pp-item>span>b{font-size:16px}
+html .pay-picker .pp-item small{display:flex;flex-wrap:wrap;align-items:center;gap:6px;opacity:.8;font-size:12px}
+html .pay-picker .pp-item>b{flex:none;display:flex;flex-direction:column;align-items:flex-end;white-space:nowrap;font-size:16px;line-height:1.15;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.12)}
+html .pay-picker .pp-item>b s{display:block;font-size:12px;opacity:.55!important}
+html .pay-picker .promo-tag{background:rgba(255,80,90,.35)!important;border:1px solid rgba(255,130,140,.55);color:#fff!important;border-radius:999px;padding:1px 9px;font-size:11px;font-weight:700}
+/* g88: categoria acima do formulário */
+html .pd-scrim.pd-top{z-index:6400!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+html .pd-scrim.pd-top .pd-card{background:linear-gradient(145deg,rgba(255,255,255,.2),rgba(255,255,255,.06)),rgba(30,30,34,.78)!important;color:#fff!important;border:1px solid rgba(255,255,255,.26)!important;border-radius:26px!important;-webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6)}
+html .pd-scrim.pd-top .pd-card h3{color:#fff!important}
+html .pd-scrim.pd-top .pd-cats button{border-radius:999px!important;background:rgba(255,255,255,.1)!important;border:1px solid rgba(255,255,255,.26)!important;color:#fff!important}
+html .pd-scrim.pd-top .pd-cats button.on{background:rgba(120,140,180,.45)!important;border-color:rgba(255,255,255,.7)!important}
 </style>
 
