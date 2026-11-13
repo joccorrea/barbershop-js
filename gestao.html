@@ -1136,7 +1136,7 @@ function pdForm(id,onDone){
   try{
    const name=q("#pf-name").value.trim();if(!name)throw Error("Informe o nome do produto.");
    const n=i=>Number(q(i)?.value||0);
-   const row={name,category:cat||null,sale_price:n("#pf-sale"),cost_price:n("#pf-cost"),min_stock:Math.round(n("#pf-min"))};
+   const row={name,category:cat||"Geral",sale_price:n("#pf-sale"),cost_price:n("#pf-cost"),min_stock:Math.round(n("#pf-min"))};
    if(row.sale_price<0||row.cost_price<0||row.min_stock<0)throw Error("Valores não podem ser negativos.");
    btn.disabled=true;btn.textContent="Salvando…";
    if(p)await api(`finance_products?id=eq.${p.id}`,{method:"PATCH",body:JSON.stringify({...row,updated_at:new Date().toISOString()})});
