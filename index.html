@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+l<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="theme-color" content="#050505"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Barbershop Js – Agendamento</title>
@@ -171,7 +171,7 @@ const open=d=>cand().some(b=>intervals(d,b).length>0);
 const MN=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"],MAXM=1;
 function days(){const r=[],n=new Date(),lim=new Date(n.getFullYear(),n.getMonth()+MAXM,n.getDate());for(let i=0;i<=75;i++){const x=new Date(n.getFullYear(),n.getMonth(),n.getDate()+i);if(x>lim)break;if(open(x))r.push(x)}return r}
 function dayGroups(){const ds=days(),y0=new Date().getFullYear();let out="",cur="";for(const d of ds){const m=d.getFullYear()*12+d.getMonth();if(m!==cur){if(cur!=="")out+="</div>";cur=m;out+=`<div class=mh>${MN[d.getMonth()]}${d.getFullYear()!==y0?" de "+d.getFullYear():""}</div><div class=chips>`}out+=`<button class="chip ${date&&key(d)==key(date)?"on":""}" data-date="${key(d)}">${lab(d)}</button>`}return out?out+"</div>":""}
-function slots(d){const n=dur(),now=new Date(),td=key(now)==key(d),nm=now.getHours()*60+now.getMinutes(),set=new Set();for(const b of cand()){const bz=busyBy[b.id]||[];for(const o of intervals(d,b)){for(let t=Number(o.start_min);t+n<=Number(o.end_min);t+=slotStep){if(bz.some(x=>t<x.end_min&&t+n>x.start_min))continue;if(td&&t<=nm)continue;set.add(t)}}}return [...set].sort((a,b)=>a-b)}
+function slots(d){const n=dur(),now=new Date(),td=key(now)==key(d),nm=now.getHours()*60+now.getMinutes(),set=new Set();for(const b of cand()){const bz=busyBy[b.id]||[];for(const o of intervals(d,b)){for(let t=Number(o.start_min);t+n<=Number(o.end_min);t+=slotStep){if(bz.some(x=>t<x.end_min&&t+n>x.start_min))continue;if(td&&t<nm+60)continue;set.add(t)}}}return [...set].sort((a,b)=>a-b)}
 async function loadBusy(){const d=date;try{const list=cand(),res=await Promise.all(list.map(b=>rpc("get_busy",{p_date:key(d),p_barber:b.id})));if(date===d){busyBy={};list.forEach((b,i)=>busyBy[b.id]=res[i]);render()}}catch(e){msg="Erro ao carregar horários. Tente de novo.";render()}}
 function render(){const a=$("#app"),M=msg?`<p class=er>${esc(msg)}</p>`:"";
 if(st==0){a.innerHTML=`<p class=mu>${msg?esc(msg):"Carregando…"}</p>`}
