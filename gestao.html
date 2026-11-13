@@ -2286,6 +2286,29 @@ async function redeemBookingPackage(b){
   if(Object.keys(patch).length)await api(`client_packages?id=eq.${cpid}`,{method:"PATCH",body:JSON.stringify(patch)});
  }
 }
+async function reconcileBookingPackage(id,services){
+ try{
+  const rd=await api(`client_package_redemptions?select=*&booking_id=eq.${encodeURIComponent(id)}`).catch(()=>[]);if(!rd.length)return;
+  const sv=Array.isArray(services)?services:[];
+  const by={};
+  for(const r of rd){(by[r.client_package_service_id]=by[r.client_package_service_id]||[]).push(r)}
+  for(const sid of Object.keys(by)){
+   const it=(await api(`client_package_services?select=*&id=eq.${sid}`).catch(()=>[]))[0];if(!it)continue;
+   const need=sv.filter(x=>x&&x.pkg&&Number(x.pkg)===Number(it.client_package_id)&&(Number(x.id)===Number(it.service_id)||String(x.name||"").toLowerCase()===String(it.service_name||"").toLowerCase())).reduce((a,x)=>a+Number(x.pkgQty||0),0);
+   let have=by[sid].reduce((a,r)=>a+Number(r.quantity||0),0),give=have-need;if(give<=0)continue;
+   const back=give;
+   for(const r of by[sid].slice().reverse()){
+    if(give<=0)break;const q=Number(r.quantity||0),cut=Math.min(q,give);
+    if(cut>=q)await api(`client_package_redemptions?id=eq.${r.id}`,{method:"DELETE"});
+    else await api(`client_package_redemptions?id=eq.${r.id}`,{method:"PATCH",body:JSON.stringify({quantity:q-cut})});
+    give-=cut;
+   }
+   const nq=Math.min(Number(it.quantity_purchased||1e9),Number(it.quantity_remaining||0)+back);
+   await api(`client_package_services?id=eq.${it.id}`,{method:"PATCH",body:JSON.stringify({quantity_remaining:nq})});
+   await api(`client_packages?id=eq.${it.client_package_id}&status=eq.used`,{method:"PATCH",body:JSON.stringify({status:"active"})}).catch(()=>null);
+  }
+ }catch(e){}
+}
 async function unredeemBooking(id){
  const rd=await api(`client_package_redemptions?select=*&booking_id=eq.${encodeURIComponent(id)}`).catch(()=>[]);
  for(const r of rd){
@@ -2466,7 +2489,7 @@ async function saveBookingForm(){
   }
   const barber=d.barbers.find(x=>Number(x.id)===Number(d.barberId))||d.barbers[0];if(!barber)throw Error("Cadastre um profissional ativo.");
   const tt=bookingTotals(d);const total=tt.total;
-  const payload={discount:tt.disc,surcharge:tt.sur,combo_discount:tt.comboVal,barber_id:barber.id,date:key(d.date),start_min:d.start,end_min:end,client_name:client.name,client_phone:client.phone,services:(()=>{const cv=pkgCover(d);return d.services.map(x=>{const o={id:x.id,name:x.name,qty:Number(x.qty||1),price:Number(x.price||0)};if(cv[x.id]){o.pkg=d.pkgId;o.pkgQty=cv[x.id]}return o})})(),total,notes:(d.notes||"").trim()||null,status:d.existingStatus||"confirmed"};if(d.editingId){await api(`bookings?id=eq.${encodeURIComponent(d.editingId)}`,{method:"PATCH",body:JSON.stringify(payload)});await syncClosureAfterEdit(d.editingId,payload)}else await api("bookings",{method:"POST",body:JSON.stringify(payload)});
+  const payload={discount:tt.disc,surcharge:tt.sur,combo_discount:tt.comboVal,barber_id:barber.id,date:key(d.date),start_min:d.start,end_min:end,client_name:client.name,client_phone:client.phone,services:(()=>{const cv=pkgCover(d);return d.services.map(x=>{const o={id:x.id,name:x.name,qty:Number(x.qty||1),price:Number(x.price||0)};if(cv[x.id]){o.pkg=d.pkgId;o.pkgQty=cv[x.id]}return o})})(),total,notes:(d.notes||"").trim()||null,status:d.existingStatus||"confirmed"};if(d.editingId){await api(`bookings?id=eq.${encodeURIComponent(d.editingId)}`,{method:"PATCH",body:JSON.stringify(payload)});await syncClosureAfterEdit(d.editingId,payload);await reconcileBookingPackage(d.editingId,payload.services);agCache={}}else await api("bookings",{method:"POST",body:JSON.stringify(payload)});
   bookingDraft=null;day=d.date;await loadAgenda();
   }catch(e){let message=e.message||"Não foi possível salvar o agendamento.";if(message.includes("23P01")||message.includes("bookings_barber_id_date_int4range_excl")||message.includes("exclusion constraint"))message="O banco estava bloqueando horários sobrepostos. A restrição foi removida; atualize a página e tente novamente. Se persistir, confira se a versão publicada usa o projeto Supabase correto.";if(err){err.textContent=message;err.classList.remove('hidden')}else alert(message)}
 }
