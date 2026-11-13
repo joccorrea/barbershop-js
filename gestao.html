@@ -515,9 +515,12 @@ async function loadNotifications(){
   let done=[];
   if(rest.length)done=(await api(`bookings?select=*&id=in.(${rest.map(encodeURIComponent).join(",")})&status=neq.cancelled`)).sort((a,b)=>String(b.date).localeCompare(String(a.date))||b.start_min-a.start_min);
   ids=[...pend.map(p=>p.id),...done.map(d=>d.id)];ntSave(ids);
+  let cx=[];try{cx=await api("bookings?select=*&status=eq.cancelled&cancelled_at=not.is.null&order=cancelled_at.desc&limit=30")}catch(e){}
+  const cxWhen=iso=>{try{return new Date(iso).toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}).replace(",","")}catch(e){return ""}};
+  const cxCard=b=>`<div class="nt-item done cx"><span class="nt-dot"></span><span class="nt-main"><b>${esc(b.client_name)}</b><small>${formatBookingDateBR(b.date)} · ${hm(b.start_min)}</small><small>${esc((b.services||[]).map(x=>x.name+(Number(x.qty||1)>1?" ×"+x.qty:"")).join(", "))}</small><small>Cancelado pelo cliente em ${esc(cxWhen(b.cancelled_at))}</small></span><span class="pill cx-pill">Cancelado</span></div>`;
   const card=(b,isDone)=>`<button type="button" class="nt-item${isDone?" done":""}" data-nt="${esc(b.id)}" data-date="${esc(b.date)}" data-st="${isDone?"done":"pending"}"><span class="nt-dot"></span><span class="nt-main"><b>${esc(b.client_name)}</b><small>${formatBookingDateBR(b.date)} · ${hm(b.start_min)}</small><small>${esc((b.services||[]).map(x=>x.name+(Number(x.qty||1)>1?" ×"+x.qty:"")).join(", "))}</small></span><span class="pill ${isDone?"":"pending"}">${isDone?statusPortuguese(b.status):"Pendente"}</span></button>`;
-  shell("Notificações",(pend.length?`<p class="muted" style="margin:0 0 8px">Agendamentos aguardando confirmação</p>`+pend.map(b=>card(b,false)).join(""):`<div class="card"><p class="muted" style="margin:0">Nenhum agendamento para confirmar.</p></div>`)+(done.length?`<p class="muted" style="margin:16px 0 8px">Já tratados</p>`+done.map(b=>card(b,true)).join(""):""));
-  app.querySelectorAll("[data-nt]").forEach(el=>el.onclick=()=>{
+  shell("Notificações",(pend.length?`<p class="muted" style="margin:0 0 8px">Agendamentos aguardando confirmação</p>`+pend.map(b=>card(b,false)).join(""):`<div class="card"><p class="muted" style="margin:0">Nenhum agendamento para confirmar.</p></div>`)+(cx.length?`<p class="muted" style="margin:16px 0 8px">Cancelados pelo cliente</p>`+cx.map(cxCard).join(""):"")+(done.length?`<p class="muted" style="margin:16px 0 8px">Já tratados</p>`+done.map(b=>card(b,true)).join(""):""));
+  app.querySelectorAll("button[data-nt]").forEach(el=>el.onclick=()=>{
    if(el.dataset.st==="pending")showBookingReview(el.dataset.nt,"notif");
    else popMenu(el,[{icon:EYE_SVG,title:"Ver no dia",fn:()=>gotoBooking(el.dataset.nt,el.dataset.date)}]);
   });
@@ -4110,5 +4113,6 @@ html .pd-scrim.pd-top .pd-card{background:linear-gradient(145deg,rgba(255,255,25
 html .pd-scrim.pd-top .pd-card h3{color:#fff!important}
 html .pd-scrim.pd-top .pd-cats button{border-radius:999px!important;background:rgba(255,255,255,.1)!important;border:1px solid rgba(255,255,255,.26)!important;color:#fff!important}
 html .pd-scrim.pd-top .pd-cats button.on{background:rgba(120,140,180,.45)!important;border-color:rgba(255,255,255,.7)!important}
+.nt-item.cx{cursor:default;opacity:.95}.nt-item.cx .nt-dot{background:#E5484D!important}.pill.cx-pill{background:rgba(229,72,77,.14)!important;color:#C0262B!important;border:1px solid rgba(229,72,77,.35)!important}
 </style>
 
