@@ -2682,9 +2682,9 @@ async function openPaymentScreen(b,opts={}){
   const statusInfo=()=>{
     const rem=remaining(),diff=Math.round((rem-paid())*100)/100,pt=pTotal();
     const creditUsed=parts.filter(p=>p.method==="credit").reduce((a,p)=>a+Number(p.amount||0),0);
-    const bad=diff<0||(paid()<=0&&pt<=0&&!(pkgPending&&rem<=0))||creditUsed>creditAvail+0.001||parts.some(p=>!(Number(p.amount)>0));
-    const msg=!parts.length?"":creditUsed>creditAvail+0.001?`Crédito disponível: ${fm(creditAvail)}`:diff===0?"Valor conferido ✓":diff>0?`Valor pendente: ${fm(diff)} — ficará a receber`:`Valor maior que o total (${fm(-diff)} a mais)`;
-    const cls=diff===0&&parts.length?"ok":diff<0||creditUsed>creditAvail+0.001?"":"warn";
+    const bad=(diff<0&&(!b.client_phone||creditUsed>rem+0.001))||(paid()<=0&&pt<=0&&!(pkgPending&&rem<=0))||creditUsed>creditAvail+0.001||parts.some(p=>!(Number(p.amount)>0));
+    const msg=!parts.length?"":creditUsed>creditAvail+0.001?`Crédito disponível: ${fm(creditAvail)}`:diff===0?"Valor conferido ✓":diff>0?`Valor pendente: ${fm(diff)} — ficará a receber`:(b.client_phone?`Valor maior que o total (${fm(-diff)} a mais) — poderá ficar como crédito`:`Valor maior que o total (${fm(-diff)} a mais). Sem telefone no cadastro, não dá para guardar crédito.`);
+    const cls=diff===0&&parts.length?"ok":diff<0&&b.client_phone&&!bad?"warn":diff<0||creditUsed>creditAvail+0.001?"":"warn";
     const label=pkgPending&&rem<=0&&pt<=0&&!parts.length?"Confirmar uso do pacote":editing?(diff>0&&!bad?"Salvar alterações (valor pendente)":"Salvar alterações"):paid()<=0&&pt>0?"Salvar produtos (valor pendente)":diff>0&&!bad?"Confirmar pagamento parcial":"Confirmar pagamento";
     return {bad,msg,cls,label};
   };
@@ -2761,7 +2761,16 @@ async function openPaymentScreen(b,opts={}){
       draw();
     });
   };
+  const askExcessCredit=over=>new Promise(res=>{
+    const m=document.createElement("div");m.className="nsm";
+    m.innerHTML=`<div class="nsm-card"><h3>Deixar como crédito?</h3><p>O valor pago é <b>${fm(over)}</b> maior que o do atendimento. Quer deixar essa diferença como crédito para ${esc(b.client_name||"o cliente")}?</p><div class="dlg-foot"><button type="button" id="oc-no">Não</button><button type="button" id="oc-yes">Sim</button></div></div>`;
+    document.body.appendChild(m);
+    m.querySelector("#oc-no").onclick=()=>{m.remove();res(false)};
+    m.querySelector("#oc-yes").onclick=()=>{m.remove();res(true)};
+  });
   const save=async()=>{
+    const over0=(()=>{const i=statusInfo();const rem=remaining();const d=Math.round((paid()-rem)*100)/100;return i.bad?0:Math.max(0,d)})();
+    if(over0>0.004&&!(await askExcessCredit(over0)))return;
     const btn=el.querySelector("#pay-ok");btn.disabled=true;btn.textContent="Salvando…";
     try{
       for(const p of prods){const c=catalog.find(z=>z.id===p.product_id);if(!c||p.quantity>Number(c.stock_quantity))throw Error("Estoque insuficiente para "+p.name+".")}
@@ -2826,6 +2835,15 @@ async function openPaymentScreen(b,opts={}){
         const nb=await settle(bk,exo,o.v,al,[]);
         await api(`bookings?id=eq.${encodeURIComponent(o.b.id)}`,{method:"PATCH",body:JSON.stringify({status:nb>0?"completed":"finalized"})});
       }
+      const leftAl=take(1e9).filter(p=>p.method!=="credit");const exV=sum(leftAl);
+      if(exV>0.004&&b.client_phone){
+        await api("client_credits",{method:"POST",body:JSON.stringify({client_phone:b.client_phone,client_name:b.client_name||"",booking_id:b.id,amount:exV,remaining_amount:exV,status:"available",description:"Crédito — valor a mais no atendimento",created_by:uid()})});
+        for(const p of leftAl){
+          const mv={movement_date:ds,...payMv(p.method),status:"paid",booking_id:b.id,created_by:uid()};
+          await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"income",description:`Crédito do cliente ${b.client_name} (${payName(p.method)})`,category:"Venda de crédito",amount:p.amount})});
+          if(["cash","card"].includes(payKind(p.method)))await api("finance_movements",{method:"POST",body:JSON.stringify({...mv,kind:"pro_labore",description:`Retirada automática sobre crédito ${b.client_name} (${payName(p.method)})`,category:"Retirada do proprietário",amount:p.amount})});
+        }
+      }
       close();await loadAgenda();
     }catch(err){alert("Não foi possível registrar o pagamento: "+err.message);btn.disabled=false;btn.textContent="Confirmar pagamento"}
   };
@@ -2834,9 +2852,10 @@ async function openPaymentScreen(b,opts={}){
 async function undoPayment(id,o={}){
   if(!o.editing)await unredeemBooking(id).catch(()=>null);
   const cl=await api(`finance_booking_closures?select=*&booking_id=eq.${encodeURIComponent(id)}`);
-  const cats=encodeURIComponent('("Atendimento","Retirada do proprietário","Taxas de cartão","Contas a receber","Caixinha")');
+  const cats=encodeURIComponent('("Atendimento","Retirada do proprietário","Taxas de cartão","Contas a receber","Caixinha","Venda de crédito")');
   if(o.keepPaid)await api(`finance_movements?booking_id=eq.${encodeURIComponent(id)}&status=eq.pending&category=eq.Contas a receber`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});
   else await api(`finance_movements?booking_id=eq.${encodeURIComponent(id)}&status=in.(paid,pending)&category=in.${cats}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})});
+  if(!o.keepPaid)await api(`client_credits?booking_id=eq.${encodeURIComponent(id)}&status=eq.available&description=eq.${encodeURIComponent("Crédito — valor a mais no atendimento")}`,{method:"PATCH",body:JSON.stringify({status:"cancelled",remaining_amount:0})}).catch(()=>null);
   const ds=todayLocal();
   for(const c of cl){
     for(const it of (Array.isArray(c.product_items)?c.product_items:[])){
