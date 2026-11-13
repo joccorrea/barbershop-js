@@ -2456,8 +2456,11 @@ async function saveBookingForm(){
     const confirmed=await appConfirmP("Este horário está fora do expediente.<br><small style=\"font-weight:500;color:#9CC7F0;font-size:14px\">Deseja confirmar o agendamento mesmo assim?</small>","Confirmar mesmo assim");
     if(!confirmed)return;
   }
-  const conflicts=bookings.filter(b=>String(b.id)!==String(d.editingId)&&Number(b.start_min)<end&&Number(b.end_min)>d.start);if(conflicts.length){const aceitaConflito=await appConfirmP("Atenção: este horário entra em conflito com outro agendamento<br><small style=\"font-weight:500;color:#9CC7F0;font-size:14px\">"+esc(conflicts.map(b=>b.client_name+" às "+hm(b.start_min)).join(", "))+".<br>Deseja realizar mesmo assim?</small>","Realizar mesmo assim");if(!aceitaConflito)return;}
-  if(blocks.some(b=>Number(b.start_min)<end&&Number(b.end_min)>d.start))throw Error("Esse horário está bloqueado.");
+  const __bid=Number(d.barberId||d.barbers?.[0]?.id||0);
+  const __dayBk=await api(`bookings?select=id,client_name,start_min,end_min,barber_id&date=eq.${bookingDate}&status=not.in.(cancelled,cancelado,canceled)`);
+  const __dayBl=await api(`blocked_slots?select=*&date=eq.${bookingDate}&order=start_min`);
+  const conflicts=__dayBk.filter(b=>String(b.id)!==String(d.editingId)&&(!__bid||Number(b.barber_id)===__bid)&&Number(b.start_min)<end&&Number(b.end_min)>d.start);if(conflicts.length){const aceitaConflito=await appConfirmP("Atenção: este horário entra em conflito com outro agendamento<br><small style=\"font-weight:500;color:#9CC7F0;font-size:14px\">"+esc(conflicts.map(b=>b.client_name+" às "+hm(b.start_min)).join(", "))+".<br>Deseja realizar mesmo assim?</small>","Realizar mesmo assim");if(!aceitaConflito)return;}
+  if(__dayBl.some(b=>(b.barber_id==null||!__bid||Number(b.barber_id)===__bid)&&Number(b.start_min)<end&&Number(b.end_min)>d.start))throw Error("Esse horário está bloqueado.");
   if(newClientData){
     await api("clients?on_conflict=phone",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify(newClientData)});
   }
