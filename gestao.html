@@ -579,6 +579,7 @@ function showError(e){notice=e?.message||"Ocorreu um erro.";renderNotice("error"
 function getLocalBookingStatuses(){try{return JSON.parse(localStorage.getItem("barberShopJSBookingStatuses")||"{}")}catch(_){return {}}}
 function setLocalBookingStatus(id,status){const all=getLocalBookingStatuses();all[String(id)]=status;localStorage.setItem("barberShopJSBookingStatuses",JSON.stringify(all))}
 async function loadAgenda(){agCache={};const date=key(day),wd=day.getDay();try{[bookings,hourPeriods,blocks,agBarbers]=await Promise.all([api(`bookings?select=*&date=eq.${date}&status=not.in.(cancelled,cancelado,canceled)&order=start_min`),api("business_hour_periods?select=id,start_date,end_date,active,schedule&active=eq.true"),api(`blocked_slots?select=*&date=eq.${date}&order=start_min`),api("rpc/agenda_barbers",{method:"POST",body:"{}"})]);
+ await dayIncomeFetch(date);
  try{pendingBal={};paidAmt={};const pids=(bookings||[]).map(x=>x.id);if(pids.length)(await api(`finance_booking_closures?select=booking_id,amount_paid,balance_due&booking_id=in.(${pids.join(",")})`)).forEach(c=>{const k=String(c.booking_id);paidAmt[k]=Number(c.amount_paid||0);if(Number(c.balance_due)>0)pendingBal[k]=Number(c.balance_due)})}catch(e){}
 const setting=(await api("business_hour_settings?select=slot_step_minutes&id=eq.true"))[0];slotStep=Number(setting?.slot_step_minutes||30);slotStepDraft=slotStep;const selected=hourPeriods.filter(p=>p.start_date<=date&&(!p.end_date||p.end_date>=date)).sort((a,b)=>b.start_date.localeCompare(a.start_date)||b.id-a.id)[0];if(selected){dayRanges=normalizeSchedule(selected.schedule)[wd];hours=dayRanges.length?[{open_min:Math.min(...dayRanges.map(x=>x.start_min)),close_min:Math.max(...dayRanges.map(x=>x.end_min)),lunch_start:null,lunch_end:null}]:[]}else{hours=await api(`business_hours?select=*&weekday=eq.${wd}`);const h=hours?.[0];dayRanges=h&&h.open_min!=null?(h.lunch_start!=null&&h.lunch_end!=null?[{start_min:h.open_min,end_min:h.lunch_start},{start_min:h.lunch_end,end_min:h.close_min}]:[{start_min:h.open_min,end_min:h.close_min}]):[]}const localStatuses=getLocalBookingStatuses();bookings=bookings.map(b=>localStatuses[String(b.id)]?{...b,status:localStatuses[String(b.id)]}:b);allBookings=bookings;allBlocks=blocks;shopRanges=dayRanges;shopHours=hours;applyAgendaBarber();renderAgenda()}catch(e){shell("Agenda",`<p class="error">${esc(e.message)}</p><button class="btn" id="retry">Tentar novamente</button>`)}}
 
@@ -639,11 +640,14 @@ function agTodayBtn(){try{const old=document.getElementById("agenda-today");if(o
 function agendaAfterRender(){if(window.__agCap)return;agTodayBtn();const k=key(day);const y=agendaDayKey===k?agendaScrollY:0;agendaDayKey=k;requestAnimationFrame(()=>window.scrollTo(0,y))}
 window.addEventListener("scroll",()=>{if(document.querySelector(".agenda-grid")&&!document.body.classList.contains("sheet-open")&&!document.querySelector(".booking-screen,.client-picker-screen"))agendaScrollY=window.scrollY},{passive:true});
 let pendingBal={},paidAmt={};
+var dayInc={};
+async function dayIncomeFetch(date){try{const r=await api(`finance_movements?select=amount&kind=eq.income&status=eq.paid&movement_date=eq.${date}`);dayInc[date]=Math.round(r.reduce((a,x)=>a+Number(x.amount||0),0)*100)/100}catch(e){delete dayInc[date]}}
 var agCache={};
 async function agFetch(d){
  const date=key(d),wd=d.getDay();
  const [bk,hp,bl]=await Promise.all([api(`bookings?select=*&date=eq.${date}&status=not.in.(cancelled,cancelado,canceled)&order=start_min`),api("business_hour_periods?select=id,start_date,end_date,active,schedule&active=eq.true"),api(`blocked_slots?select=*&date=eq.${date}&order=start_min`)]);
  const pb={},pd={};
+ await dayIncomeFetch(date);
  try{const pids=(bk||[]).map(x=>x.id);if(pids.length)(await api(`finance_booking_closures?select=booking_id,amount_paid,balance_due&booking_id=in.(${pids.join(",")})`)).forEach(c=>{const k=String(c.booking_id);pd[k]=Number(c.amount_paid||0);if(Number(c.balance_due)>0)pb[k]=Number(c.balance_due)})}catch(e){}
  const selected=hp.filter(p=>p.start_date<=date&&(!p.end_date||p.end_date>=date)).sort((a,b)=>b.start_date.localeCompare(a.start_date)||b.id-a.id)[0];
  let dr,hr;
@@ -778,7 +782,7 @@ function renderAgenda(){
  }
  const out=`<div class="agenda-grid" style="--agenda-step:${step/30}">${times.join("")}${right.join("")}</div><button class="agenda-fab" id="agenda-new-booking" aria-label="Novo agendamento" title="Novo agendamento">＋</button>`;
  const recv=bookings.reduce((sum,x)=>{const k=String(x.id),sc=statusClass(x.status);if(["no_show","nao_compareceu","faltou"].includes(normalizedStatus(x.status))||sc==="finalized")return sum;if(pendingBal[k]>0)return sum+pendingBal[k];return sum+(sc==="completed"?Number(x.total||0):0)},0);
- const paidSum=bookings.reduce((sum,x)=>sum+Number(paidAmt[String(x.id)]||0),0);
+ const paidSum0=bookings.reduce((sum,x)=>sum+Number(paidAmt[String(x.id)]||0),0);const dIn=dayInc[key(day)];const paidSum=(dIn!=null&&bookings.length===allBookings.length)?dIn:paidSum0;
  const sumTxt=`<div>${n} agendamento(s) · ${fm(bookings.reduce((sum,x)=>sum+Number(x.total||0),0))}</div>${(recv>0||paidSum>0)?`<div class="agenda-meta2">${recv>0?`<b class="agenda-toreceive">A receber: ${fm(recv)}</b>`:""}${paidSum>0?`<b class="agenda-paid">Pago: ${fm(paidSum)}</b>`:""}</div>`:""}`;
  shell("Agenda",`<div class="agenda-sticky">`+nav+`<div class="agenda-meta">${sumTxt}</div><div class="agenda-legend"><span><i style="background:rgba(198,163,57,0.22);border:2px solid #E3B341"></i>Pendente</span><span><i style="background:#26262a;border:2px solid #5B9BD5"></i>Confirmado</span><span><i style="background:rgba(127,57,198,0.22);border:2px solid rgba(121,51,204,0.50)"></i>Falta pagar</span><span><i style="background:rgba(57,198,110,0.22);border:2px solid #4DAA75"></i>Pago</span></div></div>`+out+`<div class="muted">Toque em um horário para agendar ou bloquear.</div>`);
  if(window.__agCap)return;try{stkBgSetup()}catch(e){}try{document.documentElement.style.setProperty("--topH",Math.round(document.querySelector(".top")?.getBoundingClientRect().bottom||66)+"px")}catch(e){}agendaAfterRender();
