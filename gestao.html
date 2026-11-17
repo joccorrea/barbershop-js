@@ -487,6 +487,8 @@ async function enablePushNotifications(){
  if(!response.ok||!result.ok)throw Error(result.error||"Não foi possível registrar este aparelho.");
  refreshPushButton();alert("Notificações ativadas neste aparelho! Você receberá avisos de novos agendamentos.");
 }
+function waBiz(url){const m=String(url).match(/^https:\/\/wa\.me\/(\d*)(?:\?text=(.*))?$/);return m?"whatsapp-business://send?"+(m[1]?"phone="+m[1]+"&":"")+"text="+(m[2]||""):url}
+function openWa(url){const biz=waBiz(url);if(biz===url){window.location.href=url;return}let left=false;const onv=()=>{if(document.hidden)left=true};document.addEventListener("visibilitychange",onv);window.location.href=biz;setTimeout(()=>{document.removeEventListener("visibilitychange",onv);if(!left&&!document.hidden)window.location.href=url},1800)}
 function whatsappBrazilNumber(value){
  let digits=String(value||"").replace(/\D/g,"");
  if(!digits)return "";
@@ -552,7 +554,7 @@ async function showBookingReview(id,from){
     await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"confirmed"})});
     day=new Date(b.date+"T12:00:00");history.replaceState({},"","/barbershop-js/gestao.html");
     if(from==="notif")await navigate("notifications");else await loadAgenda();
-    if(sendWa)window.location.href="https://wa.me/"+phone+"?text="+encodeURIComponent(msg);
+    if(sendWa)openWa("https://wa.me/"+phone+"?text="+encodeURIComponent(msg));
    }catch(err){btn.disabled=false;alert("Não foi possível confirmar: "+err.message)}
   });
   $("#review-cancel").onclick=async()=>{
@@ -637,7 +639,7 @@ function renderAgendaColumns(nav){
 }
 let agendaScrollY=0,agendaDayKey=null;
 function agTodayBtn(){try{const old=document.getElementById("agenda-today");if(old)old.remove();if(!document.querySelector(".agenda-head"))return;if(key(day)===key(new Date()))return;const b=document.createElement("button");b.type="button";b.id="agenda-today";b.className="agenda-today";b.textContent="Hoje";b.setAttribute("aria-label","Ir para hoje");b.onclick=()=>{day=new Date();loadAgenda()};document.getElementById("app").appendChild(b)}catch(e){}}
-function agendaAfterRender(){if(window.__agCap)return;agTodayBtn();const k=key(day);const y=agendaDayKey===k?agendaScrollY:0;agendaDayKey=k;requestAnimationFrame(()=>window.scrollTo(0,y))}
+function agendaAfterRender(){if(window.__agCap)return;agTodayBtn();setTimeout(()=>{try{if(document.querySelector('.agenda-head')&&!window.__agCap&&window.__agPre)window.__agPre()}catch(e){}},500);const k=key(day);const y=agendaDayKey===k?agendaScrollY:0;agendaDayKey=k;requestAnimationFrame(()=>window.scrollTo(0,y))}
 window.addEventListener("scroll",()=>{if(document.querySelector(".agenda-grid")&&!document.body.classList.contains("sheet-open")&&!document.querySelector(".booking-screen,.client-picker-screen"))agendaScrollY=window.scrollY},{passive:true});
 let pendingBal={},paidAmt={};
 var dayInc={};
@@ -666,15 +668,18 @@ function agGhostOf(S){
  const g=t.content.querySelector(".agenda-grid,.ag-cols,p.notice"),l=t.content.querySelector(".agenda-dayname");
  return g&&l?{grid:g,label:l.textContent}:null;
 }
-(()=>{let sx=0,sy=0,st=0,ok=false,drag=false,busy=false,g=null;
+(()=>{let sx=0,sy=0,st=0,ok=false,drag=false,busy=false,g=null,raf=0,pend=0;
  const GSEL=".agenda-grid,.ag-cols,p.notice";
  const guard=t=>busy||!document.querySelector(".agenda-head")||document.body.classList.contains("sheet-open")||document.querySelector(".booking-screen,.client-picker-screen,.nsm,.pop-scrim,.app-confirm-scrim,.pay-screen")||(t.closest&&t.closest("input,textarea,select"));
  const nbDay=dir=>new Date(day.getFullYear(),day.getMonth(),day.getDate()+dir);
- const fetchN=dir=>{const d=nbDay(dir),k=key(d),c=agCache[k];if(c&&Date.now()-c.t<15000)return c.p;const p=agFetch(d);agCache[k]={t:Date.now(),p};p.catch(()=>{if(agCache[k]&&agCache[k].p===p)delete agCache[k]});return p};
+ const fetchN=dir=>{const d=nbDay(dir),k=key(d),c=agCache[k];if(c&&Date.now()-c.t<45000)return c.p;const p=agFetch(d);agCache[k]={t:Date.now(),p};p.catch(()=>{if(agCache[k]&&agCache[k].p===p)delete agCache[k]});return p};
  const prefetch=()=>{fetchN(-1).catch(()=>{});fetchN(1).catch(()=>{})};
+ const idle=f=>(window.requestIdleCallback?window.requestIdleCallback(f,{timeout:800}):setTimeout(f,80));
+ const warm=dir=>fetchN(dir).then(S=>{if(S.__g)return;idle(()=>{if(!S.__g&&!g&&!busy&&!window.__agCap&&!drag){try{S.__g=agGhostOf(S)}catch(e){}}})}).catch(()=>{});
+ window.__agPre=()=>{warm(-1);warm(1)};
  const groups=()=>{const a=[g.grid],b=[g.lab];[-1,1].forEach(r=>{if(g.gh[r])a.push(g.gh[r]);if(g.lg[r])b.push(g.lg[r])});return [a,b]};
  const move=(dx,anim)=>{const [a,b]=groups(),k=g.bw/g.W;a.forEach(e=>{e.style.transition=anim||"none";e.style.transform=`translate3d(${dx}px,0,0)`});b.forEach(e=>{e.style.transition=anim||"none";e.style.transform=`translate3d(${dx*k}px,0,0)`});g.dx=dx};
- const build=(dir,S)=>{if(!g||g.gh[dir]||!g.grid.isConnected)return;const r=agGhostOf(S);if(!r)return;
+ const build=(dir,S)=>{if(!g||g.gh[dir]||!g.grid.isConnected)return;let r;if(S.__g){r={grid:S.__g.grid.cloneNode(true),label:S.__g.label}}else{r=agGhostOf(S);if(r)S.__g={grid:r.grid.cloneNode(true),label:r.label}}if(!r)return;
   const gh=r.grid,gr=g.grid;gh.removeAttribute("id");
   gh.style.cssText+=`;position:absolute;box-sizing:border-box;margin:0;top:${gr.offsetTop}px;left:${gr.offsetLeft+dir*g.W}px;width:${gr.offsetWidth}px;pointer-events:none;transition:none;transform:translate3d(${g.dx}px,0,0)`;
   gr.parentNode.insertBefore(gh,gr.nextSibling);g.gh[dir]=gh;g.S[dir]=S;
@@ -686,15 +691,15 @@ function agGhostOf(S){
  };
  const start=()=>{const grid=document.querySelector(GSEL),btn=document.querySelector(".agenda-datebtn"),lab=btn&&btn.querySelector(".agenda-dayname");if(!grid||!btn||!lab)return false;
   g={grid,btn,lab,W:window.innerWidth,bw:btn.offsetWidth,gh:{},lg:{},S:{},dx:0,html:document.documentElement.style.overflowX,pos:btn.style.position,ov:btn.style.overflow};
-  btn.style.position="relative";btn.style.overflow="hidden";document.documentElement.style.overflowX="hidden";
+  btn.style.position="relative";btn.style.overflow="hidden";document.documentElement.style.overflowX="hidden";document.body.classList.add("ag-dragging");
   const me=g;[-1,1].forEach(dir=>fetchN(dir).then(S=>{if(g===me)build(dir,S)}).catch(()=>{}));return true};
- const cleanup=()=>{if(!g)return;try{[g.gh[-1],g.gh[1],g.lg[-1],g.lg[1]].forEach(e=>e&&e.remove());[g.grid,g.lab].forEach(e=>{e.style.transition="";e.style.transform=""});g.btn.style.position=g.pos;g.btn.style.overflow=g.ov;document.documentElement.style.overflowX=g.html}catch(e){}g=null;drag=false};
+ const cleanup=()=>{if(!g)return;try{[g.gh[-1],g.gh[1],g.lg[-1],g.lg[1]].forEach(e=>e&&e.remove());[g.grid,g.lab].forEach(e=>{e.style.transition="";e.style.transform=""});g.btn.style.position=g.pos;g.btn.style.overflow=g.ov;document.documentElement.style.overflowX=g.html}catch(e){}document.body.classList.remove("ag-dragging");if(raf){cancelAnimationFrame(raf);raf=0}g=null;drag=false};
  const snap=()=>{if(!g)return;move(0,"transform .45s cubic-bezier(.3,.1,.25,1)");setTimeout(cleanup,470)};
  document.addEventListener("touchstart",e=>{ok=false;if(drag)return;if(e.touches.length!==1)return;if(guard(e.target))return;const x=e.touches[0].clientX;if(x<16||x>window.innerWidth-16)return;sx=x;sy=e.touches[0].clientY;st=Date.now();ok=true;prefetch()},{passive:true});
  document.addEventListener("touchmove",e=>{if(!ok||!e.touches.length)return;const dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-sy;
   if(!drag){if(Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.4){if(!start()){ok=false;return}drag=true}else return}
-  if(e.cancelable)e.preventDefault();if(g)move(dx)},{passive:false});
- document.addEventListener("touchend",e=>{if(!ok)return;ok=false;if(!drag||!g)return;const c=e.changedTouches[0],dx=c.clientX-sx,dy=c.clientY-sy;
+  if(e.cancelable)e.preventDefault();pend=dx;if(g&&!raf)raf=requestAnimationFrame(()=>{raf=0;if(g)move(pend)})},{passive:false});
+ document.addEventListener("touchend",e=>{if(!ok)return;ok=false;if(!drag||!g)return;if(raf){cancelAnimationFrame(raf);raf=0}const c=e.changedTouches[0],dx=c.clientX-sx,dy=c.clientY-sy;if(g)move(dx);
   const dir=dx<0?1:-1;const go=Math.abs(dx)>=60&&Math.abs(dx)>=Math.abs(dy)*1.3||(Math.abs(dx)>=30&&Date.now()-st<250&&Math.abs(dx)>=Math.abs(dy)*1.5);
   if(!go){snap();return}
   const S=g.S[dir];
@@ -798,7 +803,7 @@ function clientList(list){
   const first=normalizeSearch(c.name).charAt(0).toUpperCase(),L=/[A-Z]/.test(first)?first:"#";
   if(L!==last){html+=`<div class="alpha-h">${L}</div>`;last=L}
   const ph=String(c.phone||"").replace(/\D/g,"");
-  html+=`<div class="lrow"><button type="button" class="lg lgbtn" data-client-card="${esc(c.phone)}"><b>${esc(c.name)}</b><div class="lsub">${esc(c.nickname?c.nickname+" · ":"")}${esc(c.phone||"")}${c.birth_date?" · 🎂 "+esc(birthBR(c.birth_date)):""}</div></button><a class="lic" href="https://wa.me/${ph.length<=11?"55"+ph:ph}" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">${ICO.wa}</a><button type="button" class="lic" data-history="${esc(c.phone)}" aria-label="Agendamentos" title="Agendamentos">${ICO.cal}</button><button type="button" class="lic" data-edit-client="${esc(c.phone)}" aria-label="Editar" title="Editar">${ICO.edit}</button></div>`;
+  html+=`<div class="lrow"><button type="button" class="lg lgbtn" data-client-card="${esc(c.phone)}"><b>${esc(c.name)}</b><div class="lsub">${esc(c.nickname?c.nickname+" · ":"")}${esc(c.phone||"")}${c.birth_date?" · 🎂 "+esc(birthBR(c.birth_date)):""}</div></button><a class="lic" href="${waBiz("https://wa.me/"+(ph.length<=11?"55"+ph:ph))}" aria-label="WhatsApp" title="WhatsApp">${ICO.wa}</a><button type="button" class="lic" data-history="${esc(c.phone)}" aria-label="Agendamentos" title="Agendamentos">${ICO.cal}</button><button type="button" class="lic" data-edit-client="${esc(c.phone)}" aria-label="Editar" title="Editar">${ICO.edit}</button></div>`;
  });
  return html||`<p class="muted">Nenhum cliente encontrado.</p>`;
 }
@@ -1046,7 +1051,7 @@ async function showClientCard(phone){
     const ph=String(c.phone||"").replace(/\D/g,"");
     shell("Cliente",`<button class="btn" id="back-clients">← Clientes</button>
     <div class="cc-head"><div class="cc-name">${esc(c.name)}</div><div class="cc-sub">${esc(c.nickname?c.nickname+" · ":"")}${esc(c.phone||"")}${c.birth_date?" · 🎂 "+esc(birthBR(c.birth_date)):""}</div>
-     <div class="cc-acts"><a class="lic" href="https://wa.me/${ph.length<=11?"55"+ph:ph}" target="_blank" rel="noopener" aria-label="WhatsApp" title="WhatsApp">${ICO.wa}</a><button type="button" class="lic" data-history="${esc(c.phone)}" aria-label="Agendamentos" title="Agendamentos">${ICO.cal}</button><button type="button" class="lic" data-edit-client="${esc(c.phone)}" aria-label="Editar" title="Editar">${ICO.edit}</button><button type="button" class="lic" id="cc-merge" aria-label="Mesclar com outro cadastro" title="Mesclar com outro cadastro"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v5a4 4 0 0 0 4 4h4a4 4 0 0 1 4 4v5M18 3v5a4 4 0 0 1-4 4"/><path d="M15 18l3 3 3-3"/></svg></button></div></div>
+     <div class="cc-acts"><a class="lic" href="${waBiz("https://wa.me/"+(ph.length<=11?"55"+ph:ph))}" aria-label="WhatsApp" title="WhatsApp">${ICO.wa}</a><button type="button" class="lic" data-history="${esc(c.phone)}" aria-label="Agendamentos" title="Agendamentos">${ICO.cal}</button><button type="button" class="lic" data-edit-client="${esc(c.phone)}" aria-label="Editar" title="Editar">${ICO.edit}</button><button type="button" class="lic" id="cc-merge" aria-label="Mesclar com outro cadastro" title="Mesclar com outro cadastro"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v5a4 4 0 0 0 4 4h4a4 4 0 0 1 4 4v5M18 3v5a4 4 0 0 1-4 4"/><path d="M15 18l3 3 3-3"/></svg></button></div></div>
     <div class="cc-badge ${badge.cls}"><b>${badge.t}</b><span>${badge.s}</span></div>
     ${owed>0?`<div class="cc-badge owe"><b>💰 Valor a receber: ${fm(owed)}</b><span>${owing.map(o=>fmtB(o.b)+" — "+fm(o.v)).join("<br>")}</span></div>`:""}
     <div class="cc-credit"><div><small>Crédito disponível</small><b>${fm(creditSum)}</b></div><div class="cc-btns"><button type="button" class="btn small" id="cc-sell-credit">＋ Crédito</button><button type="button" class="btn small" id="cc-sell-pkg">＋ Pacote</button></div></div>
@@ -1862,7 +1867,7 @@ async function showBookingDetail(id){
    <button class="sheet-action cancel" id="detail-cancel-pending"><span class="sheet-icon">✕</span><span>Cancelar agendamento</span></button>`;
   const st=normalizedStatus(b.status);
   const editBtn=`<button class="sheet-action" id="detail-edit"><span class="sheet-icon">✎</span><span>Editar agendamento</span></button>`;
-  const waBtn=`<a class="sheet-action" target="_blank" rel="noopener" href="https://wa.me/${phone}?text=${encodeURIComponent("Olá "+(b.client_name||"")+", seu agendamento na Barber Shop JS para "+dateLabel+" às "+hm(b.start_min)+" está confirmado.")}"><span class="sheet-icon whatsapp-icon" aria-hidden="true">●</span><span>Enviar confirmação</span></a>`;
+  const waBtn=`<a class="sheet-action" href="${waBiz("https://wa.me/"+phone+"?text="+encodeURIComponent("Olá "+(b.client_name||"")+", seu agendamento na Barber Shop JS para "+dateLabel+" às "+hm(b.start_min)+" está confirmado."))}"><span class="sheet-icon whatsapp-icon" aria-hidden="true">●</span><span>Enviar confirmação</span></a>`;
   const cancelBtn=`<div class="sheet-divider"></div><button class="sheet-action cancel" id="detail-cancel"><span class="sheet-icon">✕</span><span>Cancelar agendamento</span></button>`;
   let regularActions;
   if(st==="confirmed")regularActions=editBtn+transferBtn+waBtn+`<button class="sheet-action" id="detail-attended"><span class="sheet-icon">✂</span><span>Atendido</span></button><button class="sheet-action pay" id="detail-pay-c"><span class="sheet-icon">$</span><span>${payLabel}</span></button><button class="sheet-action" id="detail-noshow"><span class="sheet-icon">⊘</span><span>Não compareceu / faltou</span></button>`+cancelBtn;
@@ -1892,7 +1897,7 @@ async function showBookingDetail(id){
     if(status==="cancelled"){
      if(phone){askSendCancelWhatsApp(waUrl)}
      else {alert("Agendamento cancelado. O cadastro não possui número de WhatsApp.");}
-    }else if(phone){window.location.href=waUrl;}
+    }else if(phone){openWa(waUrl);}
     else {alert("Status atualizado, mas o cadastro não possui número de WhatsApp.");}
    }catch(err){alert("Não foi possível atualizar o agendamento: "+err.message)}
   };
@@ -2601,7 +2606,7 @@ function askSendCancelWhatsApp(url){
   ["touchstart","touchmove","pointerdown","mousedown"].forEach(ev=>sc.addEventListener(ev,e=>{e.stopPropagation();if(ev==="touchmove")e.preventDefault()},{passive:false}));
   sc.addEventListener("click",e=>{
     e.stopPropagation();
-    if(e.target.closest("[data-confirm-ok]")){sc.remove();window.location.href=url;return}
+    if(e.target.closest("[data-confirm-ok]")){sc.remove();openWa(url);return}
     if(e.target.closest("[data-confirm-cancel]"))sc.remove();
   });
 }
@@ -4123,5 +4128,6 @@ html .pd-scrim.pd-top .pd-cats button{border-radius:999px!important;background:r
 html .pd-scrim.pd-top .pd-cats button.on{background:rgba(120,140,180,.45)!important;border-color:rgba(255,255,255,.7)!important}
 .nt-item.cx{cursor:default;opacity:.95}.nt-item.cx .nt-dot{background:#E5484D!important}.pill.cx-pill{background:rgba(229,72,77,.14)!important;color:#C0262B!important;border:1px solid rgba(229,72,77,.35)!important}
 html .pay-promo{display:flex!important;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px;padding:10px 14px;border-radius:16px;background:rgba(255,80,90,.14);border:1px solid rgba(255,130,140,.45);cursor:pointer}html .pay-promo span{display:flex;flex-direction:column;gap:2px}html .pay-promo small{opacity:.75;font-size:12px}html .pay-promo input{width:22px;height:22px;accent-color:#E5484D;flex:0 0 auto}
+body.ag-dragging .agenda-grid,body.ag-dragging .ag-cols{will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden}body.ag-dragging .agenda-grid *,body.ag-dragging .ag-cols *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:none!important;text-shadow:none!important}body.ag-dragging .agenda-dayname{will-change:transform}
 </style>
 
