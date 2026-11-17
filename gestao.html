@@ -2690,7 +2690,7 @@ async function openPaymentScreen(b,opts={}){
   el.innerHTML=`<header class="pay-head"><span class="pay-pill"><button type="button" class="pay-back" id="pay-back" aria-label="Voltar">‹</button><b>Pagamento</b></span></header><div class="pay-body"><p class="pay-hint">Carregando…</p></div>`;
   document.body.appendChild(el);document.body.classList.add("sheet-open");
   const close=()=>{el.remove();document.body.classList.remove("sheet-open")};
-  const dropEmpty=async()=>{if(!opts.productSale)return;try{await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"DELETE"})}catch(e){try{await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})})}catch(_){}}try{await loadAgenda()}catch(e){}};
+  const dropEmpty=async()=>{if(!opts.productSale){if(isPS){try{await loadAgenda()}catch(e){}}return}try{await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"DELETE"})}catch(e){try{await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})})}catch(_){}}try{await loadAgenda()}catch(e){}};
   el.querySelector("#pay-back").onclick=()=>{close();dropEmpty()};
   let total=Math.round(Number(b.total||0)*100)/100;
   const isPS=!!(b.is_walkin&&!(b.services||[]).length);const psName=()=>b.client_name&&!['Venda de produto','Avulso'].includes(b.client_name)?b.client_name:'';
@@ -2765,12 +2765,13 @@ async function openPaymentScreen(b,opts={}){
     <div id="pay-diff" class="pay-diff ${info.cls}">${info.msg}</div>
     <div class="pay-opts"><label class="pay-optrow"><span>Data do pagamento</span><input type="date" id="pay-date" value="${payDate}"></label>
     ${needsDoneToggle?`<label class="pay-optrow"><span>Serviço já realizado?<small>${serviceDone?"O agendamento ficará concluído":"Fica marcado como pago, falta atender"}</small></span><input type="checkbox" id="pay-done" ${serviceDone?"checked":""}></label>`:""}</div>`}
-    </div>${settled&&pt<=0&&!pkgPending?"":`<footer class="pay-foot"><button type="button" class="btn primary pay-confirm" id="pay-ok" ${info.bad?"disabled":""}>${info.label}</button></footer>`}
+    </div>${settled&&pt<=0&&!pkgPending?(isPS?`<footer class="pay-foot"><button type="button" class="btn primary pay-confirm" id="ps-save">Salvar</button></footer>`:""):`<footer class="pay-foot"><button type="button" class="btn primary pay-confirm" id="pay-ok" ${info.bad?"disabled":""}>${info.label}</button></footer>`}
     ${pickerOpen?`<div class="pay-picker" id="pay-picker"><div class="pay-picker-card"><div class="pay-picker-h"><b>Escolha o produto</b><button type="button" id="pp-add" class="pay-x pay-plus" aria-label="Cadastrar produto" title="Cadastrar produto">＋</button></div>${catalog.length?catalog.map(p=>`<button type="button" class="pp-item" data-pp="${p.id}" ${Number(p.stock_quantity)<=0?"disabled":""}><span><b>${esc(p.name)}</b><small>Estoque: ${p.stock_quantity}${(p.promo&&promoOn)?` · <span class="promo-tag">${esc(p.promo)}</span>`:""}</small></span><b>${(p.promo&&promoOn)?`<s style="opacity:.5;font-weight:500">${fm(p.orig_price)}</s> `:""}${fm((promoOn||p.orig_price==null)?p.sale_price:p.orig_price)}</b></button>`).join(""):`<p class="muted" style="padding:12px">Nenhum produto ativo cadastrado. Cadastre em Configurações › Produtos.</p>`}</div></div>`:""}`;
     {const nb=el.querySelector(".pay-body");if(nb)nb.scrollTop=__top}
     const q=x=>el.querySelector(x),qa=x=>el.querySelectorAll(x);
     q("#pay-back").onclick=()=>{close();dropEmpty()};
     if(isPS){
+     q("#ps-save")?.addEventListener("click",async()=>{if(opts.productSale&&!ex&&!(already>0)&&pTotal()<=0){await dropEmpty()}else{try{await loadAgenda()}catch(e){}}close()});
      q("#ps-cli")?.addEventListener("click",()=>psClientPicker(psName(),async c=>{try{const nm=c.name||"Venda de produto";await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({client_name:nm,client_phone:c.phone||""})});b.client_name=nm;b.client_phone=c.phone||"";draw()}catch(e){alert("Não foi possível alterar o cliente: "+e.message)}}));
      q("#ps-timein")?.addEventListener("change",async ev=>{const t=String(ev.target.value||"").split(":").map(Number);if(t.length<2||!t.every(Number.isFinite))return;const sm=t[0]*60+t[1];try{await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({start_min:sm,end_min:sm+15})});b.start_min=sm;b.end_min=sm+15;draw()}catch(e){alert("Não foi possível alterar o horário: "+e.message)}});
     }
