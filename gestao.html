@@ -1876,7 +1876,6 @@ async function showBookingDetail(id){
   else if(st==="completed")regularActions=editBtn+`<button class="sheet-action pay" id="detail-pay"><span class="sheet-icon">$</span><span>${payLabel}</span></button>`+cancelBtn;
   else if(st==="finalized")regularActions=editBtn+`<button class="sheet-action pay" id="detail-pay-f"><span class="sheet-icon">$</span><span>Ver / alterar pagamento</span></button>`;
   else regularActions=editBtn+cancelBtn;
-  if(b.is_walkin&&!(b.services||[]).length&&!isPending)regularActions=regularActions.replace('</button>','</button><button class="sheet-action" id="detail-ps-time"><span class="sheet-icon">🕒</span><span>Horário e cliente</span></button>');
   document.body.classList.add("sheet-open");
   const scrollY=window.scrollY;
   app.insertAdjacentHTML("beforeend",`<div class="sheet-scrim" id="detail-sheet"><section class="action-sheet" role="dialog" aria-modal="true" aria-label="Detalhes do agendamento"><div class="sheet-grabber"></div><h2 class="section-title">${isPending?"Agendamento pendente":"Agendamento"}</h2>${details}${isPending?pendingActions:regularActions}${b.client_phone?`<button class="sheet-action" id="detail-goto-client"><span class="sheet-icon">${ICO2.user}</span><span>Ir para o cliente</span></button>`:""}${page!=="agenda"?`<button class="sheet-action" id="detail-goto-agenda"><span class="sheet-icon">${ICO.cal}</span><span>Ir para a agenda</span></button>`:""}</section></div>`);
@@ -1886,7 +1885,7 @@ async function showBookingDetail(id){
   if($("#detail-goto-client"))$("#detail-goto-client").onclick=async()=>{close();clientFromAgenda=true;page="clients";await showClientCard(b.client_phone)};
   if($("#detail-goto-agenda"))$("#detail-goto-agenda").onclick=()=>{close();gotoBooking(b.id,b.date)};
   $("#detail-sheet").addEventListener("click",e=>{if(e.target.id==="detail-sheet")close()});
-  $("#detail-edit")?.addEventListener("click",()=>{close();if(b.is_walkin&&!(b.services||[]).length)openPaymentScreen(b);else if(b.is_walkin)openWalkin(b);else openBooking(Number(b.start_min),"book",b)});$("#detail-ps-time")?.addEventListener("click",()=>{close();openProductSale(null,null,b)});
+  $("#detail-edit")?.addEventListener("click",()=>{close();if(b.is_walkin&&!(b.services||[]).length)openPaymentScreen(b);else if(b.is_walkin)openWalkin(b);else openBooking(Number(b.start_min),"book",b)});
   const finishAction=async(status,message,confirmText)=>{
    if(confirmText&&!confirm(confirmText))return;
    try{
@@ -2509,40 +2508,39 @@ async function saveBookingForm(){
   }catch(e){let message=e.message||"Não foi possível salvar o agendamento.";if(message.includes("23P01")||message.includes("bookings_barber_id_date_int4range_excl")||message.includes("exclusion constraint"))message="O banco estava bloqueando horários sobrepostos. A restrição foi removida; atualize a página e tente novamente. Se persistir, confira se a versão publicada usa o projeto Supabase correto.";if(err){err.textContent=message;err.classList.remove('hidden')}else alert(message)}
 }
 
-async function openProductSale(start=null,barberPre=null,existing=null){
- let bs=[],cls=[];
- try{[bs,cls]=await Promise.all([api("rpc/agenda_barbers",{method:"POST",body:"{}"}),api("clients?select=name,phone&order=name&limit=2000").catch(()=>[])])}catch(e){alert("Não foi possível iniciar a venda: "+(e.message||e));return}
- const nw=new Date();let st0=Math.min(Math.round((nw.getHours()*60+nw.getMinutes())/5)*5,1400);if(start!=null)st0=Number(start);if(existing)st0=Number(existing.start_min);
- const hhmm=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
- const curName=existing&&existing.client_name&&existing.client_name!=="Venda de produto"?existing.client_name:"";
- const d=pdModal(`<h3>${existing?"Horário e cliente":"Venda de produto"}</h3>
- <div class="pd-f"><label>Horário</label><input id="ps-time" type="time" value="${hhmm(st0)}"></div>
- <div class="pd-f"><label>Cliente (opcional)</label><input id="ps-name" type="text" list="ps-dl" placeholder="Deixe em branco se não quiser informar" value="${esc(curName)}" autocomplete="off"><datalist id="ps-dl">${cls.map(c=>`<option value="${esc(c.name)}"></option>`).join("")}</datalist></div>
- <div class="pd-err" id="ps-err"></div>
- <button type="button" class="pd-ok" id="ps-ok">${existing?"Salvar":"Continuar"}</button><button type="button" class="pd-x" id="ps-x">Voltar</button>`,true);
- const q=s=>d.querySelector(s);
- q("#ps-x").onclick=()=>pdClose(d);
- q("#ps-ok").onclick=async e=>{
-  const btn=e.target;
-  try{
-   const tv=String(q("#ps-time").value||"").split(":").map(Number);if(tv.length<2||!tv.every(Number.isFinite))throw Error("Informe o horário.");
-   const sm=tv[0]*60+tv[1];
-   const nm=q("#ps-name").value.trim();const hit=nm?cls.filter(c=>String(c.name||"").trim().toLowerCase()===nm.toLowerCase()):[];
-   const phone=hit.length===1?String(hit[0].phone||"").replace(/\D/g,""):"";
-   btn.disabled=true;btn.textContent="Salvando…";
-   if(existing){
-    const patch={start_min:sm,end_min:sm+15,client_name:nm||"Venda de produto",client_phone:nm?phone:""};
-    await api(`bookings?id=eq.${encodeURIComponent(existing.id)}`,{method:"PATCH",body:JSON.stringify(patch)});
-    pdClose(d);await loadAgenda();return;
-   }
-   const barber=barberPre!=null?Number(barberPre):(agendaBarber&&agendaBarber!=="all"?Number(agendaBarber):(window.__myBarberId||bs[0]?.id||null));
-   if(barber==null)throw Error("Cadastre um profissional ativo.");
-   const payload={barber_id:barber,date:key(day),start_min:sm,end_min:sm+15,client_name:nm||"Venda de produto",client_phone:phone,services:[],total:0,discount:0,surcharge:0,combo_discount:0,is_walkin:true,status:"completed"};
-   const row=(await api("bookings",{method:"POST",body:JSON.stringify(payload)}))[0];
-   pdClose(d);await loadAgenda();
-   openPaymentScreen(row,{productSale:true});
-  }catch(er){q("#ps-err").textContent=er.message||"Erro";btn.disabled=false;btn.textContent=existing?"Salvar":"Continuar"}
+async function openProductSale(start=null,barberPre=null){
+ try{
+  const bs=await api("rpc/agenda_barbers",{method:"POST",body:"{}"});
+  const nw=new Date();let st0=Math.min(Math.round((nw.getHours()*60+nw.getMinutes())/5)*5,1400);if(start!=null)st0=Number(start);
+  const barber=barberPre!=null?Number(barberPre):(agendaBarber&&agendaBarber!=="all"?Number(agendaBarber):(window.__myBarberId||bs[0]?.id||null));
+  if(barber==null){alert("Cadastre um profissional ativo.");return}
+  const payload={barber_id:barber,date:key(day),start_min:st0,end_min:st0+15,client_name:"Venda de produto",client_phone:"",services:[],total:0,discount:0,surcharge:0,combo_discount:0,is_walkin:true,status:"completed"};
+  const row=(await api("bookings",{method:"POST",body:JSON.stringify(payload)}))[0];
+  await loadAgenda();
+  openPaymentScreen(row,{productSale:true});
+ }catch(e){alert("Não foi possível iniciar a venda: "+(e.message||e))}
+}
+async function psClientPicker(current,onPick){
+ let list=[];try{list=await api("clients?select=name,phone&order=name&limit=3000")}catch(e){}
+ const el=document.createElement("div");el.className="pay-screen ps-picker";el.style.zIndex="6500";
+ const close=()=>el.remove();
+ const listHtml=t=>{const n=normalizeSearch(t);const f=list.filter(c=>!n||normalizeSearch(c.name).includes(n)||String(c.phone||"").includes(n.replace(/\D/g,"")||"§")).slice(0,60);return f.length?f.map(c=>`<button type="button" class="ps-cl" data-ph="${esc(c.phone)}"><b>${esc(c.name)}</b><small>${esc(c.phone||"")}</small></button>`).join(""):`<p class="pay-hint">Nenhum cliente encontrado.</p>`};
+ const draw=(mode,prefill)=>{
+  if(mode==="new"){
+   el.innerHTML=`<header class="pay-head"><span class="pay-pill"><button type="button" class="pay-back" id="ps-back" aria-label="Voltar">‹</button><b>Novo cliente</b></span></header><div class="pay-body"><div class="pay-card"><div class="pd-f"><label>Nome</label><input id="nc-name" type="text" value="${esc(prefill||"")}" autocomplete="off"></div><div class="pd-f"><label>WhatsApp (com DDD)</label><input id="nc-phone" type="tel" inputmode="tel" placeholder="35999999999"></div><div class="pd-err" id="nc-err"></div></div></div><footer class="pay-foot"><button type="button" class="btn primary pay-confirm" id="nc-ok">Cadastrar e usar</button></footer>`;
+   el.querySelector("#ps-back").onclick=()=>draw("list");
+   el.querySelector("#nc-ok").onclick=async ev=>{const b=ev.target,er=el.querySelector("#nc-err");const nm=el.querySelector("#nc-name").value.trim();let ph=el.querySelector("#nc-phone").value.replace(/\D/g,"");if(ph.length>11&&ph.startsWith("55"))ph=ph.slice(2);
+    if(!nm){er.textContent="Informe o nome.";return}if(ph.length<10||ph.length>11){er.textContent="Informe o WhatsApp com DDD.";return}
+    b.disabled=true;try{const ex=list.find(c=>String(c.phone)===ph);if(!ex)await api("clients",{method:"POST",body:JSON.stringify({name:nm,phone:ph})});close();onPick({name:ex?ex.name:nm,phone:ph})}catch(e){er.textContent=e.message||"Não foi possível cadastrar.";b.disabled=false}};
+   return}
+  el.innerHTML=`<header class="pay-head"><span class="pay-pill"><button type="button" class="pay-back" id="ps-back" aria-label="Voltar">‹</button><b>Cliente</b></span></header><div class="pay-body"><input id="ps-q" class="ps-search" type="search" placeholder="Buscar por nome ou telefone" autocomplete="off"><div class="pay-actions"><button type="button" class="pay-sm" id="ps-new">+ Cadastrar novo cliente</button>${current?`<button type="button" class="pay-sm danger" id="ps-none">Sem cliente</button>`:""}</div><div id="ps-list">${listHtml("")}</div></div>`;
+  const qi=el.querySelector("#ps-q"),bind=()=>el.querySelectorAll(".ps-cl").forEach(x=>x.onclick=()=>{const c=list.find(z=>String(z.phone)===x.dataset.ph);close();onPick({name:c?c.name:"",phone:x.dataset.ph})});
+  qi.oninput=()=>{el.querySelector("#ps-list").innerHTML=listHtml(qi.value);bind()};bind();
+  el.querySelector("#ps-back").onclick=close;
+  el.querySelector("#ps-new").onclick=()=>draw("new",qi.value.trim());
+  el.querySelector("#ps-none")?.addEventListener("click",()=>{close();onPick({name:"",phone:""})});
  };
+ document.body.appendChild(el);draw("list");
 }
 async function openWalkin(existing=null,start=null,barberPre=null){
  document.querySelector(".pay-screen")?.remove();
@@ -2695,6 +2693,7 @@ async function openPaymentScreen(b,opts={}){
   const dropEmpty=async()=>{if(!opts.productSale)return;try{await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"DELETE"})}catch(e){try{await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})})}catch(_){}}try{await loadAgenda()}catch(e){}};
   el.querySelector("#pay-back").onclick=()=>{close();dropEmpty()};
   let total=Math.round(Number(b.total||0)*100)/100;
+  const isPS=!!(b.is_walkin&&!(b.services||[]).length);const psName=()=>b.client_name&&!['Venda de produto','Avulso'].includes(b.client_name)?b.client_name:'';
   let ex=null;try{ex=(await api(`finance_booking_closures?select=*&booking_id=eq.${encodeURIComponent(b.id)}`))[0]||null}catch(e){}
   await ensurePM();
   let catalog=[];try{catalog=await api("finance_products?select=*&active=eq.true&order=name");await applyPromosToProducts(catalog)}catch(e){}
@@ -2747,7 +2746,7 @@ async function openPaymentScreen(b,opts={}){
     const info=statusInfo();
     const __sc=el.querySelector(".pay-body");const __top=__sc?__sc.scrollTop:0;
     el.innerHTML=`<header class="pay-head"><span class="pay-pill"><button type="button" class="pay-back" id="pay-back" aria-label="Voltar">‹</button><b>Pagamento</b></span></header>
-    <div class="pay-body">${editing?`<div class="pay-edit-banner">✎ Alterando pagamento — veja como foi pago, ajuste e confirme.</div>`:""}<div class="pay-card"><div class="pay-client">${esc(b.client_name||"Cliente")}</div><div class="pay-sub">${esc(formatBookingDateBR(b.date))} · ${hm(b.start_min)}</div>${(b.services&&b.services.length)?`<div class="pay-svcs">${esc(b.services.map(x=>x.name+(x.qty>1?" ×"+x.qty:"")).join(" · "))}</div>`:""}
+    <div class="pay-body">${editing?`<div class="pay-edit-banner">✎ Alterando pagamento — veja como foi pago, ajuste e confirme.</div>`:""}<div class="pay-card">${isPS?`<div class="ps-row"><button type="button" class="ps-btn" id="ps-cli">${psName()?esc(psName()):"＋ Adicionar cliente"}</button><label class="ps-btn ps-time">🕒 ${hm(b.start_min)}<input type="time" id="ps-timein" value="${String(Math.floor(b.start_min/60)).padStart(2,"0")}:${String(b.start_min%60).padStart(2,"0")}"></label></div><div class="pay-sub">${esc(formatBookingDateBR(b.date))}</div>`:`<div class="pay-client">${esc(b.client_name||"Cliente")}</div><div class="pay-sub">${esc(formatBookingDateBR(b.date))} · ${hm(b.start_min)}</div>`}${(b.services&&b.services.length)?`<div class="pay-svcs">${esc(b.services.map(x=>x.name+(x.qty>1?" ×"+x.qty:"")).join(" · "))}</div>`:""}
     <div class="pay-total pay-mini"><span>Serviços</span><b>${fm(total)}</b></div>
     ${pkgSvcs.length?`<div class="pay-total pay-mini"><span>Pacote</span><b>${esc(pkgSvcs.map(x=>x.name+(Number(x.pkgQty)>1?" ×"+x.pkgQty:"")).join(", "))}${pkgRed.length?" ✓":""}</b></div>`:""}
     ${(ex&&Number(ex.product_total)>0)||pt>0?`<div class="pay-total pay-mini"><span>Produtos</span><b>${fm(Number(ex?.product_total||0)+pt)}</b></div>`:""}
@@ -2771,6 +2770,10 @@ async function openPaymentScreen(b,opts={}){
     {const nb=el.querySelector(".pay-body");if(nb)nb.scrollTop=__top}
     const q=x=>el.querySelector(x),qa=x=>el.querySelectorAll(x);
     q("#pay-back").onclick=()=>{close();dropEmpty()};
+    if(isPS){
+     q("#ps-cli")?.addEventListener("click",()=>psClientPicker(psName(),async c=>{try{const nm=c.name||"Venda de produto";await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({client_name:nm,client_phone:c.phone||""})});b.client_name=nm;b.client_phone=c.phone||"";draw()}catch(e){alert("Não foi possível alterar o cliente: "+e.message)}}));
+     q("#ps-timein")?.addEventListener("change",async ev=>{const t=String(ev.target.value||"").split(":").map(Number);if(t.length<2||!t.every(Number.isFinite))return;const sm=t[0]*60+t[1];try{await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({start_min:sm,end_min:sm+15})});b.start_min=sm;b.end_min=sm+15;draw()}catch(e){alert("Não foi possível alterar o horário: "+e.message)}});
+    }
     qa("[data-pick]").forEach(x=>x.onclick=()=>{const m=x.dataset.pick;const i=parts.findIndex(p=>p.method===m);if(i>=0){parts.splice(i,1)}else{let amt=parts.length?Math.max(0,Math.round((remaining()-paid())*100)/100):remaining();if(m==="credit")amt=Math.min(amt,creditAvail);parts.push({method:m,amount:amt})}draw(m)});
     qa("[data-incl]").forEach(x=>x.onchange=()=>{if(x.checked)incl.add(x.dataset.incl);else incl.delete(x.dataset.incl);resync();draw()});
     qa("[data-pa]").forEach(x=>{x.oninput=()=>{const c=x.value.replace(/[^0-9.,]/g,"");if(c!==x.value)x.value=c;parts[+x.dataset.pa].amount=Math.round((Number(String(c).replace(",","."))||0)*100)/100;refresh()};x.onfocus=()=>setTimeout(()=>{const n=x.value.length;try{x.setSelectionRange(n,n)}catch(e){}},0)});
@@ -4169,5 +4172,6 @@ html .pd-scrim.pd-top .pd-cats button.on{background:rgba(120,140,180,.45)!import
 html .pay-promo{display:flex!important;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px;padding:10px 14px;border-radius:16px;background:rgba(255,80,90,.14);border:1px solid rgba(255,130,140,.45);cursor:pointer}html .pay-promo span{display:flex;flex-direction:column;gap:2px}html .pay-promo small{opacity:.75;font-size:12px}html .pay-promo input{width:22px;height:22px;accent-color:#E5484D;flex:0 0 auto}
 body.ag-dragging .agenda-grid,body.ag-dragging .ag-cols{will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden}body.ag-dragging .agenda-grid *,body.ag-dragging .ag-cols *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:none!important;text-shadow:none!important}body.ag-dragging .agenda-dayname{will-change:transform}
 html #app .nt-item.cx{opacity:1!important;background:rgba(229,72,77,.10)!important;border-color:rgba(229,72,77,.55)!important}html #app .nt-item.cx b{color:inherit!important;opacity:1!important}html #app .nt-item.cx small{opacity:1!important;color:#E5484D!important;font-weight:600}html #app .nt-item.cx small:nth-of-type(-n+2){color:inherit!important;font-weight:500;opacity:.8!important}html #app .nt-item.cx .nt-dot{background:#E5484D!important;opacity:1!important}html #app .nt-item.cx .pill.cx-pill{background:#E5484D!important;color:#fff!important;border:1px solid #E5484D!important;font-weight:700;opacity:1!important}
+.ps-row{display:flex;gap:10px;align-items:stretch;margin:0 0 8px}.ps-btn{position:relative;flex:1;display:flex;align-items:center;justify-content:center;gap:6px;min-height:46px;padding:8px 12px;border-radius:16px;border:1px solid rgba(128,140,160,.45);background:rgba(128,140,160,.16);color:inherit;font-weight:600;font-size:15px;line-height:1.2;font-family:inherit;text-align:center;cursor:pointer;overflow:hidden;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}.ps-btn.ps-time{flex:0 0 auto;min-width:112px}.ps-btn input[type=time]{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;background:transparent}.ps-search{width:100%;box-sizing:border-box;height:48px;border-radius:14px;padding:0 14px;margin:0 0 10px}.ps-cl{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;padding:12px 14px;margin:0 0 8px;border-radius:16px;border:1px solid rgba(128,140,160,.4);background:rgba(128,140,160,.12);color:inherit;font-family:inherit}.ps-cl small{opacity:.7}
 </style>
 
