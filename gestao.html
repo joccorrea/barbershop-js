@@ -2075,7 +2075,7 @@ if(b.id==="today"){day=new Date();await loadAgenda();return}
 if(b.dataset.openBooking){await showBookingDetail(b.dataset.openBooking);return}
 if(b.dataset.openBlock){const block=blocks.find(x=>String(x.id)===String(b.dataset.openBlock));if(block)await showBlockSheet(block);return}
 if(b.dataset.agBarber!=null){agendaBarber=b.dataset.agBarber;try{localStorage.setItem("bsjs_agenda_barber",agendaBarber)}catch(e){}applyAgendaBarber();renderAgenda();return}
-const __slotMenu=(start,barber)=>popMenu(b,[{icon:ICO2.calplus,title:"Agendar",fn:()=>{window.__newBarber=barber;openBooking(start,"book")}},{icon:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M19 8v6M16 11h6"/></svg>',title:"Avulso",fn:()=>{openWalkin(null,start,barber)}},{icon:ICO2.ban,title:"Bloquear",cls:"danger",fn:()=>{window.__newBarber=barber;openBooking(start,"block")}}]);
+const __slotMenu=(start,barber)=>popMenu(b,[{icon:ICO2.calplus,title:"Agendar",fn:()=>{window.__newBarber=barber;openBooking(start,"book")}},{icon:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M19 8v6M16 11h6"/></svg>',title:"Avulso",fn:()=>{openWalkin(null,start,barber)}},{icon:'<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h14l-1.5 9H8L6 3H3"/><circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/></svg>',title:"Venda de produto",fn:()=>{openProductSale(start,barber)}},{icon:ICO2.ban,title:"Bloquear",cls:"danger",fn:()=>{window.__newBarber=barber;openBooking(start,"block")}}]);
 if(b.id==="agenda-new-booking"){__slotMenu(null,null);return}
 if(b.dataset.slot!=null){__slotMenu(Number(b.dataset.slot),b.dataset.slotBarber||null);return}
 if(b.dataset.blockScope){readBookingInputs();bookingDraft.blockAll=b.dataset.blockScope==="all";renderBookingScreen();return}
@@ -2508,6 +2508,18 @@ async function saveBookingForm(){
   }catch(e){let message=e.message||"Não foi possível salvar o agendamento.";if(message.includes("23P01")||message.includes("bookings_barber_id_date_int4range_excl")||message.includes("exclusion constraint"))message="O banco estava bloqueando horários sobrepostos. A restrição foi removida; atualize a página e tente novamente. Se persistir, confira se a versão publicada usa o projeto Supabase correto.";if(err){err.textContent=message;err.classList.remove('hidden')}else alert(message)}
 }
 
+async function openProductSale(start=null,barberPre=null){
+ try{
+  const bs=await api("rpc/agenda_barbers",{method:"POST",body:"{}"});
+  const nw=new Date();let st0=Math.min(Math.round((nw.getHours()*60+nw.getMinutes())/5)*5,1400);if(start!=null)st0=Number(start);
+  const barber=barberPre!=null?Number(barberPre):(agendaBarber&&agendaBarber!=="all"?Number(agendaBarber):(window.__myBarberId||bs[0]?.id||null));
+  if(barber==null){alert("Cadastre um profissional ativo.");return}
+  const payload={barber_id:barber,date:key(day),start_min:st0,end_min:st0+15,client_name:"Venda de produto",client_phone:"",services:[],total:0,discount:0,surcharge:0,combo_discount:0,is_walkin:true,status:"completed"};
+  const row=(await api("bookings",{method:"POST",body:JSON.stringify(payload)}))[0];
+  await loadAgenda();
+  openPaymentScreen(row,{productSale:true});
+ }catch(e){alert("Não foi possível iniciar a venda: "+(e.message||e))}
+}
 async function openWalkin(existing=null,start=null,barberPre=null){
  document.querySelector(".pay-screen")?.remove();
  const el=document.createElement("div");el.className="pay-screen wk-screen";
@@ -2656,7 +2668,8 @@ async function openPaymentScreen(b,opts={}){
   el.innerHTML=`<header class="pay-head"><span class="pay-pill"><button type="button" class="pay-back" id="pay-back" aria-label="Voltar">‹</button><b>Pagamento</b></span></header><div class="pay-body"><p class="pay-hint">Carregando…</p></div>`;
   document.body.appendChild(el);document.body.classList.add("sheet-open");
   const close=()=>{el.remove();document.body.classList.remove("sheet-open")};
-  el.querySelector("#pay-back").onclick=close;
+  const dropEmpty=async()=>{if(!opts.productSale)return;try{await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"DELETE"})}catch(e){try{await api(`bookings?id=eq.${encodeURIComponent(b.id)}`,{method:"PATCH",body:JSON.stringify({status:"cancelled"})})}catch(_){}}try{await loadAgenda()}catch(e){}};
+  el.querySelector("#pay-back").onclick=()=>{close();dropEmpty()};
   let total=Math.round(Number(b.total||0)*100)/100;
   let ex=null;try{ex=(await api(`finance_booking_closures?select=*&booking_id=eq.${encodeURIComponent(b.id)}`))[0]||null}catch(e){}
   await ensurePM();
@@ -2733,7 +2746,7 @@ async function openPaymentScreen(b,opts={}){
     ${pickerOpen?`<div class="pay-picker" id="pay-picker"><div class="pay-picker-card"><div class="pay-picker-h"><b>Escolha o produto</b><button type="button" id="pp-add" class="pay-x pay-plus" aria-label="Cadastrar produto" title="Cadastrar produto">＋</button></div>${catalog.length?catalog.map(p=>`<button type="button" class="pp-item" data-pp="${p.id}" ${Number(p.stock_quantity)<=0?"disabled":""}><span><b>${esc(p.name)}</b><small>Estoque: ${p.stock_quantity}${(p.promo&&promoOn)?` · <span class="promo-tag">${esc(p.promo)}</span>`:""}</small></span><b>${(p.promo&&promoOn)?`<s style="opacity:.5;font-weight:500">${fm(p.orig_price)}</s> `:""}${fm((promoOn||p.orig_price==null)?p.sale_price:p.orig_price)}</b></button>`).join(""):`<p class="muted" style="padding:12px">Nenhum produto ativo cadastrado. Cadastre em Configurações › Produtos.</p>`}</div></div>`:""}`;
     {const nb=el.querySelector(".pay-body");if(nb)nb.scrollTop=__top}
     const q=x=>el.querySelector(x),qa=x=>el.querySelectorAll(x);
-    q("#pay-back").onclick=close;
+    q("#pay-back").onclick=()=>{close();dropEmpty()};
     qa("[data-pick]").forEach(x=>x.onclick=()=>{const m=x.dataset.pick;const i=parts.findIndex(p=>p.method===m);if(i>=0){parts.splice(i,1)}else{let amt=parts.length?Math.max(0,Math.round((remaining()-paid())*100)/100):remaining();if(m==="credit")amt=Math.min(amt,creditAvail);parts.push({method:m,amount:amt})}draw(m)});
     qa("[data-incl]").forEach(x=>x.onchange=()=>{if(x.checked)incl.add(x.dataset.incl);else incl.delete(x.dataset.incl);resync();draw()});
     qa("[data-pa]").forEach(x=>{x.oninput=()=>{const c=x.value.replace(/[^0-9.,]/g,"");if(c!==x.value)x.value=c;parts[+x.dataset.pa].amount=Math.round((Number(String(c).replace(",","."))||0)*100)/100;refresh()};x.onfocus=()=>setTimeout(()=>{const n=x.value.length;try{x.setSelectionRange(n,n)}catch(e){}},0)});
