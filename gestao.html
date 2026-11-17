@@ -488,7 +488,7 @@ async function enablePushNotifications(){
  refreshPushButton();alert("Notificações ativadas neste aparelho! Você receberá avisos de novos agendamentos.");
 }
 function waBiz(url){const m=String(url).match(/^https:\/\/wa\.me\/(\d*)(?:\?text=(.*))?$/);return m?"whatsapp-smb://send?"+(m[1]?"phone="+m[1]+"&":"")+"text="+(m[2]||""):url}
-function openWa(url){const biz=waBiz(url);if(biz===url){window.location.href=url;return}let left=false;const onv=()=>{if(document.hidden)left=true};document.addEventListener("visibilitychange",onv);window.addEventListener("pagehide",onv,{once:true});const fr=document.createElement("iframe");fr.style.display="none";fr.src=biz;document.body.appendChild(fr);setTimeout(()=>{document.removeEventListener("visibilitychange",onv);try{fr.remove()}catch(e){}if(!left&&!document.hidden)window.location.href=url},1500)}
+function openWa(url){const biz=waBiz(url);if(biz===url){window.location.href=url;return}const fr=document.createElement("iframe");fr.style.cssText="display:none;width:0;height:0;border:0";fr.src=biz;document.body.appendChild(fr);setTimeout(()=>{try{fr.remove()}catch(e){}},4000)}
 function whatsappBrazilNumber(value){
  let digits=String(value||"").replace(/\D/g,"");
  if(!digits)return "";
