@@ -520,7 +520,7 @@ async function loadNotifications(){
   const cxWhen=iso=>{try{return new Date(iso).toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}).replace(",","")}catch(e){return ""}};
   const cxCard=b=>`<div class="nt-item done cx"><span class="nt-dot"></span><span class="nt-main"><b>${esc(b.client_name)}</b><small>${formatBookingDateBR(b.date)} · ${hm(b.start_min)}</small><small>${esc((b.services||[]).map(x=>x.name+(Number(x.qty||1)>1?" ×"+x.qty:"")).join(", "))}</small><small>Cancelado pelo cliente em ${esc(cxWhen(b.cancelled_at))}</small></span><span class="pill cx-pill">Cancelado</span></div>`;
   const card=(b,isDone)=>`<button type="button" class="nt-item${isDone?" done":""}" data-nt="${esc(b.id)}" data-date="${esc(b.date)}" data-st="${isDone?"done":"pending"}"><span class="nt-dot"></span><span class="nt-main"><b>${esc(b.client_name)}</b><small>${formatBookingDateBR(b.date)} · ${hm(b.start_min)}</small><small>${esc((b.services||[]).map(x=>x.name+(Number(x.qty||1)>1?" ×"+x.qty:"")).join(", "))}</small></span><span class="pill ${isDone?"":"pending"}">${isDone?statusPortuguese(b.status):"Pendente"}</span></button>`;
-  shell("Notificações",(pend.length?`<p class="muted" style="margin:0 0 8px">Agendamentos aguardando confirmação</p>`+pend.map(b=>card(b,false)).join(""):`<div class="card"><p class="muted" style="margin:0">Nenhum agendamento para confirmar.</p></div>`)+(cx.length?`<p class="muted" style="margin:16px 0 8px">Cancelados pelo cliente</p>`+cx.map(cxCard).join(""):"")+(done.length?`<p class="muted" style="margin:16px 0 8px">Já tratados</p>`+done.map(b=>card(b,true)).join(""):""));
+  shell("Notificações",(pend.length?`<p class="muted" style="margin:0 0 8px">Agendamentos aguardando confirmação</p>`+pend.map(b=>card(b,false)).join(""):`<div class="card"><p class="muted" style="margin:0">Nenhum agendamento para confirmar.</p></div>`)+(()=>{const mx=[...done.map(b=>({b,x:0})),...cx.map(b=>({b,x:1}))].sort((p,q)=>(q.b.date+String(q.b.start_min).padStart(4,"0")).localeCompare(p.b.date+String(p.b.start_min).padStart(4,"0")));return mx.length?`<p class="muted" style="margin:16px 0 8px">Histórico</p>`+mx.map(o=>o.x?cxCard(o.b):card(o.b,true)).join(""):""})());
   app.querySelectorAll("button[data-nt]").forEach(el=>el.onclick=()=>{
    if(el.dataset.st==="pending")showBookingReview(el.dataset.nt,"notif");
    else popMenu(el,[{icon:EYE_SVG,title:"Ver no dia",fn:()=>gotoBooking(el.dataset.nt,el.dataset.date)}]);
@@ -1126,7 +1126,7 @@ function pdForm(id,onDone){
  const d=pdModal(`<h3>${p?"Editar produto":"Cadastrar produto"}</h3>
  <div class="pd-f"><label>Nome *</label><input id="pf-name" maxlength="120" value="${esc(p?.name||"")}"></div>
  <div class="pd-f"><label>Categoria</label><button type="button" class="pd-catbtn" id="pf-cat"></button></div>
- <div class="pd-row"><div class="pd-f"><label>Preço de venda</label><input id="pf-sale" type="number" inputmode="decimal" min="0" step=".01" placeholder="0,00" value="${p?p.sale_price:""}"></div><div class="pd-f"><label>Custo unitário</label><input id="pf-cost" type="number" inputmode="decimal" min="0" step=".01" placeholder="0,00" value="${p?p.cost_price:""}"></div></div>
+ <div class="pd-row"><div class="pd-f"><label>Preço de venda</label><input id="pf-sale" type="number" inputmode="decimal" min="0" step=".01" placeholder="0,00" value="${p?p.sale_price:""}"></div><div class="pd-f"><label>Custo médio</label><input id="pf-cost" type="number" inputmode="decimal" min="0" step=".01" placeholder="0,00" value="${p?p.cost_price:""}"></div></div>
  <div class="pd-row">${p?`<div class="pd-f"><label>Estoque atual</label><input id="pf-stock" type="number" inputmode="numeric" min="0" step="1" value="${Number(p.stock_quantity||0)}"></div>`:`<div class="pd-f"><label>Estoque inicial</label><input id="pf-qty" type="number" inputmode="numeric" min="0" step="1" placeholder="0"></div>`}<div class="pd-f"><label>Estoque mínimo</label><input id="pf-min" type="number" inputmode="numeric" min="0" step="1" placeholder="0" value="${p?p.min_stock:""}"></div></div>
 
  ${p?"":`<div class="pd-f"><label>Campanha (opcional)</label><select id="pf-promo"><option value="">Não participa de campanha</option></select></div><div id="pf-pbox" class="hidden"><div class="pd-row"><div class="pd-f"><label>Desconto</label><select id="pf-ptype"><option value="price">Preço final</option><option value="amount">R$ de desconto</option><option value="percent">% de desconto</option></select></div><div class="pd-f"><label>Valor</label><input id="pf-pval" type="number" inputmode="decimal" min="0" step=".01" placeholder="0,00"></div></div></div>`}
@@ -1176,10 +1176,13 @@ function pdAdjust(id){
  const d=pdModal(`<h3>Ajustar estoque</h3><p class="lsub" style="margin:0 0 10px">${esc(p.name)} · estoque atual <b>${p.stock_quantity}</b></p>
  <div class="pd-seg"><button type="button" data-t="purchase" class="on">Compra</button><button type="button" data-t="loss">Perda</button></div>
  <div class="pd-f"><label>Quantidade</label><input id="pa-qty" type="number" inputmode="numeric" min="1" step="1" placeholder="0"></div>
- <div class="pd-f" id="pa-costf"><label>Custo unitário (R$)</label><input id="pa-cost" type="number" inputmode="decimal" min="0" step=".01" placeholder="0,00"></div>
+ <div class="pd-f" id="pa-costf"><label>Custo desta compra, por unidade (R$)</label><input id="pa-cost" type="number" inputmode="decimal" min="0" step=".01" placeholder="0,00"><p class="lsub" id="pa-avg" style="margin:6px 0 0"></p></div>
  <div class="pd-err" id="pa-err"></div>
  <button type="button" class="pd-ok" id="pa-ok">Registrar compra</button><button type="button" class="pd-x" id="pa-x">Voltar</button>`);
  const q=s=>d.querySelector(s);
+ const avgOf=(qty,cost)=>{const st=Math.max(0,Number(p.stock_quantity)||0),oc=Number(p.cost_price||0);if(!(qty>0)||!(cost>0))return null;return st>0?Math.round(((st*oc+qty*cost)/(st+qty))*100)/100:cost};
+ const showAvg=()=>{const a=avgOf(Math.round(Number(q("#pa-qty").value||0)),Number(q("#pa-cost").value||0));q("#pa-avg").innerHTML=a==null?"O custo do produto vira a média ponderada entre o estoque atual e esta compra.":`Custo médio do produto: <b>${fm(Number(p.cost_price||0))}</b> → <b>${fm(a)}</b>`};
+ q("#pa-qty").oninput=showAvg;q("#pa-cost").oninput=showAvg;showAvg();
  q("#pa-x").onclick=()=>pdClose(d);
  d.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{type=b.dataset.t;d.querySelectorAll("[data-t]").forEach(x=>x.classList.toggle("on",x===b));q("#pa-costf").style.display=type==="purchase"?"":"none";q("#pa-ok").textContent=type==="purchase"?"Registrar compra":"Registrar perda"});
  q("#pa-ok").onclick=async e=>{
@@ -1190,7 +1193,7 @@ function pdAdjust(id){
    if(type==="loss"&&qty>Number(p.stock_quantity))throw Error("Perda maior que o estoque atual ("+p.stock_quantity+").");
    btn.disabled=true;btn.textContent="Salvando…";
    const patch={stock_quantity:Number(p.stock_quantity)+(type==="loss"?-qty:qty),updated_at:new Date().toISOString()};
-   if(type==="purchase"&&cost>0)patch.cost_price=cost;
+   if(type==="purchase"&&cost>0)patch.cost_price=avgOf(qty,cost);
    await api(`finance_products?id=eq.${p.id}`,{method:"PATCH",body:JSON.stringify(patch)});
    await api("finance_stock_movements",{method:"POST",body:JSON.stringify({product_id:p.id,movement_type:type,quantity:qty,unit_cost:type==="purchase"?cost:Number(p.cost_price||0),description:type==="purchase"?"Compra/entrada":"Perda/avaria",movement_date:todayLocal(),created_by:uid()})});
    if(type==="purchase"&&cost>0)await api("finance_movements",{method:"POST",body:JSON.stringify({kind:"expense",movement_date:todayLocal(),description:`Compra de estoque: ${p.name}`,category:"Estoque",amount:Math.round(qty*cost*100)/100,payment_method:"other",status:"paid",created_by:uid()})});
@@ -4128,5 +4131,6 @@ html .pd-scrim.pd-top .pd-cats button.on{background:rgba(120,140,180,.45)!import
 .nt-item.cx{cursor:default;opacity:.95}.nt-item.cx .nt-dot{background:#E5484D!important}.pill.cx-pill{background:rgba(229,72,77,.14)!important;color:#C0262B!important;border:1px solid rgba(229,72,77,.35)!important}
 html .pay-promo{display:flex!important;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px;padding:10px 14px;border-radius:16px;background:rgba(255,80,90,.14);border:1px solid rgba(255,130,140,.45);cursor:pointer}html .pay-promo span{display:flex;flex-direction:column;gap:2px}html .pay-promo small{opacity:.75;font-size:12px}html .pay-promo input{width:22px;height:22px;accent-color:#E5484D;flex:0 0 auto}
 body.ag-dragging .agenda-grid,body.ag-dragging .ag-cols{will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden}body.ag-dragging .agenda-grid *,body.ag-dragging .ag-cols *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:none!important;text-shadow:none!important}body.ag-dragging .agenda-dayname{will-change:transform}
+html #app .nt-item.cx{opacity:1!important;background:rgba(229,72,77,.10)!important;border-color:rgba(229,72,77,.55)!important}html #app .nt-item.cx b{color:inherit!important;opacity:1!important}html #app .nt-item.cx small{opacity:1!important;color:#E5484D!important;font-weight:600}html #app .nt-item.cx small:nth-of-type(-n+2){color:inherit!important;font-weight:500;opacity:.8!important}html #app .nt-item.cx .nt-dot{background:#E5484D!important;opacity:1!important}html #app .nt-item.cx .pill.cx-pill{background:#E5484D!important;color:#fff!important;border:1px solid #E5484D!important;font-weight:700;opacity:1!important}
 </style>
 
