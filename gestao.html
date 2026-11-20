@@ -2520,11 +2520,21 @@ async function openProductSale(start=null,barberPre=null){
   openPaymentScreen(row,{productSale:true});
  }catch(e){alert("Não foi possível iniciar a venda: "+(e.message||e))}
 }
-async function psClientPicker(current,onPick){
- let list=[];try{list=await api("clients?select=name,phone&order=name&limit=3000")}catch(e){}
+async function psClientPicker(current,onPick,opts={}){
+ let list=[];try{list=await api("clients?select=name,phone&order=name&limit=5000")}catch(e){}
+ list=list.filter(c=>c&&c.name).sort((a,b)=>normalizeSearch(a.name).localeCompare(normalizeSearch(b.name),"pt-BR"));
  const el=document.createElement("div");el.className="pay-screen ps-picker";el.style.zIndex="6500";
  const close=()=>el.remove();
- const listHtml=t=>{const n=normalizeSearch(t);const f=list.filter(c=>!n||normalizeSearch(c.name).includes(n)||String(c.phone||"").includes(n.replace(/\D/g,"")||"§")).slice(0,60);return f.length?f.map(c=>`<button type="button" class="ps-cl" data-ph="${esc(c.phone)}"><b>${esc(c.name)}</b><small>${esc(c.phone||"")}</small></button>`).join(""):`<p class="pay-hint">Nenhum cliente encontrado.</p>`};
+ const ini=n=>String(n||"?").trim().split(/\s+/).map(x=>x[0]).slice(0,2).join("").toUpperCase()||"?";
+ const listHtml=t=>{
+  const n=normalizeSearch(t),dg=String(t||"").replace(/\D/g,"");
+  const f=list.filter(c=>!n||normalizeSearch(c.name).includes(n)||(dg&&String(c.phone||"").includes(dg)));
+  let last="",h="";
+  f.forEach(c=>{const fc=normalizeSearch(c.name).charAt(0).toUpperCase(),L=/[A-Z]/.test(fc)?fc:"#";if(L!==last){h+=`<div class="alpha-h pk-h">${L}</div>`;last=L}
+   h+=`<button type="button" class="pk-row" data-ph="${esc(c.phone)}"><span class="pk-av">${esc(ini(c.name))}</span><span class="pk-t"><b>${esc(c.name)}</b><small>${esc(fmtPhoneBR(c.phone||""))}</small></span><span class="pk-go">›</span></button>`});
+  if(opts.allowFree&&String(t||"").trim()&&!list.some(c=>normalizeSearch(c.name)===n))h=`<button type="button" class="pk-row pk-free" data-free="1"><span class="pk-av">＋</span><span class="pk-t"><b>Usar “${esc(String(t).trim())}”</b><small>Sem cadastro</small></span><span class="pk-go">›</span></button>`+h;
+  return h||`<p class="pay-hint">Nenhum cliente encontrado.</p>`;
+ };
  const draw=(mode,prefill)=>{
   if(mode==="new"){
    el.innerHTML=`<header class="pay-head"><span class="pay-pill"><button type="button" class="pay-back" id="ps-back" aria-label="Voltar">‹</button><b>Novo cliente</b></span></header><div class="pay-body"><div class="pay-card"><div class="pd-f"><label>Nome</label><input id="nc-name" type="text" value="${esc(prefill||"")}" autocomplete="off"></div><div class="pd-f"><label>WhatsApp (com DDD)</label><input id="nc-phone" type="tel" inputmode="tel" placeholder="35999999999"></div><div class="pd-err" id="nc-err"></div></div></div><footer class="pay-foot"><button type="button" class="btn primary pay-confirm" id="nc-ok">Cadastrar e usar</button></footer>`;
@@ -2533,8 +2543,8 @@ async function psClientPicker(current,onPick){
     if(!nm){er.textContent="Informe o nome.";return}if(ph.length<10||ph.length>11){er.textContent="Informe o WhatsApp com DDD.";return}
     b.disabled=true;try{const ex=list.find(c=>String(c.phone)===ph);if(!ex)await api("clients",{method:"POST",body:JSON.stringify({name:nm,phone:ph})});close();onPick({name:ex?ex.name:nm,phone:ph})}catch(e){er.textContent=e.message||"Não foi possível cadastrar.";b.disabled=false}};
    return}
-  el.innerHTML=`<header class="pay-head"><span class="pay-pill"><button type="button" class="pay-back" id="ps-back" aria-label="Voltar">‹</button><b>Cliente</b></span></header><div class="pay-body"><input id="ps-q" class="ps-search" type="search" placeholder="Buscar por nome ou telefone" autocomplete="off"><div class="pay-actions"><button type="button" class="pay-sm" id="ps-new">+ Cadastrar novo cliente</button>${current?`<button type="button" class="pay-sm danger" id="ps-none">Sem cliente</button>`:""}</div><div id="ps-list">${listHtml("")}</div></div>`;
-  const qi=el.querySelector("#ps-q"),bind=()=>el.querySelectorAll(".ps-cl").forEach(x=>x.onclick=()=>{const c=list.find(z=>String(z.phone)===x.dataset.ph);close();onPick({name:c?c.name:"",phone:x.dataset.ph})});
+  el.innerHTML=`<header class="pay-head"><span class="pay-pill"><button type="button" class="pay-back" id="ps-back" aria-label="Voltar">‹</button><b>Clientes</b></span></header><div class="pay-body"><input id="ps-q" class="ps-search" type="search" placeholder="Buscar por nome ou telefone" autocomplete="off"><div class="pk-actions"><button type="button" class="pay-sm" id="ps-new">＋ Cadastrar novo cliente</button>${(current||opts.freeName)?`<button type="button" class="pay-sm danger" id="ps-none">Sem cliente</button>`:""}</div><p class="pk-count">${list.length} cliente(s) cadastrado(s)</p><div id="ps-list" class="pk-list">${listHtml("")}</div></div>`;
+  const qi=el.querySelector("#ps-q"),bind=()=>{el.querySelectorAll(".pk-row").forEach(x=>x.onclick=()=>{if(x.dataset.free){const nm=qi.value.trim();close();onPick({name:nm,phone:""});return}const c=list.find(z=>String(z.phone)===x.dataset.ph);close();onPick({name:c?c.name:"",phone:x.dataset.ph})})};
   qi.oninput=()=>{el.querySelector("#ps-list").innerHTML=listHtml(qi.value);bind()};bind();
   el.querySelector("#ps-back").onclick=close;
   el.querySelector("#ps-new").onclick=()=>draw("new",qi.value.trim());
@@ -2543,73 +2553,93 @@ async function psClientPicker(current,onPick){
  document.body.appendChild(el);draw("list");
 }
 async function openWalkin(existing=null,start=null,barberPre=null){
- document.querySelector(".pay-screen")?.remove();
- const el=document.createElement("div");el.className="pay-screen wk-screen";
- el.innerHTML=`<header class="pay-head"><span class="pay-pill"><button type="button" class="pay-back" id="wk-back" aria-label="Voltar">‹</button><b>Avulso</b></span></header><div class="pay-body"><p class="pay-hint">Carregando…</p></div>`;
- document.body.appendChild(el);document.body.classList.add("sheet-open");
- const close=()=>{el.remove();document.body.classList.remove("sheet-open")};
- el.querySelector("#wk-back").onclick=close;
- let cat=[],bs=[];
- try{[cat,bs]=await Promise.all([api("services?select=id,name,price,is_cut,duration_min,active&active=eq.true&order=sort"),api("rpc/agenda_barbers",{method:"POST",body:"{}"})]);cat=await applyPromosToServices(cat)}catch(e){el.querySelector(".pay-body").innerHTML=`<p class="error">${esc(e.message)}</p>`;return}
+ const bk=()=>{app.innerHTML=`<section class="booking-screen wk2"><h2 class="section-title">${existing?"Editar avulso":"Agendamento avulso"}</h2><p class="muted">Carregando…</p></section>`};bk();
+ let cat=[],bs=[],cbs=[],cbi=[];
+ try{[cat,bs,cbs,cbi]=await Promise.all([api("services?select=id,name,price,is_cut,duration_min,active&active=eq.true&order=sort"),api("rpc/agenda_barbers",{method:"POST",body:"{}"}),api("service_combos?select=*&active=eq.true").catch(()=>[]),api("service_combo_items?select=*").catch(()=>[])]);cat=await applyPromosToServices(cat)}catch(e){app.innerHTML=`<section class="booking-screen"><p class="error">${esc(e.message)}</p></section>`;return}
+ const combos=cbs.map(c=>({...c,items:cbi.filter(i=>String(i.combo_id)===String(c.id))}));
  const tm=v=>{const p=String(v||"").split(":").map(Number);return p.length>=2&&p.every(Number.isFinite)?p[0]*60+p[1]:null};
  const r2=x=>Math.round(x*100)/100;
+ const num=v=>r2(Number(String(v||"").replace(",","."))||0);
  const nw=new Date();let st0=Math.min(Math.round((nw.getHours()*60+nw.getMinutes())/5)*5,1380);if(start!=null)st0=Number(start);
  const sel={},keep=[];let extra0=0;
  if(existing){(existing.services||[]).forEach(x=>{if(x&&x.id==="avulso"){extra0=Number(x.price||0)*Number(x.qty||1)}else if(x&&cat.some(c=>String(c.id)===String(x.id))){sel[String(x.id)]=Number(x.qty||1)}else if(x)keep.push(x)})}
- const S={date:existing?.date||key(day),start:existing?Number(existing.start_min):st0,end:existing?Number(existing.end_min):st0+30,name:existing&&existing.client_name&&existing.client_name!=="Avulso"?existing.client_name:"",
-  barber:existing?.barber_id!=null?Number(existing.barber_id):(barberPre!=null?Number(barberPre):(agendaBarber&&agendaBarber!=="all"?Number(agendaBarber):(window.__myBarberId||bs[0]?.id||null))),extra:extra0>0?String(extra0).replace(".",","):""};
- const extraVal=()=>r2(Number(String(S.extra).replace(",","."))||0);
- const svcTotal=()=>r2(cat.reduce((a,c)=>a+(sel[String(c.id)]||0)*Number(c.price||0),0)+keep.reduce((a,x)=>a+Number(x.price||0)*Number(x.qty||1),0));
- const total=()=>r2(svcTotal()+extraVal());
- const q=x=>el.querySelector(x);
- el.innerHTML=`<header class="pay-head"><span class="pay-pill"><button type="button" class="pay-back" id="wk-back" aria-label="Voltar">‹</button><b>${existing?"Editar avulso":"Avulso"}</b></span></header>
- <div class="pay-body"><div class="pay-card wk-card">
-  <div class="wk-row"><label class="wk-f"><span>Data</span><input id="wk-date" type="date" value="${esc(S.date)}"></label><label class="wk-f"><span>Nome (opcional)</span><input id="wk-name" type="text" placeholder="Avulso" value="${esc(S.name)}" autocomplete="off"></label></div>
-  <div class="wk-row"><label class="wk-f"><span>Início</span><input id="wk-start" type="time" value="${hm(S.start)}"></label><label class="wk-f"><span>Fim</span><input id="wk-end" type="time" value="${hm(Math.min(S.end,1439))}"></label></div>
-  ${bs.length>1?`<label class="wk-f"><span>Profissional</span><select id="wk-barber">${bs.map(b=>`<option value="${b.id}" ${Number(b.id)===Number(S.barber)?"selected":""}>${esc(b.name)}</option>`).join("")}</select></label>`:""}
- </div>
- <h3 class="pay-h">Serviços <small style="opacity:.6;font-weight:500">(opcional)</small></h3>
- <div class="wk-svcs" id="wk-svcs"></div>
- <h3 class="pay-h">Valor avulso <small style="opacity:.6;font-weight:500">(some ao total)</small></h3>
- <label class="wk-f"><div class="pay-money"><i>R$</i><input id="wk-extra" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" value="${esc(S.extra)}"></div></label>
- <p class="pay-hint" style="margin:6px 2px">Use só o valor quando não lembrar o serviço: o total do caixa entra na agenda e no financeiro sem entrar em rankings.</p>
- <div class="pay-card" style="margin-top:10px"><div class="pay-total"><span>Total</span><b id="wk-total">${fm(total())}</b></div></div>
- <p class="error" id="wk-err" style="display:none;margin:8px 2px"></p>
- ${existing?"":`<div class="pay-actions" style="margin-top:8px"><button type="button" class="pay-sm" id="wk-save">Só registrar (sem receber agora)</button></div>`}
- </div><footer class="pay-foot"><button type="button" class="btn primary pay-confirm" id="wk-ok">${existing?"Salvar":"Receber"}</button></footer>`;
- const drawSvcs=()=>{q("#wk-svcs").innerHTML=cat.map(c=>{const n=sel[String(c.id)]||0;return `<div class="wk-svc ${n?"on":""}" data-s="${esc(c.id)}" role="button"><b>${esc(c.name)}</b><div class="wk-bot"><small>${fm(c.price)}</small>${n?`<span class="wk-q"><i data-m="${esc(c.id)}">−</i><b>${n}</b><i data-p="${esc(c.id)}">+</i></span>`:""}</div></div>`}).join("")||`<p class="pay-hint">Nenhum serviço cadastrado.</p>`;
-  q("#wk-total").textContent=fm(total())};
- drawSvcs();
- q("#wk-svcs").addEventListener("click",e=>{const m=e.target.closest("[data-m]"),p=e.target.closest("[data-p]"),t=e.target.closest("[data-s]");
-  if(m){const k=m.dataset.m;sel[k]=(sel[k]||0)-1;if(sel[k]<=0)delete sel[k]}else if(p){const k=p.dataset.p;sel[k]=(sel[k]||0)+1}else if(t){const k=t.dataset.s;sel[k]=(sel[k]||0)+1}else return;drawSvcs()});
- q("#wk-back").onclick=close;
- q("#wk-name").oninput=e=>{S.name=e.target.value};
- q("#wk-date").onchange=e=>{S.date=e.target.value||S.date};
- q("#wk-extra").oninput=e=>{const c=e.target.value.replace(/[^0-9.,]/g,"");if(c!==e.target.value)e.target.value=c;S.extra=c;q("#wk-total").textContent=fm(total())};
- q("#wk-start").onchange=e=>{const v=tm(e.target.value);if(v==null)return;S.start=v;if(S.end<=S.start){S.end=Math.min(S.start+30,1439);q("#wk-end").value=hm(S.end)}};
- q("#wk-end").onchange=e=>{const v=tm(e.target.value);if(v==null)return;S.end=v};
- q("#wk-barber")?.addEventListener("change",e=>{S.barber=Number(e.target.value)});
+ const S={date:existing?.date||key(day),start:existing?Number(existing.start_min):st0,end:existing?Number(existing.end_min):st0+30,endManual:!!existing,
+  name:existing&&existing.client_name&&existing.client_name!=="Avulso"?existing.client_name:"",phone:existing?.client_phone||"",
+  barber:existing?.barber_id!=null?Number(existing.barber_id):(barberPre!=null?Number(barberPre):(agendaBarber&&agendaBarber!=="all"?Number(agendaBarber):(window.__myBarberId||bs[0]?.id||null))),
+  extra:extra0>0?String(extra0).replace(".",","):"",disc:existing&&Number(existing.discount||0)>0?String(existing.discount).replace(".",","):"",sur:existing&&Number(existing.surcharge||0)>0?String(existing.surcharge).replace(".",","):"",
+  notes:existing?.notes||"",comboOff:!!existing&&Number(existing.combo_discount||0)===0};
+ const chosen=()=>cat.filter(c=>sel[String(c.id)]);
+ const svcSub=()=>r2(chosen().reduce((a,c)=>a+sel[String(c.id)]*Number(c.price||0),0)+keep.reduce((a,x)=>a+Number(x.price||0)*Number(x.qty||1),0));
+ const bestCombo=()=>{const ids=chosen().map(c=>Number(c.id));const sub=svcSub();let best=null;combos.forEach(c=>{const g={};c.items.forEach(i=>{(g[i.group_no]=g[i.group_no]||[]).push(Number(i.service_id))});const gs=Object.values(g);if(gs.length&&gs.every(x=>x.some(id=>ids.includes(id)))){if(!best||comboAmount(c,sub)>comboAmount(best,sub))best=c}});return best};
+ const totals=()=>{const sub=svcSub(),cb=bestCombo(),cv=cb&&!S.comboOff?comboAmount(cb,sub):0,ex=num(S.extra),di=num(S.disc),su=num(S.sur);return {sub,cb,cv,ex,di,su,total:Math.max(0,r2(sub+ex-cv-di+su))}};
+ const autoEnd=()=>{if(S.endManual)return;const arr=chosen().map(c=>({...c,qty:sel[String(c.id)]}));const dur=arr.length?selectedServicesDuration(arr):30;S.end=S.start+Math.max(30,Math.ceil(dur/5)*5)};
+ const adjHtml=()=>{const t=totals();return `<div class="row between"><span>Subtotal dos serviços</span><b id="wk-sub">${fm(t.sub)}</b></div>
+ ${t.cb?`<label class="adj-combo"><input type="checkbox" id="wk-combo-on" ${S.comboOff?"":"checked"}><span class="grow">Combo: <b>${esc(t.cb.name)}</b> (− ${fm(comboAmount(t.cb,t.sub))}${t.cb.discount_type==="percent"?" · "+Number(t.cb.discount)+"%":""})</span></label>`:""}
+ <div class="adj-grid"><div class="field"><label for="wk-extra">Valor avulso (R$)</label><input id="wk-extra" type="text" inputmode="decimal" placeholder="0,00" value="${esc(S.extra)}"></div></div>
+ <div class="adj-grid"><div class="field"><label for="wk-disc">Desconto (R$)</label><input id="wk-disc" type="text" inputmode="decimal" placeholder="0,00" value="${esc(S.disc)}"></div><div class="field"><label for="wk-sur">Acréscimo (R$)</label><input id="wk-sur" type="text" inputmode="decimal" placeholder="0,00" value="${esc(S.sur)}"></div></div>
+ <div class="row between adj-total"><b>Valor total</b><b id="wk-total">${fm(t.total)}</b></div>`};
+ const draw=()=>{
+  const y=window.scrollY;autoEnd();
+  app.innerHTML=`<section class="booking-screen wk2"><h2 class="section-title">${existing?"Editar avulso":"Agendamento avulso"}</h2>
+  ${bs.length>1?`<div class="fcap">Profissional</div><div class="ag-seg wk-seg">${bs.map(b=>`<button type="button" data-wk-barber="${b.id}" class="${Number(b.id)===Number(S.barber)?"on":""}">${esc(b.name)}</button>`).join("")}</div>`:""}
+  <div class="fcap">Cliente (opcional)</div>
+  <div class="card client-card-compact"><button class="btn client-select-btn" id="wk-client" type="button">${S.name?`<span class="client-selected-wrap"><span class="client-selected-name">${esc(S.name)}</span>${S.phone?`<span class="client-selected-phone">${esc(fmtPhoneBR(S.phone))}</span>`:""}</span>`:'<span class="client-plus-mini">＋</span><span>Selecionar cliente</span>'}</button></div>
+  <div class="booking-range-label">Início</div><div class="booking-date-time-line"><div class="field"><input id="wk-date" type="date" aria-label="Data" value="${S.date}"></div><div class="field"><input id="wk-start" type="time" aria-label="Horário de início" value="${hm(S.start)}"></div></div>
+  <div class="section-title">Serviços</div>
+  <div>${cat.map(x=>{const q=sel[String(x.id)];const dm=Number(x.duration_min||0);const price=Number(x.price||0);return `<label class="service-choice${q?" on":""}" data-sid="${x.id}"><input type="checkbox" data-wk-svc="${x.id}" ${q?"checked":""}><span class="grow"><b>${esc(x.name)}</b><span class="muted">${dm>0?dm+" min":(x.is_cut||serviceAddsDuration(x)?"30 min":"")}</span></span>${q?`<span class="wk-qty"><button type="button" data-wk-dec="${x.id}" aria-label="Diminuir">−</button><b>${q}</b><button type="button" data-wk-inc="${x.id}" aria-label="Aumentar">+</button></span>`:""}<span class="svc-price">${x.promo?`<s style="opacity:.5;font-weight:500">${fm(x.orig_price)}</s> `:""}${fm(price)}${x.promo?`<span class="promo-tag">${esc(x.promo)}</span>`:""}</span></label>`}).join("")}</div>
+  <div class="booking-range-label">Fim</div><div class="booking-date-time-line"><div class="field"><input id="wk-end" type="time" aria-label="Horário de fim" value="${hm(Math.min(S.end,1439))}"></div></div>
+  <div class="section-title">Valor</div>
+  <div class="card adj-card" id="wk-adj">${adjHtml()}</div>
+  <div class="section-title">Observações</div>
+  <textarea id="wk-notes" rows="3" placeholder="Observações (opcional)" style="width:100%">${esc(S.notes)}</textarea>
+  ${existing?"":`<button type="button" class="btn primary wk-pay" id="wk-pay">Registrar e receber</button>`}
+  <div id="wk-err" class="notice error hidden"></div>
+  </section><div class="booking-savebar"><button class="btn primary" id="wk-save" aria-label="Gravar" title="Gravar"><svg class="floppy-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h13l4 4v14H3V3h1zm2 2v5h10V5H6zm0 9v5h12v-5H6zm8-8h2v3h-2V6z"/></svg></button></div>`;
+  window.scrollTo(0,y);bind();
+ };
+ const refreshTotals=()=>{const box=document.getElementById("wk-adj");if(!box)return;const ae=document.activeElement&&document.activeElement.id;box.innerHTML=adjHtml();bindAdj();if(ae){const e=document.getElementById(ae);if(e&&e.focus){e.focus();try{const l=e.value.length;e.setSelectionRange(l,l)}catch(_){}}}};
+ const bindAdj=()=>{
+  const g=id=>document.getElementById(id);
+  g("wk-combo-on")?.addEventListener("change",e=>{S.comboOff=!e.target.checked;refreshTotals()});
+  g("wk-extra")?.addEventListener("input",e=>{S.extra=e.target.value;const t=totals();g("wk-total").textContent=fm(t.total)});
+  g("wk-disc")?.addEventListener("input",e=>{S.disc=e.target.value;const t=totals();g("wk-total").textContent=fm(t.total)});
+  g("wk-sur")?.addEventListener("input",e=>{S.sur=e.target.value;const t=totals();g("wk-total").textContent=fm(t.total)});
+ };
+ const fail=m=>{const er=document.getElementById("wk-err");if(!er)return;er.textContent=m;er.classList.remove("hidden");er.scrollIntoView({block:"center"})};
  let busy=false;
- const fail=m=>{const er=q("#wk-err");er.textContent=m;er.style.display="block"};
  const submit=async payAfter=>{
-  if(busy)return;const ok=q("#wk-ok");
-  const tot=total();if(!(tot>0))return fail("Escolha um serviço ou informe o valor avulso.");
+  if(busy)return;const t=totals();
+  if(!(t.total>0))return fail("Escolha um serviço ou informe o valor avulso.");
   if(!(S.end>S.start))return fail("O horário final precisa ser depois do inicial.");
   if(S.barber==null)return fail("Cadastre um profissional ativo.");
-  busy=true;ok.disabled=true;
+  busy=true;document.querySelectorAll("#wk-save,#wk-pay").forEach(b=>b.disabled=true);
   try{
-   const lines=[...cat.filter(c=>sel[String(c.id)]).map(c=>({id:c.id,name:c.name,qty:sel[String(c.id)],price:Number(c.price||0)})),...keep];
-   if(extraVal()>0)lines.push({id:"avulso",name:lines.length?"Valor extra":"Avulso",qty:1,price:extraVal()});
-   const payload={barber_id:S.barber,date:S.date,start_min:S.start,end_min:S.end,client_name:S.name.trim()||"Avulso",client_phone:existing?.client_phone||"",services:lines,total:tot,discount:0,surcharge:0,combo_discount:0,is_walkin:true};
+   const lines=[...chosen().map(c=>({id:c.id,name:c.name,qty:sel[String(c.id)],price:Number(c.price||0)})),...keep];
+   if(t.ex>0)lines.push({id:"avulso",name:lines.length?"Valor extra":"Avulso",qty:1,price:t.ex});
+   const payload={barber_id:S.barber,date:S.date,start_min:S.start,end_min:S.end,client_name:S.name.trim()||"Avulso",client_phone:S.phone||"",services:lines,total:t.total,discount:t.di,surcharge:t.su,combo_discount:t.cv,notes:S.notes||null,is_walkin:true};
    let row;
    if(existing){await api(`bookings?id=eq.${encodeURIComponent(existing.id)}`,{method:"PATCH",body:JSON.stringify(payload)});await syncClosureAfterEdit(existing.id,payload);row={...existing,...payload}}
    else{payload.status="completed";row=(await api("bookings",{method:"POST",body:JSON.stringify(payload)}))[0]}
-   close();const p=S.date.split("-").map(Number);day=new Date(p[0],p[1]-1,p[2]);await loadAgenda();
+   const p=S.date.split("-").map(Number);day=new Date(p[0],p[1]-1,p[2]);await loadAgenda();
    if(payAfter&&!existing&&row)openPaymentScreen(row);
-  }catch(e){fail(e.message||"Não foi possível salvar.");busy=false;ok.disabled=false}
+  }catch(e){fail(e.message||"Não foi possível salvar.");busy=false;document.querySelectorAll("#wk-save,#wk-pay").forEach(b=>b.disabled=false)}
  };
- q("#wk-ok").onclick=()=>submit(true);
- q("#wk-save")?.addEventListener("click",()=>submit(false));
+ const bind=()=>{
+  const g=id=>document.getElementById(id);
+  document.querySelectorAll("[data-wk-barber]").forEach(b=>b.onclick=()=>{S.barber=Number(b.dataset.wkBarber);draw()});
+  g("wk-client").onclick=()=>psClientPicker(S.name&&S.phone?S.name:S.name,c=>{S.name=c.name||"";S.phone=c.phone||"";draw()},{allowFree:true,freeName:S.name});
+  g("wk-date").onchange=e=>{if(e.target.value)S.date=e.target.value};
+  g("wk-start").onchange=e=>{const v=tm(e.target.value);if(v==null)return;const dur=S.end-S.start;S.start=v;if(!S.endManual||!(S.end>S.start))S.end=v+Math.max(30,dur>0?dur:30);draw()};
+  g("wk-end").onchange=e=>{const v=tm(e.target.value);if(v==null)return;S.end=v;S.endManual=true};
+  g("wk-notes").oninput=e=>{S.notes=e.target.value};
+  document.querySelectorAll("[data-wk-svc]").forEach(i=>i.onchange=()=>{const id=String(i.dataset.wkSvc);if(i.checked)sel[id]=1;else delete sel[id];draw()});
+  document.querySelectorAll("[data-wk-inc]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const id=String(b.dataset.wkInc);sel[id]=(sel[id]||1)+1;draw()});
+  document.querySelectorAll("[data-wk-dec]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const id=String(b.dataset.wkDec);if((sel[id]||1)<=1)delete sel[id];else sel[id]--;draw()});
+  g("wk-save").onclick=()=>submit(false);
+  g("wk-pay")?.addEventListener("click",()=>submit(true));
+  bindAdj();
+ };
+ draw();
 }
 
 let appointmentHoldTimer=null, appointmentHoldTriggered=false, appointmentHoldTarget=null;
@@ -4174,5 +4204,8 @@ html .pay-promo{display:flex!important;align-items:center;justify-content:space-
 body.ag-dragging .agenda-grid,body.ag-dragging .ag-cols{will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden}body.ag-dragging .agenda-grid *,body.ag-dragging .ag-cols *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:none!important;text-shadow:none!important}body.ag-dragging .agenda-dayname{will-change:transform}
 html #app .nt-item.cx{opacity:1!important;background:rgba(229,72,77,.10)!important;border-color:rgba(229,72,77,.55)!important}html #app .nt-item.cx b{color:inherit!important;opacity:1!important}html #app .nt-item.cx small{opacity:1!important;color:#E5484D!important;font-weight:600}html #app .nt-item.cx small:nth-of-type(-n+2){color:inherit!important;font-weight:500;opacity:.8!important}html #app .nt-item.cx .nt-dot{background:#E5484D!important;opacity:1!important}html #app .nt-item.cx .pill.cx-pill{background:#E5484D!important;color:#fff!important;border:1px solid #E5484D!important;font-weight:700;opacity:1!important}
 .ps-row{display:flex;gap:10px;align-items:stretch;margin:0 0 8px}.ps-btn{position:relative;flex:1;display:flex;align-items:center;justify-content:center;gap:6px;min-height:46px;padding:8px 12px;border-radius:16px;border:1px solid rgba(128,140,160,.45);background:rgba(128,140,160,.16);color:inherit;font-weight:600;font-size:15px;line-height:1.2;font-family:inherit;text-align:center;cursor:pointer;overflow:hidden;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}.ps-btn.ps-time{flex:0 0 auto;min-width:112px}.ps-btn input[type=time]{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;background:transparent}.ps-search{width:100%;box-sizing:border-box;height:48px;border-radius:14px;padding:0 14px;margin:0 0 10px}.ps-cl{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;padding:12px 14px;margin:0 0 8px;border-radius:16px;border:1px solid rgba(128,140,160,.4);background:rgba(128,140,160,.12);color:inherit;font-family:inherit}.ps-cl small{opacity:.7}
+.wk-qty{display:inline-flex;align-items:center;gap:8px;margin-right:8px}.wk-qty button{width:30px;height:30px;border-radius:50%;border:1px solid rgba(128,140,160,.5);background:rgba(128,140,160,.2);color:inherit;font-size:18px;line-height:1;padding:0}.wk-qty b{min-width:16px;text-align:center}.wk-pay{width:100%;margin:14px 0 90px;padding:15px;border-radius:999px;font-size:16px}.wk2 .adj-grid{margin-top:8px}.wk-seg{margin-bottom:10px}
+.pk-actions{display:flex;gap:8px;margin:0 0 6px}.pk-count{margin:6px 2px 8px;font-size:13px;opacity:.7}.pk-list{padding-bottom:40px}.pk-h{position:sticky;top:0;z-index:2;padding:6px 10px;margin:10px 0 6px;border-radius:10px;font-weight:700;letter-spacing:.06em;background:rgba(128,140,160,.22);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}.pk-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 12px;margin:0 0 8px;border-radius:18px;border:1px solid rgba(128,140,160,.4);background:rgba(128,140,160,.12);color:inherit;font-family:inherit}.pk-av{flex:0 0 40px;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;background:linear-gradient(135deg,rgba(150,165,190,.55),rgba(90,105,130,.55));border:1px solid rgba(255,255,255,.25);color:#fff}.pk-t{display:flex;flex-direction:column;min-width:0;flex:1}.pk-t b{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pk-t small{opacity:.7}.pk-go{opacity:.5;font-size:22px}.pk-free .pk-av{background:rgba(35,120,212,.6)}
+html .booking-screen .wk-pay,html .wk2 .wk-pay{background:linear-gradient(135deg,rgba(57,130,198,.55),rgba(35,120,212,.95))!important;color:#fff!important;border:1px solid rgba(255,255,255,.25)!important;font-weight:700}
 </style>
 
