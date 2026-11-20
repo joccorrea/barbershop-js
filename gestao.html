@@ -3312,7 +3312,7 @@ if(session){const pendingReview=new URLSearchParams(location.search).get("bookin
 <script>
 (function(){
  var RB=/^(voltar|cancelar|fechar|voltar à agenda)$/i,RS=/^(salvar\b.*|gravar|confirmar venda.*)$/i,RD=/^excluir$/i,RP=/^[＋+]$/;
- function cls(b){if(b.dataset.bb||b.classList.contains("mini")||b.closest(".pay-foot,.pay-head,.pay-picker"))return null;var t=(b.textContent||"").trim();if(!t||t.length>40)return null;if(RP.test(t)&&(b.getAttribute("aria-label")||b.title))return"plus";return RS.test(t)?"save":RB.test(t)?"back":RD.test(t)?"del":null}
+ function cls(b){if(b.dataset.bb||b.classList.contains("mini")||b.closest(".wk-qty")||b.closest(".pay-foot,.pay-head,.pay-picker"))return null;var t=(b.textContent||"").trim();if(!t||t.length>40)return null;if(RP.test(t)&&(b.getAttribute("aria-label")||b.title))return"plus";return RS.test(t)?"save":RB.test(t)?"back":RD.test(t)?"del":null}
  function run(){
   var hit=[];
   [].slice.call(document.querySelectorAll("button:not([data-bb])")).forEach(function(b){var k=cls(b);if(k){b.dataset.bb=k;b.classList.add("bb-btn","bb-"+k);if(k!=="plus"){var t=(b.textContent||"").trim();b.setAttribute("aria-label",t);b.title=t;hit.push(b)}}});
@@ -3324,6 +3324,13 @@ if(session){const pendingReview=new URLSearchParams(location.search).get("bookin
  }
  var q=0;function sched(){if(q)return;q=requestAnimationFrame(function(){q=0;run()})}
  new MutationObserver(sched).observe(document.documentElement,{childList:true,subtree:true});run();
+})();
+
+(function(){var sx=0,sy=0,tg=null,ax=null,dx=0,on=false;
+document.addEventListener("touchstart",function(e){if(!e.touches.length)return;sx=e.touches[0].clientX;sy=e.touches[0].clientY;tg=e.target;ax=null;dx=0;on=false},{passive:true});
+function scr(){if(!tg||!tg.closest)return null;if(tg.closest("input,textarea,select"))return null;var s=tg.closest(".pay-screen");return s&&s.querySelector(".pay-back")?s:null}
+document.addEventListener("touchmove",function(e){var s=scr();if(!s||!e.touches.length)return;var x=e.touches[0].clientX-sx,y=e.touches[0].clientY-sy;if(!ax&&Math.max(Math.abs(x),Math.abs(y))>6)ax=Math.abs(x)>=Math.abs(y)?"x":"y";if(ax==="x"&&x>0){on=true;dx=x;s.style.transition="none";s.style.transform="translate3d("+x+"px,0,0)";e.preventDefault()}},{passive:false});
+document.addEventListener("touchend",function(){var s=scr();if(s&&on){var go=dx>window.innerWidth*.28;s.style.transition="transform .2s ease";s.style.transform=go?"translate3d(105%,0,0)":"translate3d(0,0,0)";if(go){setTimeout(function(){var b=s.querySelector(".pay-back");try{if(b)b.click()}finally{s.style.transition="";s.style.transform=""}},200)}else setTimeout(function(){s.style.transition="";s.style.transform=""},210)}tg=null;on=false;ax=null;dx=0},{passive:true});
 })();
 </script>
 </body></html>
@@ -4223,5 +4230,16 @@ html #app .wk2 .wk-pay:active{transform:scale(.98)}
 html #app .wk2 .wk-pay:disabled{opacity:.55}
 .alpha-h:not(.pk-h){position:sticky!important;top:68px;z-index:5;display:block;padding:6px 12px;margin:10px 0 6px!important;border-radius:12px;background:rgba(128,140,160,.30);border:1px solid rgba(255,255,255,.22);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
 html #app .wk2 .client-plus-mini{background:linear-gradient(135deg,rgba(255,255,255,.30),rgba(255,255,255,.05) 46%,rgba(255,255,255,.10)),rgba(72,72,78,.82)!important;border:1px solid rgba(255,255,255,.28)!important;color:#fff!important;box-shadow:0 4px 10px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.5)!important}
+
+/* g117 */
+html #app .wk2 .wk-qty{gap:6px!important}
+html #app .wk2 .wk-qty button,html #app .wk2 .wk-qty button.btn,html #app .wk2 .wk-qty button.bb-btn{width:24px!important;height:24px!important;min-width:24px!important;max-width:24px!important;min-height:24px!important;flex:0 0 24px!important;font:500 15px/1 -apple-system,system-ui,sans-serif!important;background:linear-gradient(135deg,rgba(255,255,255,.26),rgba(255,255,255,.04) 50%),rgba(72,72,78,.7)!important;box-shadow:0 2px 6px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.45)!important;padding:0 0 1px!important}
+html #app .wk2 .wk-qty b{min-width:14px!important;font-size:14px!important}
+html #app .booking-screen .service-choice{border-radius:18px!important;background:linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.03) 55%),rgba(128,140,160,.14)!important;border:1px solid rgba(255,255,255,.22)!important;box-shadow:0 6px 16px rgba(0,0,0,.10),inset 0 1px 0 rgba(255,255,255,.35)!important;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+html #app .booking-screen .service-choice.on{border-color:rgba(255,255,255,.45)!important;background:linear-gradient(135deg,rgba(255,255,255,.26),rgba(255,255,255,.05) 55%),rgba(110,120,140,.28)!important}
+html #app .booking-screen .card,html #app .booking-screen textarea{border-radius:18px!important;border:1px solid rgba(255,255,255,.22)!important;box-shadow:0 6px 16px rgba(0,0,0,.10),inset 0 1px 0 rgba(255,255,255,.3)!important;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+html #app .booking-screen .client-plus-mini{background:linear-gradient(135deg,rgba(255,255,255,.30),rgba(255,255,255,.05) 46%,rgba(255,255,255,.10)),rgba(72,72,78,.82)!important;border:1px solid rgba(255,255,255,.28)!important;color:#fff!important;box-shadow:0 4px 10px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.5)!important}
+html .alpha-h:not(.pk-h){display:flex!important;align-items:center;justify-content:center;width:28px;height:28px;padding:0!important;margin:10px 0 6px 4px!important;border-radius:50%!important;font-size:13px!important;line-height:1}
+.pay-screen.ps-swiping{transition:none!important}
 </style>
 
