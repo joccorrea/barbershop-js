@@ -4241,5 +4241,29 @@ html #app .booking-screen .card,html #app .booking-screen textarea{border-radius
 html #app .booking-screen .client-plus-mini{background:linear-gradient(135deg,rgba(255,255,255,.30),rgba(255,255,255,.05) 46%,rgba(255,255,255,.10)),rgba(72,72,78,.82)!important;border:1px solid rgba(255,255,255,.28)!important;color:#fff!important;box-shadow:0 4px 10px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.5)!important}
 html .alpha-h:not(.pk-h){display:flex!important;align-items:center;justify-content:center;width:28px;height:28px;padding:0!important;margin:10px 0 6px 4px!important;border-radius:50%!important;font-size:13px!important;line-height:1}
 .pay-screen.ps-swiping{transition:none!important}
+
+/* g118 alto padrão */
+html #app .booking-screen{padding-top:6px}
+html #app .booking-screen>h2.section-title:first-child,html #app .booking-screen>.section-title:first-child{font-size:26px!important;letter-spacing:.04em;margin:6px 2px 18px!important}
+html #app .booking-screen .section-title{font-size:12px!important;font-weight:700!important;letter-spacing:.22em!important;text-transform:uppercase;opacity:.62;margin:26px 4px 10px!important;display:flex;align-items:center;gap:10px}
+html #app .booking-screen>.section-title:first-child{opacity:1}
+html #app .booking-screen .section-title::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.22),transparent)}
+html #app .booking-screen>.section-title:first-child::after{display:none}
+html #app .booking-screen .booking-range-label,html #app .booking-screen label.lbl,html #app .booking-screen .field-label{font-size:11px!important;font-weight:700!important;letter-spacing:.2em!important;text-transform:uppercase;color:rgba(200,210,230,.7)!important;margin:16px 4px 8px!important}
+html #app .booking-screen .service-choice{position:relative;display:flex;align-items:center;gap:12px;min-height:60px;padding:10px 14px 10px 14px!important;margin:0 0 9px!important;border-radius:20px!important;background:linear-gradient(145deg,rgba(255,255,255,.10),rgba(255,255,255,.02) 60%),rgba(24,25,29,.72)!important;border:1px solid rgba(255,255,255,.13)!important;box-shadow:0 8px 22px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.12)!important;transition:background .25s ease,border-color .25s ease,box-shadow .25s ease,transform .15s ease}
+html #app .booking-screen .service-choice:active{transform:scale(.985)}
+html #app .booking-screen .service-choice b{font-weight:650;letter-spacing:.01em}
+html #app .booking-screen .service-choice .muted{font-size:12px!important;letter-spacing:.04em;opacity:.55!important}
+html #app .booking-screen .service-choice input[type=checkbox]{-webkit-appearance:none!important;appearance:none!important;flex:0 0 24px;width:24px!important;height:24px!important;min-width:24px!important;margin:0!important;border-radius:50%!important;background:transparent!important;border:1.5px solid rgba(255,255,255,.35)!important;box-shadow:none!important;transition:all .22s ease;background-repeat:no-repeat!important;background-position:center!important;background-size:14px 14px!important}
+html #app .booking-screen .service-choice input[type=checkbox]:checked{background-color:#E9ECF2!important;border-color:#E9ECF2!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2318191d' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")!important;box-shadow:0 0 0 4px rgba(255,255,255,.12)!important}
+html #app .booking-screen .service-choice.on{background:linear-gradient(145deg,rgba(255,255,255,.20),rgba(255,255,255,.04) 60%),rgba(54,57,66,.85)!important;border-color:rgba(255,255,255,.38)!important;box-shadow:0 10px 26px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.12),inset 0 1px 0 rgba(255,255,255,.22)!important}
+html #app .booking-screen .svc-price{font-size:14px!important;font-weight:700!important;letter-spacing:.02em;padding:6px 12px!important;border-radius:999px!important;background:rgba(0,0,0,.35)!important;border:1px solid rgba(255,255,255,.13);box-shadow:none!important}
+html #app .booking-screen .card{border-radius:22px!important;background:linear-gradient(145deg,rgba(255,255,255,.10),rgba(255,255,255,.02) 60%),rgba(24,25,29,.72)!important;border:1px solid rgba(255,255,255,.13)!important;box-shadow:0 8px 22px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.12)!important}
+html #app .booking-screen .client-select-btn,html #app .booking-screen select,html #app .booking-screen input:not([type=checkbox]):not([type=radio]),html #app .booking-screen textarea{border-radius:16px!important;border:1px solid rgba(255,255,255,.13)!important;background:rgba(10,11,13,.55)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)!important}
+html #app .booking-screen .client-select-btn,html #app .booking-screen .card select,html #app .booking-screen .card input{min-height:50px}
+html #app .booking-screen .client-plus-mini{width:34px!important;height:34px!important;font-size:20px!important}
+html #app .booking-screen>h2.section-title:first-child,html #app .booking-screen>.section-title:first-child{font-size:24px!important;letter-spacing:.05em!important;white-space:nowrap}
+html #app .booking-screen .client-card-compact{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;-webkit-backdrop-filter:none;backdrop-filter:none}
+html #app .booking-screen .client-card-compact .client-select-btn{width:100%;box-shadow:0 8px 22px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.12)!important}
 </style>
 
