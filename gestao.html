@@ -2588,7 +2588,7 @@ async function openWalkin(existing=null,start=null,barberPre=null){
   <div class="booking-range-label">Início</div><div class="booking-date-time-line"><div class="field"><input id="wk-date" type="date" aria-label="Data" value="${S.date}"></div><div class="field"><input id="wk-start" type="time" aria-label="Horário de início" value="${hm(S.start)}"></div></div>
   <div class="section-title">Serviços</div>
   <div>${cat.map(x=>{const q=sel[String(x.id)];const dm=Number(x.duration_min||0);const price=Number(x.price||0);return `<label class="service-choice${q?" on":""}" data-sid="${x.id}"><input type="checkbox" data-wk-svc="${x.id}" ${q?"checked":""}><span class="grow"><b>${esc(x.name)}</b><span class="muted">${dm>0?dm+" min":(x.is_cut||serviceAddsDuration(x)?"30 min":"")}</span></span>${q?`<span class="wk-qty"><button type="button" data-wk-dec="${x.id}" aria-label="Diminuir">−</button><b>${q}</b><button type="button" data-wk-inc="${x.id}" aria-label="Aumentar">+</button></span>`:""}<span class="svc-price">${x.promo?`<s style="opacity:.5;font-weight:500">${fm(x.orig_price)}</s> `:""}${fm(price)}${x.promo?`<span class="promo-tag">${esc(x.promo)}</span>`:""}</span></label>`}).join("")}</div>
-  <div class="booking-range-label">Fim</div><div class="booking-date-time-line"><div class="field"><input id="wk-end" type="time" aria-label="Horário de fim" value="${hm(Math.min(S.end,1439))}"></div></div>
+  <div class="booking-range-label">Fim</div><div class="field-line"><div class="field"><input id="wk-end-date" type="date" value="${S.date}" readonly tabindex="-1" style="pointer-events:none;opacity:.85"></div><div class="field"><input id="wk-end" type="time" aria-label="Horário de fim" value="${hm(Math.min(S.end,1439))}"></div></div>
   <div class="section-title">Valor</div>
   <div class="card adj-card" id="wk-adj">${adjHtml()}</div>
   <div class="section-title">Observações</div>
@@ -2596,7 +2596,7 @@ async function openWalkin(existing=null,start=null,barberPre=null){
   ${existing?"":`<button type="button" class="btn primary wk-pay" id="wk-pay">Registrar e receber</button>`}
   <div id="wk-err" class="notice error hidden"></div>
   </section><div class="booking-savebar"><button class="btn primary" id="wk-save" aria-label="Gravar" title="Gravar"><svg class="floppy-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h13l4 4v14H3V3h1zm2 2v5h10V5H6zm0 9v5h12v-5H6zm8-8h2v3h-2V6z"/></svg></button></div>`;
-  window.scrollTo(0,y);bind();
+  window.scrollTo(0,y);bind();try{prettyDateTime()}catch(e){}
  };
  const refreshTotals=()=>{const box=document.getElementById("wk-adj");if(!box)return;const ae=document.activeElement&&document.activeElement.id;box.innerHTML=adjHtml();bindAdj();if(ae){const e=document.getElementById(ae);if(e&&e.focus){e.focus();try{const l=e.value.length;e.setSelectionRange(l,l)}catch(_){}}}};
  const bindAdj=()=>{
@@ -2629,7 +2629,7 @@ async function openWalkin(existing=null,start=null,barberPre=null){
   const g=id=>document.getElementById(id);
   document.querySelectorAll("[data-wk-barber]").forEach(b=>b.onclick=()=>{S.barber=Number(b.dataset.wkBarber);draw()});
   g("wk-client").onclick=()=>psClientPicker(S.name&&S.phone?S.name:S.name,c=>{S.name=c.name||"";S.phone=c.phone||"";draw()},{allowFree:true,freeName:S.name});
-  g("wk-date").onchange=e=>{if(e.target.value)S.date=e.target.value};
+  g("wk-date").onchange=e=>{if(e.target.value){S.date=e.target.value;const ed=g("wk-end-date");if(ed)ed.value=S.date}};
   g("wk-start").onchange=e=>{const v=tm(e.target.value);if(v==null)return;const dur=S.end-S.start;S.start=v;if(!S.endManual||!(S.end>S.start))S.end=v+Math.max(30,dur>0?dur:30);draw()};
   g("wk-end").onchange=e=>{const v=tm(e.target.value);if(v==null)return;S.end=v;S.endManual=true};
   g("wk-notes").oninput=e=>{S.notes=e.target.value};
