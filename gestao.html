@@ -2047,7 +2047,7 @@ let touchStartX=0,touchStartY=0,touchStartTarget=null,swipeActive=false,swipeDx=
 function beginSwipeBack(screen){
  if(!swipeBackSnapshot)return;
  swipeUnderlay=document.createElement("div");swipeUnderlay.className="swipe-back-underlay";swipeUnderlay.innerHTML=swipeBackSnapshot;swipeUnderlay.querySelectorAll("[id]").forEach(e=>e.removeAttribute("id"));swipeUnderlay.setAttribute("aria-hidden","true");
- document.body.appendChild(swipeUnderlay);screen.style.transition="none";screen.style.position="relative";screen.style.zIndex="2";screen.style.willChange="transform";
+ document.body.appendChild(swipeUnderlay);try{swipeUnderlay.scrollTop=swipeBackScrollY||0}catch(_){}screen.style.transition="none";screen.style.position="relative";screen.style.zIndex="2";screen.style.willChange="transform";
 }
 function resetSwipeBack(screen,goBack){
  if(!screen)return;
@@ -4265,5 +4265,6 @@ html #app .booking-screen .client-plus-mini{width:34px!important;height:34px!imp
 html #app .booking-screen>h2.section-title:first-child,html #app .booking-screen>.section-title:first-child{font-size:24px!important;letter-spacing:.05em!important;white-space:nowrap}
 html #app .booking-screen .client-card-compact{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;-webkit-backdrop-filter:none;backdrop-filter:none}
 html #app .booking-screen .client-card-compact .client-select-btn{width:100%;box-shadow:0 8px 22px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.12)!important}
+.swipe-back-underlay{box-sizing:border-box!important;padding:84px 12px 110px!important;padding-left:max(12px,calc((100vw - 820px)/2 + 12px))!important;padding-right:max(12px,calc((100vw - 820px)/2 + 12px))!important;-webkit-overflow-scrolling:touch}
 </style>
 
