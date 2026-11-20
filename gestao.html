@@ -2372,7 +2372,7 @@ function __renderBookingScreen(){
  app.innerHTML=`<section class="booking-screen">
  
  <h2 class="section-title">${d.mode==='book'?'Novo agendamento':'Bloquear horário'}</h2>
- ${(d.barbers&&d.barbers.length&&!(d.mode==='block'&&d.blockAll))?`<div class="fcap">Profissional</div><div class="card client-card-compact"><input type="hidden" id="booking-barber" value="${(d.barbers.find(x=>Number(x.id)===Number(d.barberId))||d.barbers[0]).id}"><button class="btn client-select-btn" id="booking-barber-btn" type="button" ${d.barbers.length>1?'':'disabled'}><span class="client-selected-wrap"><span class="client-selected-name" id="booking-barber-name">${esc((d.barbers.find(x=>Number(x.id)===Number(d.barberId))||d.barbers[0]).name)}</span></span></button></div>`:''}
+ ${(d.barbers&&d.barbers.length&&!(d.mode==='block'&&d.blockAll))?`${(d.barbers.length>1&&!window.__myBarberId)?'<div class="fcap">Profissional</div>':''}<div class="card client-card-compact"${(d.barbers.length>1&&!window.__myBarberId)?'':' style="display:none"'}><input type="hidden" id="booking-barber" value="${(d.barbers.find(x=>Number(x.id)===Number(d.barberId))||d.barbers[0]).id}"><button class="btn client-select-btn" id="booking-barber-btn" type="button" ${d.barbers.length>1&&!window.__myBarberId?'':'disabled'}><span class="client-selected-wrap"><span class="client-selected-name" id="booking-barber-name">${esc((d.barbers.find(x=>Number(x.id)===Number(d.barberId))||d.barbers[0]).name)}</span></span></button></div>`:''}
  ${d.mode==='book'?`
  <div class="fcap">Cliente</div>
  <div class="card client-card-compact">
@@ -2566,7 +2566,7 @@ async function openWalkin(existing=null,start=null,barberPre=null){
  if(existing){(existing.services||[]).forEach(x=>{if(x&&x.id==="avulso"){extra0=Number(x.price||0)*Number(x.qty||1)}else if(x&&cat.some(c=>String(c.id)===String(x.id))){sel[String(x.id)]=Number(x.qty||1)}else if(x)keep.push(x)})}
  const S={date:existing?.date||key(day),start:existing?Number(existing.start_min):st0,end:existing?Number(existing.end_min):st0+30,endManual:!!existing,
   name:existing&&existing.client_name&&existing.client_name!=="Avulso"?existing.client_name:"",phone:existing?.client_phone||"",
-  barber:existing?.barber_id!=null?Number(existing.barber_id):(barberPre!=null?Number(barberPre):(agendaBarber&&agendaBarber!=="all"?Number(agendaBarber):(window.__myBarberId||bs[0]?.id||null))),
+  barber:window.__myBarberId?Number(window.__myBarberId):existing?.barber_id!=null?Number(existing.barber_id):(barberPre!=null?Number(barberPre):(agendaBarber&&agendaBarber!=="all"?Number(agendaBarber):(window.__myBarberId||bs[0]?.id||null))),
   extra:extra0>0?String(extra0).replace(".",","):"",disc:existing&&Number(existing.discount||0)>0?String(existing.discount).replace(".",","):"",sur:existing&&Number(existing.surcharge||0)>0?String(existing.surcharge).replace(".",","):"",
   notes:existing?.notes||"",comboOff:!!existing&&Number(existing.combo_discount||0)===0};
  const chosen=()=>cat.filter(c=>sel[String(c.id)]);
@@ -2582,7 +2582,7 @@ async function openWalkin(existing=null,start=null,barberPre=null){
  const draw=()=>{
   const y=window.scrollY;autoEnd();
   app.innerHTML=`<section class="booking-screen wk2"><h2 class="section-title">${existing?"Editar avulso":"Agendamento avulso"}</h2>
-  ${bs.length>1?`<div class="fcap">Profissional</div><div class="ag-seg wk-seg">${bs.map(b=>`<button type="button" data-wk-barber="${b.id}" class="${Number(b.id)===Number(S.barber)?"on":""}">${esc(b.name)}</button>`).join("")}</div>`:""}
+  ${bs.length>1&&!window.__myBarberId?`<div class="fcap">Profissional</div><div class="ag-seg wk-seg">${bs.map(b=>`<button type="button" data-wk-barber="${b.id}" class="${Number(b.id)===Number(S.barber)?"on":""}">${esc(b.name)}</button>`).join("")}</div>`:""}
   <div class="fcap">Cliente (opcional)</div>
   <div class="card client-card-compact"><button class="btn client-select-btn" id="wk-client" type="button">${S.name?`<span class="client-selected-wrap"><span class="client-selected-name">${esc(S.name)}</span>${S.phone?`<span class="client-selected-phone">${esc(fmtPhoneBR(S.phone))}</span>`:""}</span>`:'<span class="client-plus-mini">＋</span><span>Selecionar cliente</span>'}</button></div>
   <div class="booking-range-label">Início</div><div class="booking-date-time-line"><div class="field"><input id="wk-date" type="date" aria-label="Data" value="${S.date}"></div><div class="field"><input id="wk-start" type="time" aria-label="Horário de início" value="${hm(S.start)}"></div></div>
