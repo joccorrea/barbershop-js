@@ -1869,7 +1869,7 @@ async function showBookingDetail(id){
    <button class="sheet-action cancel" id="detail-cancel-pending"><span class="sheet-icon">✕</span><span>Cancelar agendamento</span></button>`;
   const st=normalizedStatus(b.status);
   const editBtn=`<button class="sheet-action" id="detail-edit"><span class="sheet-icon">✎</span><span>Editar agendamento</span></button>`;
-  const waBtn=`<a class="sheet-action" target="_blank" rel="noopener" href="https://wa.me/${phone}?text=${encodeURIComponent("Olá "+(b.client_name||"")+", seu agendamento na Barber Shop JS para "+dateLabel+" às "+hm(b.start_min)+" está confirmado.")}"><span class="sheet-icon whatsapp-icon" aria-hidden="true">●</span><span>Enviar confirmação</span></a>`;
+  const waBtn=`<a class="sheet-action" target="_blank" rel="noopener" href="https://wa.me/${phone}?text=${encodeURIComponent(applyBookingMessage(getBookingMessages().confirmed,b))}"><span class="sheet-icon whatsapp-icon" aria-hidden="true">●</span><span>Enviar confirmação</span></a>`;
   const cancelBtn=`<div class="sheet-divider"></div><button class="sheet-action cancel" id="detail-cancel"><span class="sheet-icon">✕</span><span>Cancelar agendamento</span></button>`;
   let regularActions;
   if(st==="confirmed")regularActions=editBtn+transferBtn+waBtn+`<button class="sheet-action" id="detail-attended"><span class="sheet-icon">✂</span><span>Atendido</span></button><button class="sheet-action pay" id="detail-pay-c"><span class="sheet-icon">$</span><span>${payLabel}</span></button><button class="sheet-action" id="detail-noshow"><span class="sheet-icon">⊘</span><span>Não compareceu / faltou</span></button>`+cancelBtn;
