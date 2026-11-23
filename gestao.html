@@ -2276,6 +2276,7 @@ async function loadBookingPkgs(){
  refreshPkgUI();refreshBookingTotals(true);
 }
 async function redeemBookingPackage(b){
+ try{const fr=(await api(`bookings?select=services&id=eq.${encodeURIComponent(b.id)}`))[0];if(fr&&Array.isArray(fr.services))b={...b,services:fr.services}}catch(e){}
  const sv=(Array.isArray(b.services)?b.services:[]).filter(x=>x&&x.pkg&&Number(x.pkgQty)>0);if(!sv.length)return;
  const touched=new Set();
  for(const x of sv){
@@ -2299,6 +2300,7 @@ async function redeemBookingPackage(b){
   if(its.every(i=>Number(i.quantity_remaining)<=0))patch.status="used";
   if(Object.keys(patch).length)await api(`client_packages?id=eq.${cpid}`,{method:"PATCH",body:JSON.stringify(patch)});
  }
+ await reconcileBookingPackage(b.id,b.services);
 }
 async function reconcileBookingPackage(id,services){
  try{
