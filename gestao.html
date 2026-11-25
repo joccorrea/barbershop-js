@@ -3340,6 +3340,29 @@ function scr(){if(!tg||!tg.closest)return null;if(tg.closest("input,textarea,sel
 document.addEventListener("touchmove",function(e){var s=scr();if(!s||!e.touches.length)return;var x=e.touches[0].clientX-sx,y=e.touches[0].clientY-sy;if(!ax&&Math.max(Math.abs(x),Math.abs(y))>6)ax=Math.abs(x)>=Math.abs(y)?"x":"y";if(ax==="x"&&x>0){on=true;dx=x;s.style.transition="none";s.style.transform="translate3d("+x+"px,0,0)";e.preventDefault()}},{passive:false});
 document.addEventListener("touchend",function(){var s=scr();if(s&&on){var go=dx>window.innerWidth*.28;s.style.transition="transform .2s ease";s.style.transform=go?"translate3d(105%,0,0)":"translate3d(0,0,0)";if(go){setTimeout(function(){var b=s.querySelector(".pay-back");try{if(b)b.click()}finally{s.style.transition="";s.style.transform=""}},200)}else setTimeout(function(){s.style.transition="";s.style.transform=""},210)}tg=null;on=false;ax=null;dx=0},{passive:true});
 })();
+
+(function(){
+ var SEL=".booking-screen input[type=time],.pay-screen input[type=time]",moved=false,sx=0,sy=0;
+ function find(t){return t&&t.closest?t.closest(SEL.split(",")[0]+","+SEL.split(",")[1]):null}
+ function isDark(){try{var c=getComputedStyle(document.body).backgroundColor.match(/\d+/g).map(Number);return (c[0]*299+c[1]*587+c[2]*114)/1000<128}catch(e){return true}}
+ function open(inp){
+  if(document.getElementById("t30-scrim"))return;
+  var cur=inp.value||"",opts=[];for(var m=0;m<1440;m+=30){opts.push(String(Math.floor(m/60)).padStart(2,"0")+":"+(m%60?"30":"00"))}
+  if(cur&&opts.indexOf(cur)<0){opts.push(cur);opts.sort()}
+  var d=isDark(),sc=document.createElement("div");sc.id="t30-scrim";sc.className="t30-scrim"+(d?"":" t30-light");
+  sc.innerHTML='<div class="t30-sheet"><div class="t30-h"><b>Escolha o horário</b><button type="button" class="t30-x" aria-label="Fechar">✕</button></div><div class="t30-grid">'+opts.map(function(o){return '<button type="button" class="t30-o'+(o===cur?" on":"")+'" data-t="'+o+'">'+o+'</button>'}).join("")+'</div></div>';
+  document.body.appendChild(sc);
+  var on=sc.querySelector(".t30-o.on")||sc.querySelector('[data-t="09:00"]'),g=sc.querySelector(".t30-grid");
+  if(on&&g)g.scrollTop=Math.max(0,on.offsetTop-g.offsetTop-70);
+  function close(){sc.classList.add("out");setTimeout(function(){sc.remove()},180)}
+  sc.addEventListener("click",function(e){if(e.target===sc||e.target.closest(".t30-x")){close();return}var b=e.target.closest(".t30-o");if(!b)return;inp.value=b.dataset.t;["input","change"].forEach(function(n){inp.dispatchEvent(new Event(n,{bubbles:true}))});close()});
+ }
+ document.addEventListener("touchstart",function(e){var t=e.touches[0];sx=t.clientX;sy=t.clientY;moved=false},{passive:true,capture:true});
+ document.addEventListener("touchmove",function(e){var t=e.touches[0];if(Math.abs(t.clientX-sx)>8||Math.abs(t.clientY-sy)>8)moved=true},{passive:true,capture:true});
+ document.addEventListener("touchend",function(e){var i=find(e.target);if(!i)return;if(!moved){e.preventDefault();i.blur();open(i)}},{passive:false,capture:true});
+ document.addEventListener("click",function(e){var i=find(e.target);if(!i)return;e.preventDefault();e.stopPropagation();i.blur();open(i)},true);
+ document.addEventListener("focus",function(e){var i=find(e.target);if(i)i.blur()},true);
+})();
 </script>
 </body></html>
 <style>
@@ -4274,5 +4297,22 @@ html #app .booking-screen>h2.section-title:first-child,html #app .booking-screen
 html #app .booking-screen .client-card-compact{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;-webkit-backdrop-filter:none;backdrop-filter:none}
 html #app .booking-screen .client-card-compact .client-select-btn{width:100%;box-shadow:0 8px 22px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.12)!important}
 .swipe-back-underlay{box-sizing:border-box!important;padding:84px 12px 110px!important;padding-left:max(12px,calc((100vw - 820px)/2 + 12px))!important;padding-right:max(12px,calc((100vw - 820px)/2 + 12px))!important;-webkit-overflow-scrolling:touch}
+
+/* g129 horários 00/30 */
+.t30-scrim{position:fixed;inset:0;z-index:9800;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);animation:t30in .18s ease}
+.t30-scrim.out{opacity:0;transition:opacity .18s}
+@keyframes t30in{from{opacity:0}to{opacity:1}}
+.t30-sheet{width:min(100%,520px);max-height:72vh;max-height:72dvh;display:flex;flex-direction:column;gap:10px;padding:16px 14px calc(16px + env(safe-area-inset-bottom));border-radius:28px 28px 0 0;background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.04)),rgba(26,27,31,.92);border:1px solid rgba(255,255,255,.18);border-bottom:0;color:#fff;box-shadow:0 -12px 40px rgba(0,0,0,.45);animation:t30up .22s ease}
+@keyframes t30up{from{transform:translateY(40px)}to{transform:none}}
+.t30-h{display:flex;align-items:center;justify-content:space-between;padding:0 4px}
+.t30-h b{font-size:16px;letter-spacing:.04em}
+.t30-x{all:unset;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;cursor:pointer;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);font-size:14px}
+.t30-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;position:relative;padding:2px}
+.t30-o{all:unset;box-sizing:border-box;text-align:center;padding:12px 0;border-radius:14px;cursor:pointer;font:700 15px/1 -apple-system,system-ui,sans-serif;font-variant-numeric:tabular-nums;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);-webkit-tap-highlight-color:transparent}
+.t30-o:active{transform:scale(.95)}
+.t30-o.on{background:#E9ECF2;color:#18191d;border-color:#fff}
+.t30-light .t30-sheet{background:linear-gradient(160deg,rgba(255,255,255,.95),rgba(240,244,250,.9));color:#1c2433;border-color:rgba(40,60,90,.15)}
+.t30-light .t30-x,.t30-light .t30-o{background:rgba(40,60,90,.07);border-color:rgba(40,60,90,.15);box-shadow:none}
+.t30-light .t30-o.on{background:#2B3340;color:#fff}
 </style>
 
