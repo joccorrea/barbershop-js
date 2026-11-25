@@ -3347,7 +3347,7 @@ document.addEventListener("touchend",function(){var s=scr();if(s&&on){var go=dx>
  function isDark(){try{var c=getComputedStyle(document.body).backgroundColor.match(/\d+/g).map(Number);return (c[0]*299+c[1]*587+c[2]*114)/1000<128}catch(e){return true}}
  function open(inp){
   if(document.getElementById("t30-scrim"))return;
-  var cur=inp.value||"",opts=[];for(var m=0;m<1440;m+=30){opts.push(String(Math.floor(m/60)).padStart(2,"0")+":"+(m%60?"30":"00"))}
+  var cur=inp.value||"",opts=[];var st=1;try{st=Math.max(5,Math.min(180,Number(slotStep)||30))}catch(e){st=30}for(var m=0;m<1440;m+=st){opts.push(String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"))}
   if(cur&&opts.indexOf(cur)<0){opts.push(cur);opts.sort()}
   var d=isDark(),sc=document.createElement("div");sc.id="t30-scrim";sc.className="t30-scrim"+(d?"":" t30-light");
   sc.innerHTML='<div class="t30-sheet"><div class="t30-h"><b>Escolha o horário</b><button type="button" class="t30-x" aria-label="Fechar">✕</button></div><div class="t30-grid">'+opts.map(function(o){return '<button type="button" class="t30-o'+(o===cur?" on":"")+'" data-t="'+o+'">'+o+'</button>'}).join("")+'</div></div>';
