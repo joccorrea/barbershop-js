@@ -1105,24 +1105,6 @@ else{
  $('sectionViewHeader').classList.add('hidden');
 }
 $('month').value=params.get('month')||`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;$('date').value=fmtDate(now);session=getSession();if(!session){msg('Sessão não encontrada. Entre na gestão e abra o Financeiro pelo menu.',true)}else{try{const p=await api('finance_user_permissions?select=*&user_id=eq.'+encodeURIComponent(uid()||''));me=p?.[0]||null;canEdit=true;await load();const bookingId=params.get('booking');if(bookingId){const selected=bookings.find(x=>String(x.id)===bookingId);if(!selected){msg('Agendamento não encontrado no mês selecionado. Verifique a data e tente novamente.',true)}else if(closures.some(c=>String(c.booking_id)===bookingId)){msg('Este atendimento já possui fechamento financeiro. Confira o histórico antes de alterar algo.')}else{await openClosure(bookingId)}}}catch(e){msg(e.message,true)}}
-})();
-</script><script>["gesturestart","gesturechange","gestureend"].forEach(function(t){document.addEventListener(t,function(e){e.preventDefault()},{passive:false})});document.addEventListener("touchmove",function(e){if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});</script>
-<script>
-(function(){
- var RB=/^(voltar|cancelar|fechar|voltar à agenda)$/i,RS=/^(salvar\b.*|gravar|confirmar venda.*)$/i,RD=/^excluir$/i,RP=/^[＋+]$/;
- function cls(b){if(b.dataset.bb||b.classList.contains("mini")||b.closest(".pay-foot,.pay-head,.pay-picker"))return null;var t=(b.textContent||"").trim();if(!t||t.length>40)return null;if(RP.test(t)&&(b.getAttribute("aria-label")||b.title))return"plus";return RS.test(t)?"save":RB.test(t)?"back":RD.test(t)?"del":null}
- function run(){
-  var hit=[];
-  [].slice.call(document.querySelectorAll("button:not([data-bb])")).forEach(function(b){var k=cls(b);if(k){b.dataset.bb=k;b.classList.add("bb-btn","bb-"+k);if(k!=="plus"){var t=(b.textContent||"").trim();b.setAttribute("aria-label",t);b.title=t;hit.push(b)}}});
-  hit.forEach(function(b){
-   if(b.parentElement&&b.parentElement.classList.contains("bb-row"))return;
-   var P=b.parentElement,row=document.createElement("div");row.className="bb-row";P.insertBefore(row,b);
-   var n=b;while(n){var nx=n.nextElementSibling;if(n.dataset&&n.dataset.bb&&n.dataset.bb!=="plus"&&n.tagName==="BUTTON"){row.appendChild(n);n=nx}else break}
-  });
- }
- var q=0;function sched(){if(q)return;q=requestAnimationFrame(function(){q=0;run()})}
- new MutationObserver(sched).observe(document.documentElement,{childList:true,subtree:true});run();
-})();
 
 document.addEventListener('click',function(e){
  const cd=e.target.closest('#cardDue');
@@ -1142,5 +1124,25 @@ async function dueDetail(r){
  +(m.notes?`<div class="td-row"><span>Obs.</span><b>${esc(m.notes)}</b></div>`:'')
  +(m.booking_id?`<button type="button" class="td-bub" data-duego="${esc(m.booking_id)}" style="justify-content:center;font-weight:800">Abrir atendimento no dia</button>`:''));
 }
+
+})();
+</script><script>["gesturestart","gesturechange","gestureend"].forEach(function(t){document.addEventListener(t,function(e){e.preventDefault()},{passive:false})});document.addEventListener("touchmove",function(e){if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});</script>
+<script>
+(function(){
+ var RB=/^(voltar|cancelar|fechar|voltar à agenda)$/i,RS=/^(salvar\b.*|gravar|confirmar venda.*)$/i,RD=/^excluir$/i,RP=/^[＋+]$/;
+ function cls(b){if(b.dataset.bb||b.classList.contains("mini")||b.closest(".pay-foot,.pay-head,.pay-picker"))return null;var t=(b.textContent||"").trim();if(!t||t.length>40)return null;if(RP.test(t)&&(b.getAttribute("aria-label")||b.title))return"plus";return RS.test(t)?"save":RB.test(t)?"back":RD.test(t)?"del":null}
+ function run(){
+  var hit=[];
+  [].slice.call(document.querySelectorAll("button:not([data-bb])")).forEach(function(b){var k=cls(b);if(k){b.dataset.bb=k;b.classList.add("bb-btn","bb-"+k);if(k!=="plus"){var t=(b.textContent||"").trim();b.setAttribute("aria-label",t);b.title=t;hit.push(b)}}});
+  hit.forEach(function(b){
+   if(b.parentElement&&b.parentElement.classList.contains("bb-row"))return;
+   var P=b.parentElement,row=document.createElement("div");row.className="bb-row";P.insertBefore(row,b);
+   var n=b;while(n){var nx=n.nextElementSibling;if(n.dataset&&n.dataset.bb&&n.dataset.bb!=="plus"&&n.tagName==="BUTTON"){row.appendChild(n);n=nx}else break}
+  });
+ }
+ var q=0;function sched(){if(q)return;q=requestAnimationFrame(function(){q=0;run()})}
+ new MutationObserver(sched).observe(document.documentElement,{childList:true,subtree:true});run();
+})();
+
 </script>
 </body></html>
